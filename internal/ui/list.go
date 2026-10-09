@@ -7,8 +7,8 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/dataGriff/api-caller/internal/httpfile"
-	"github.com/dataGriff/api-caller/internal/output"
+	"github.com/hungovercoders/apic/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/output"
 )
 
 // item is one row of the left pane: a file heading (req == nil) or a request.

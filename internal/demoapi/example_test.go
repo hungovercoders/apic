@@ -5,9 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/dataGriff/api-caller/internal/bdd"
-	"github.com/dataGriff/api-caller/internal/project"
-	"github.com/dataGriff/api-caller/internal/runner"
+	"github.com/hungovercoders/apic/internal/bdd"
+	"github.com/hungovercoders/apic/internal/project"
+	"github.com/hungovercoders/apic/internal/runner"
 )
 
 // TestExamplesSuite runs every request in project/ as one flow against a

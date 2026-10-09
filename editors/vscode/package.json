@@ -7,12 +7,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/dataGriff/api-caller.git",
+    "url": "https://github.com/hungovercoders/apic.git",
     "directory": "editors/vscode"
   },
-  "homepage": "https://datagriff.github.io/api-caller/editors/",
+  "homepage": "https://hungovercoders.github.io/apic/editors/",
   "bugs": {
-    "url": "https://github.com/dataGriff/api-caller/issues"
+    "url": "https://github.com/hungovercoders/apic/issues"
   },
   "engines": {
     "vscode": "^1.136.0"
@@ -387,7 +387,7 @@
     "viewsWelcome": [
       {
         "view": "apic.requests",
-        "contents": "No request files yet. Open a folder with `.http` files, or scaffold one:\n[Run apic init in a terminal](command:workbench.action.terminal.new)\n\n[Learn the format](https://datagriff.github.io/api-caller/format/)"
+        "contents": "No request files yet. Open a folder with `.http` files, or scaffold one:\n[Run apic init in a terminal](command:workbench.action.terminal.new)\n\n[Learn the format](https://hungovercoders.github.io/apic/format/)"
       }
     ],
     "jsonValidation": [

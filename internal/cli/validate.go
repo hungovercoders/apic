@@ -11,9 +11,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/dataGriff/api-caller/internal/httpfile"
-	"github.com/dataGriff/api-caller/internal/project"
-	"github.com/dataGriff/api-caller/internal/runner"
+	"github.com/hungovercoders/apic/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/project"
+	"github.com/hungovercoders/apic/internal/runner"
 )
 
 func (a *App) validateCmd() *cobra.Command {
@@ -195,7 +195,7 @@ func sarifReport(diags []httpfile.Diagnostic) map[string]any {
 		rules = append(rules, map[string]any{
 			"id":               c,
 			"shortDescription": map[string]string{"text": httpfile.Codes[c]},
-			"helpUri":          "https://datagriff.github.io/api-caller/cli/#apic-validate",
+			"helpUri":          "https://hungovercoders.github.io/apic/cli/#apic-validate",
 		})
 	}
 	if rules == nil {
@@ -242,7 +242,7 @@ func sarifReport(diags []httpfile.Diagnostic) map[string]any {
 			"tool": map[string]any{"driver": map[string]any{
 				"name":           "apic",
 				"version":        Version,
-				"informationUri": "https://datagriff.github.io/api-caller/",
+				"informationUri": "https://hungovercoders.github.io/apic/",
 				"rules":          rules,
 			}},
 			"results": results,

@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/dataGriff/api-caller/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/httpfile"
 )
 
 // Request is what a curl command line asked for.

@@ -19,13 +19,13 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/termenv"
 
-	"github.com/dataGriff/api-caller/internal/demoapi"
-	"github.com/dataGriff/api-caller/internal/httpfile"
-	"github.com/dataGriff/api-caller/internal/output"
-	"github.com/dataGriff/api-caller/internal/project"
-	"github.com/dataGriff/api-caller/internal/runner"
-	"github.com/dataGriff/api-caller/internal/session"
-	"github.com/dataGriff/api-caller/internal/ui"
+	"github.com/hungovercoders/apic/internal/demoapi"
+	"github.com/hungovercoders/apic/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/output"
+	"github.com/hungovercoders/apic/internal/project"
+	"github.com/hungovercoders/apic/internal/runner"
+	"github.com/hungovercoders/apic/internal/session"
+	"github.com/hungovercoders/apic/internal/ui"
 )
 
 // demoPort is the port the screenshots show. It only has to be free on the

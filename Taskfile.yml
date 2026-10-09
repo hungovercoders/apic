@@ -5,7 +5,7 @@ vars:
   BIN: bin/apic
   VERSION:
     sh: git describe --tags --always --dirty 2>/dev/null || echo dev
-  LDFLAGS: -s -w -X github.com/dataGriff/api-caller/internal/cli.Version={{.VERSION}}
+  LDFLAGS: -s -w -X github.com/hungovercoders/apic/internal/cli.Version={{.VERSION}}
 
 tasks:
   default:

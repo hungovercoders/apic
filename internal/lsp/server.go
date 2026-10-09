@@ -14,10 +14,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dataGriff/api-caller/internal/env"
-	"github.com/dataGriff/api-caller/internal/httpfile"
-	"github.com/dataGriff/api-caller/internal/project"
-	"github.com/dataGriff/api-caller/internal/runner"
+	"github.com/hungovercoders/apic/internal/env"
+	"github.com/hungovercoders/apic/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/project"
+	"github.com/hungovercoders/apic/internal/runner"
 )
 
 // Options configures a server.
@@ -677,7 +677,7 @@ func (s *server) toDiagnostic(ls []string, d httpfile.Diagnostic) diagnostic {
 		out.Severity = severityWarning
 	}
 	if d.Code != "" {
-		out.CodeDescription = &codeDescription{Href: "https://datagriff.github.io/api-caller/cli/#apic-validate"}
+		out.CodeDescription = &codeDescription{Href: "https://hungovercoders.github.io/apic/cli/#apic-validate"}
 	}
 	if d.Line <= 0 {
 		return out

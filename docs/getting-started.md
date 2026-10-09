@@ -6,16 +6,28 @@ same files to an AI agent. It takes about ten minutes.
 
 ## 1. Install
 
+=== "Homebrew"
+
+    ```sh
+    brew install hungovercoders/tap/apic
+    ```
+
+    macOS and Linux. The tap is [hungovercoders/homebrew-tap](https://github.com/hungovercoders/homebrew-tap);
+    the cask installs the binary, the man pages and shell completions, and
+    `brew upgrade` follows releases.
+
 === "Go"
 
     ```sh
-    go install github.com/dataGriff/api-caller/cmd/apic@latest   # Go 1.25 or newer
+    go install github.com/hungovercoders/apic/cmd/apic@latest   # Go 1.25 or newer
     ```
 
 === "Linux / macOS"
 
+    Without Homebrew:
+
     ```sh
-    curl -fsSL https://raw.githubusercontent.com/dataGriff/api-caller/main/install.sh | sh
+    curl -fsSL https://raw.githubusercontent.com/hungovercoders/apic/main/install.sh | sh
     ```
 
     `APIC_VERSION=v1.2.3` pins a version, `APIC_INSTALL_DIR=~/bin` chooses
@@ -29,7 +41,7 @@ same files to an AI agent. It takes about ten minutes.
     ```sh
     V=0.1.2   # the release, without the v
     A=amd64   # or arm64
-    BASE=https://github.com/dataGriff/api-caller/releases/download/v$V
+    BASE=https://github.com/hungovercoders/apic/releases/download/v$V
 
     curl -fsSLO "$BASE/apic_${V}_linux_${A}.deb" && sudo dpkg -i "apic_${V}_linux_${A}.deb"   # Debian, Ubuntu
     curl -fsSLO "$BASE/apic_${V}_linux_${A}.rpm" && sudo rpm -i "apic_${V}_linux_${A}.rpm"    # Fedora, RHEL
@@ -44,20 +56,20 @@ same files to an AI agent. It takes about ten minutes.
 === "Windows"
 
     ```powershell
-    irm https://raw.githubusercontent.com/dataGriff/api-caller/main/install.ps1 | iex
+    irm https://raw.githubusercontent.com/hungovercoders/apic/main/install.ps1 | iex
     ```
 
     It installs `apic.exe` into `%LOCALAPPDATA%\Programs\apic`, verifies
     the release checksum, and adds the directory to your user `PATH`.
     `$env:APIC_VERSION = "v1.2.3"` pins a version, `$env:APIC_INSTALL_DIR`
     chooses the directory and `$env:APIC_NO_MODIFY_PATH = "1"` leaves `PATH`
-    alone. The zip is also on [GitHub Releases](https://github.com/dataGriff/api-caller/releases)
+    alone. The zip is also on [GitHub Releases](https://github.com/hungovercoders/apic/releases)
     to install by hand.
 
 === "Docker"
 
     ```sh
-    docker run --rm -v "$PWD:/work" ghcr.io/datagriff/apic version
+    docker run --rm -v "$PWD:/work" ghcr.io/hungovercoders/apic version
     ```
 
     The image is the binary on `scratch`, about 7 MB, for amd64 and arm64.
@@ -281,7 +293,7 @@ Exit codes make apic safe in `set -e` scripts and CI steps:
 
 ```yaml
 # .github/workflows/smoke.yml
-- uses: dataGriff/api-caller/setup-apic@v0
+- uses: hungovercoders/apic/setup-apic@v0
 - run: apic validate -C api --format github
 - run: apic run auth.http users.http -C api --env staging --json --redact
   env:
@@ -292,9 +304,9 @@ The `setup-apic` action installs the latest release (or `with: version:
 v0.1.2` to pin one), verifies it against the published checksums, caches
 it and puts it on `PATH`, on Linux, macOS and Windows runners. On any
 other CI system, `curl -fsSL
-https://raw.githubusercontent.com/dataGriff/api-caller/main/install.sh | sh`
+https://raw.githubusercontent.com/hungovercoders/apic/main/install.sh | sh`
 does the same job, and where tools come as images there is
-[`ghcr.io/datagriff/apic`](cookbook.md#in-a-container). `--format github` turns each validation problem into
+[`ghcr.io/hungovercoders/apic`](cookbook.md#in-a-container). `--format github` turns each validation problem into
 an annotation on the pull request at the right line.
 
 `APIC_VAR_<name>` environment variables override values from the env files,

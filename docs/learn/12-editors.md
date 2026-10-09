@@ -45,7 +45,7 @@ Three things worth noticing while you are there:
 ### 2. The apic extension
 
 Install **apic** from the Marketplace or Open VSX (search for `apic`), or
-from the `.vsix` on the [releases page](https://github.com/dataGriff/api-caller/releases?q=vscode).
+from the `.vsix` on the [releases page](https://github.com/hungovercoders/apic/releases?q=vscode).
 It does not replace REST Client; it layers on top, and the two lenses sit
 side by side above every request:
 
@@ -218,7 +218,7 @@ demo project with two requests: `health`, and `me` with `# @ref login` and
 - [Structure](../format.md#structure) in the format guide, where the
   `> {% %}` blocks are described, and the [comparison](../comparison.md)
   with the editors' own features
-- The extension's own [README](https://github.com/dataGriff/api-caller/tree/main/editors/vscode)
+- The extension's own [README](https://github.com/hungovercoders/apic/tree/main/editors/vscode)
   for every setting
 
 ??? note "Episode script"

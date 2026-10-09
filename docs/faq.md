@@ -146,14 +146,14 @@ piping to a file gives clean text with no escape codes.
 Yes:
 
 ```sh
-APIC_VERSION=v1.2.3 curl -fsSL https://raw.githubusercontent.com/dataGriff/api-caller/main/install.sh | sh
+APIC_VERSION=v1.2.3 curl -fsSL https://raw.githubusercontent.com/hungovercoders/apic/main/install.sh | sh
 APIC_INSTALL_DIR=~/bin curl -fsSL ... | sh
 ```
 
 On Windows, the same variables for `install.ps1`:
 
 ```powershell
-$env:APIC_VERSION = "v1.2.3"; irm https://raw.githubusercontent.com/dataGriff/api-caller/main/install.ps1 | iex
+$env:APIC_VERSION = "v1.2.3"; irm https://raw.githubusercontent.com/hungovercoders/apic/main/install.ps1 | iex
 ```
 
 Both installers download the release archive for your platform, verify it

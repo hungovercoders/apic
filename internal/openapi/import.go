@@ -15,7 +15,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/dataGriff/api-caller/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/httpfile"
 )
 
 // Result summarises what was generated.

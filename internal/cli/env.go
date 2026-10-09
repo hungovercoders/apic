@@ -8,8 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/dataGriff/api-caller/internal/output"
-	"github.com/dataGriff/api-caller/internal/runner"
+	"github.com/hungovercoders/apic/internal/output"
+	"github.com/hungovercoders/apic/internal/runner"
 )
 
 func (a *App) envCmd() *cobra.Command {

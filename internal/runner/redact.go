@@ -3,7 +3,7 @@ package runner
 import (
 	"strings"
 
-	"github.com/dataGriff/api-caller/internal/assert"
+	"github.com/hungovercoders/apic/internal/assert"
 )
 
 // This file holds the response half of redaction. The request half

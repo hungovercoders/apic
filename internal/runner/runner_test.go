@@ -12,9 +12,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dataGriff/api-caller/internal/assert"
-	"github.com/dataGriff/api-caller/internal/httpfile"
-	"github.com/dataGriff/api-caller/internal/project"
+	"github.com/hungovercoders/apic/internal/assert"
+	"github.com/hungovercoders/apic/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/project"
 )
 
 func testServer(t *testing.T) *httptest.Server {

@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/dataGriff/api-caller/internal/runner"
+	"github.com/hungovercoders/apic/internal/runner"
 )
 
 // JSON writes one result as a single JSON line. The results of requests

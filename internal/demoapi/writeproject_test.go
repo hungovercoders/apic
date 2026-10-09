@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dataGriff/api-caller/internal/project"
+	"github.com/hungovercoders/apic/internal/project"
 )
 
 func TestWriteProject(t *testing.T) {

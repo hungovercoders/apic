@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dataGriff/api-caller/internal/project"
+	"github.com/hungovercoders/apic/internal/project"
 )
 
 func mustRead(t *testing.T, path string) string {

@@ -67,7 +67,7 @@ type Entry struct {
 
 // DocsURL is where docs/errors.md is published; an entry's anchor is its
 // code in lower case.
-const DocsURL = "https://datagriff.github.io/api-caller/errors/"
+const DocsURL = "https://hungovercoders.github.io/apic/errors/"
 
 // URL is the entry's address on the documentation site.
 func (c Code) URL() string { return DocsURL + "#" + strings.ToLower(string(c)) }

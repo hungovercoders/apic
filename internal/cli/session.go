@@ -11,10 +11,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/dataGriff/api-caller/internal/auth"
-	"github.com/dataGriff/api-caller/internal/output"
-	"github.com/dataGriff/api-caller/internal/runner"
-	"github.com/dataGriff/api-caller/internal/session"
+	"github.com/hungovercoders/apic/internal/auth"
+	"github.com/hungovercoders/apic/internal/output"
+	"github.com/hungovercoders/apic/internal/runner"
+	"github.com/hungovercoders/apic/internal/session"
 )
 
 func (a *App) sessionCmd() *cobra.Command {

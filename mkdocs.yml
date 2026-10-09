@@ -1,8 +1,8 @@
 site_name: apic
 site_description: apic is epic — run .http request files from the terminal, CI or an AI agent, on any platform.
-site_url: https://datagriff.github.io/api-caller/
-repo_url: https://github.com/dataGriff/api-caller
-repo_name: dataGriff/api-caller
+site_url: https://hungovercoders.github.io/apic/
+repo_url: https://github.com/hungovercoders/apic
+repo_name: hungovercoders/apic
 edit_uri: edit/main/docs/
 docs_dir: docs
 strict: true

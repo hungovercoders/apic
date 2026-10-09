@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/dataGriff/api-caller/internal/session"
+	"github.com/hungovercoders/apic/internal/session"
 )
 
 // A JetBrains project's {{$auth.token("name")}} runs the Security.Auth

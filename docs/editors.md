@@ -48,7 +48,7 @@ Two extensions, and they cooperate:
 
 Install it from the Marketplace or Open VSX (search for **apic**), or
 from the `.vsix` attached to a `vscode-v*` entry on the
-[releases page](https://github.com/dataGriff/api-caller/releases?q=vscode):
+[releases page](https://github.com/hungovercoders/apic/releases?q=vscode):
 
 ```sh
 code --install-extension apic-<version>.vsix

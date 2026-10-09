@@ -2,7 +2,7 @@ name: Setup apic
 description: >-
   Install a pinned apic release, verified against its published checksums,
   cache it, and add it to PATH. Works on Linux, macOS and Windows runners.
-author: dataGriff
+author: hungovercoders
 branding:
   icon: send
   color: purple
@@ -40,7 +40,7 @@ runs:
         GH_TOKEN: ${{ inputs.token }}
       run: |
         set -eu
-        repo=dataGriff/api-caller
+        repo=hungovercoders/apic
         version="$INPUT_VERSION"
         if [ -z "$version" ] || [ "$version" = latest ]; then
           auth=""
@@ -89,7 +89,7 @@ runs:
         DIR: ${{ steps.resolve.outputs.dir }}
       run: |
         set -eu
-        base="https://github.com/dataGriff/api-caller/releases/download/$VERSION"
+        base="https://github.com/hungovercoders/apic/releases/download/$VERSION"
         name="apic_${NUMBER}_${OS}_${ARCH}.tar.gz"
         tmp=$(mktemp -d)
         trap 'rm -rf "$tmp"' EXIT
@@ -117,7 +117,7 @@ runs:
         DIR: ${{ steps.resolve.outputs.dir }}
       run: |
         $ErrorActionPreference = 'Stop'
-        $base = "https://github.com/dataGriff/api-caller/releases/download/$env:VERSION"
+        $base = "https://github.com/hungovercoders/apic/releases/download/$env:VERSION"
         $name = "apic_$($env:NUMBER)_windows_$($env:ARCH).zip"
         $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("setup-apic-" + [System.Guid]::NewGuid())
         New-Item -ItemType Directory -Path $tmp | Out-Null

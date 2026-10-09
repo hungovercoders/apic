@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dataGriff/api-caller/internal/project"
+	"github.com/hungovercoders/apic/internal/project"
 )
 
 // The built-ins, with the clock pinned: REST Client's offsets and

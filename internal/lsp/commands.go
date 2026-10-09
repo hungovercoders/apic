@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dataGriff/api-caller/internal/httpfile"
-	"github.com/dataGriff/api-caller/internal/output"
-	"github.com/dataGriff/api-caller/internal/runner"
-	"github.com/dataGriff/api-caller/internal/snippet"
+	"github.com/hungovercoders/apic/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/output"
+	"github.com/hungovercoders/apic/internal/runner"
+	"github.com/hungovercoders/apic/internal/snippet"
 )
 
 // codeLenses puts Run, Describe and curl above every request, as commands

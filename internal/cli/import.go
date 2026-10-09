@@ -10,11 +10,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/dataGriff/api-caller/internal/curlimport"
-	"github.com/dataGriff/api-caller/internal/httpfile"
-	"github.com/dataGriff/api-caller/internal/openapi"
-	"github.com/dataGriff/api-caller/internal/postman"
-	"github.com/dataGriff/api-caller/internal/runner"
+	"github.com/hungovercoders/apic/internal/curlimport"
+	"github.com/hungovercoders/apic/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/openapi"
+	"github.com/hungovercoders/apic/internal/postman"
+	"github.com/hungovercoders/apic/internal/runner"
 )
 
 func (a *App) importCmd() *cobra.Command {

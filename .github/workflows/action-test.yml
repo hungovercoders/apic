@@ -1,7 +1,7 @@
 name: setup-apic
 # Exercises the composite action in setup-apic/ against the latest release
 # on every runner OS, so a change to the action or to the archive naming
-# cannot break `uses: dataGriff/api-caller/setup-apic@v0` unnoticed.
+# cannot break `uses: hungovercoders/apic/setup-apic@v0` unnoticed.
 on:
   pull_request:
     paths: [setup-apic/**, install.sh, install.ps1, .github/workflows/action-test.yml]
@@ -83,7 +83,7 @@ jobs:
       - name: A release, laid out as <base>/<tag>/<file>
         run: |
           $rel = New-Item -ItemType Directory -Force mirror\v0.0.0-ci
-          go build -ldflags "-X github.com/dataGriff/api-caller/internal/cli.Version=0.0.0-ci" -o apic.exe ./cmd/apic
+          go build -ldflags "-X github.com/hungovercoders/apic/internal/cli.Version=0.0.0-ci" -o apic.exe ./cmd/apic
           Compress-Archive -Path apic.exe, README.md, LICENSE -DestinationPath "$rel\apic_0.0.0-ci_windows_amd64.zip"
           $hash = (Get-FileHash -Algorithm SHA256 "$rel\apic_0.0.0-ci_windows_amd64.zip").Hash.ToLower()
           Set-Content -LiteralPath "$rel\checksums.txt" -Value "$hash  apic_0.0.0-ci_windows_amd64.zip" -NoNewline

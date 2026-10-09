@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dataGriff/api-caller/internal/session"
+	"github.com/hungovercoders/apic/internal/session"
 )
 
 func TestHistoryRecordsEachRequestARefRan(t *testing.T) {

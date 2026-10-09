@@ -23,12 +23,12 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 
-	"github.com/dataGriff/api-caller/internal/project"
+	"github.com/hungovercoders/apic/internal/project"
 )
 
 const (
 	draft   = "https://json-schema.org/draft/2020-12/schema"
-	baseURL = "https://datagriff.github.io/api-caller/schemas/"
+	baseURL = "https://hungovercoders.github.io/apic/schemas/"
 )
 
 // descriptions documents every key of apic.yaml by its dotted path. The

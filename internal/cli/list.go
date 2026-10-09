@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/dataGriff/api-caller/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/httpfile"
 )
 
 type listEntry struct {

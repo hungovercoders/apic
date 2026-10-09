@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dataGriff/api-caller/internal/history"
+	"github.com/hungovercoders/apic/internal/history"
 )
 
 // client drives a server over in-memory pipes, as an editor would.

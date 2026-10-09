@@ -10,9 +10,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/dataGriff/api-caller/internal/demoapi"
-	"github.com/dataGriff/api-caller/internal/runner"
-	"github.com/dataGriff/api-caller/internal/ui"
+	"github.com/hungovercoders/apic/internal/demoapi"
+	"github.com/hungovercoders/apic/internal/runner"
+	"github.com/hungovercoders/apic/internal/ui"
 )
 
 func (a *App) uiCmd() *cobra.Command {

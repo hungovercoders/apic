@@ -14,11 +14,11 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/termenv"
 
-	"github.com/dataGriff/api-caller/internal/demoapi"
-	"github.com/dataGriff/api-caller/internal/output"
-	"github.com/dataGriff/api-caller/internal/project"
-	"github.com/dataGriff/api-caller/internal/runner"
-	"github.com/dataGriff/api-caller/internal/session"
+	"github.com/hungovercoders/apic/internal/demoapi"
+	"github.com/hungovercoders/apic/internal/output"
+	"github.com/hungovercoders/apic/internal/project"
+	"github.com/hungovercoders/apic/internal/runner"
+	"github.com/hungovercoders/apic/internal/session"
 )
 
 func TestMain(m *testing.M) {

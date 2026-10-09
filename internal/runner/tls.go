@@ -10,8 +10,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/dataGriff/api-caller/internal/httpfile"
-	"github.com/dataGriff/api-caller/internal/project"
+	"github.com/hungovercoders/apic/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/project"
 )
 
 // tlsSettings is what applies to one host once apic.yaml's `tls:`, the

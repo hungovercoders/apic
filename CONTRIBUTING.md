@@ -14,8 +14,8 @@ You need Go (the version in `go.mod`) and, for the shortcuts below,
 [Task](https://taskfile.dev).
 
 ```sh
-git clone https://github.com/dataGriff/api-caller
-cd api-caller
+git clone https://github.com/hungovercoders/apic
+cd apic
 task build          # -> bin/apic
 task test
 ```

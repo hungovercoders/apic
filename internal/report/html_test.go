@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dataGriff/api-caller/internal/project"
-	"github.com/dataGriff/api-caller/internal/runner"
+	"github.com/hungovercoders/apic/internal/project"
+	"github.com/hungovercoders/apic/internal/runner"
 )
 
 var update = flag.Bool("update", false, "rewrite the golden files")

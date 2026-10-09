@@ -100,6 +100,31 @@ func TestManPages(t *testing.T) {
 	}
 }
 
+// The Homebrew cask names each man page it installs, so a new command
+// needs a line under manpages: in .goreleaser.yaml or brew install fails
+// on a file the archive does not have.
+func TestCaskListsEveryManPage(t *testing.T) {
+	cfg, err := os.ReadFile(filepath.Join("..", "..", ".goreleaser.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	listed := map[string]bool{}
+	for _, m := range regexp.MustCompile(`(?m)^      - man/(\S+)$`).FindAllStringSubmatch(string(cfg), -1) {
+		listed[m[1]] = true
+	}
+	pages := Man(Tree())
+	for name := range pages {
+		if !listed[name] {
+			t.Errorf(".goreleaser.yaml homebrew_casks.manpages lacks man/%s", name)
+		}
+	}
+	for name := range listed {
+		if _, ok := pages[name]; !ok {
+			t.Errorf(".goreleaser.yaml homebrew_casks.manpages lists man/%s, which no command produces", name)
+		}
+	}
+}
+
 func TestUpdate(t *testing.T) {
 	gen := Begin + "\nnew\n" + End + "\n"
 	got, err := Update("# Page\n\ntext\n", gen)

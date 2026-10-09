@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/dataGriff/api-caller/internal/project"
+	"github.com/hungovercoders/apic/internal/project"
 )
 
 func TestAuthDirectiveDefaultAndNone(t *testing.T) {

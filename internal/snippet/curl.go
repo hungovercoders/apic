@@ -4,9 +4,9 @@ import (
 	"path"
 	"strings"
 
-	"github.com/dataGriff/api-caller/internal/auth"
-	"github.com/dataGriff/api-caller/internal/httpfile"
-	"github.com/dataGriff/api-caller/internal/runner"
+	"github.com/hungovercoders/apic/internal/auth"
+	"github.com/hungovercoders/apic/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/runner"
 )
 
 // Curl returns a POSIX-shell curl command for the request. With redact set

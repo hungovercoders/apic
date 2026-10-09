@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dataGriff/api-caller/internal/project"
+	"github.com/hungovercoders/apic/internal/project"
 )
 
 // A request asserts its response's shape: types, emptiness, length and a

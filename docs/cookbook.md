@@ -118,7 +118,7 @@ This exact file ships with `apic demo`, so
 
 ```yaml
 # .github/workflows/smoke.yml
-- uses: dataGriff/api-caller/setup-apic@v0
+- uses: hungovercoders/apic/setup-apic@v0
 - run: apic validate -C api --format github
 - run: apic run auth.http smoke.http -C api --env staging --json --redact
   env:
@@ -164,14 +164,14 @@ at the exact line and column:
 
 ### In a container
 
-`ghcr.io/datagriff/apic` is the same binary on `scratch`, with the CA
+`ghcr.io/hungovercoders/apic` is the same binary on `scratch`, with the CA
 bundle it needs for TLS: about 7 MB, for amd64 and arm64, tagged with the
 version (`0.2.0` and `v0.2.0`), the minor (`v0.2`) and `latest`. Mount the
 project at `/work` and pass secrets as `APIC_VAR_*` variables:
 
 ```sh
 docker run --rm -v "$PWD/api:/work" -e APIC_VAR_password \
-  ghcr.io/datagriff/apic run auth.http smoke.http --env staging --json --redact
+  ghcr.io/hungovercoders/apic run auth.http smoke.http --env staging --json --redact
 ```
 
 - Files apic writes (`.apic/session.json`, a report) belong to root unless
@@ -188,7 +188,7 @@ There, copy the binary into the image you already use:
 
 ```dockerfile
 FROM node:22
-COPY --from=ghcr.io/datagriff/apic:v0.2 /apic /usr/local/bin/apic
+COPY --from=ghcr.io/hungovercoders/apic:v0.2 /apic /usr/local/bin/apic
 ```
 
 or run the installer in the job:
@@ -199,7 +199,7 @@ smoke:
   image: alpine:3.22
   script:
     - apk add --no-cache curl
-    - curl -fsSL https://raw.githubusercontent.com/dataGriff/api-caller/main/install.sh | sh
+    - curl -fsSL https://raw.githubusercontent.com/hungovercoders/apic/main/install.sh | sh
     - apic run auth.http smoke.http -C api --env staging --json --redact
 ```
 

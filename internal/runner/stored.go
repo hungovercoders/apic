@@ -8,9 +8,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/dataGriff/api-caller/internal/assert"
-	"github.com/dataGriff/api-caller/internal/httpfile"
-	"github.com/dataGriff/api-caller/internal/selector"
+	"github.com/hungovercoders/apic/internal/assert"
+	"github.com/hungovercoders/apic/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/selector"
 )
 
 // ParseResult reads a result back from the JSON `apic run --json` prints,

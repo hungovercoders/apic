@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dataGriff/api-caller/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/httpfile"
 )
 
 // validateProject writes a project with one warning and one error and runs

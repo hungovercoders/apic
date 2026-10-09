@@ -21,14 +21,14 @@ On a terminal, under the message:
 ```text
 error: auth.http:9: missing variable
   {{token}}: it is captured by request "login"; run `apic run login` first, or pass --var token=...
-  E101 missing variable · see https://datagriff.github.io/api-caller/errors/#e101
+  E101 missing variable · see https://hungovercoders.github.io/apic/errors/#e101
 ```
 
 With `--json`, as one object on **stderr** (stdout keeps only results, so a
 pipe into `jq` is not disturbed):
 
 ```json
-{"error":{"code":"E101","title":"missing variable","message":"auth.http:9: missing variable\n  {{token}}: it is captured by request …","hint":"Pass it with --var name=value, …","exit":2,"url":"https://datagriff.github.io/api-caller/errors/#e101"}}
+{"error":{"code":"E101","title":"missing variable","message":"auth.http:9: missing variable\n  {{token}}: it is captured by request …","hint":"Pass it with --var name=value, …","exit":2,"url":"https://hungovercoders.github.io/apic/errors/#e101"}}
 ```
 
 Over [MCP](agents.md), a failed tool call carries the same object as its

@@ -30,10 +30,10 @@ static binary. Every lesson runs against the fake API that ships inside
 apic, so you can follow along with nothing but the binary.
 
 📄 Lesson page, with every command to copy:
-https://datagriff.github.io/api-caller/learn/<NN-slug>/
+https://hungovercoders.github.io/apic/learn/<NN-slug>/
 
 ▶ Try it in 30 seconds:
-    go install github.com/dataGriff/api-caller/cmd/apic@latest
+    go install github.com/hungovercoders/apic/cmd/apic@latest
     apic ui --demo
 
 Chapters
@@ -45,9 +45,9 @@ Chapters
 <m:ss> Next lesson
 
 Links
-🏠 Docs: https://datagriff.github.io/api-caller/
-📦 Source and issues: https://github.com/dataGriff/api-caller
-📚 The whole course: https://datagriff.github.io/api-caller/learn/
+🏠 Docs: https://hungovercoders.github.io/apic/
+📦 Source and issues: https://github.com/hungovercoders/apic
+📚 The whole course: https://hungovercoders.github.io/apic/learn/
 ⬅ Previous: <link or "this is the first one">
 ➡ Next: <link or "coming soon">
 

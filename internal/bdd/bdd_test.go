@@ -16,7 +16,7 @@ import (
 
 	"github.com/cucumber/godog"
 
-	"github.com/dataGriff/api-caller/internal/project"
+	"github.com/hungovercoders/apic/internal/project"
 )
 
 func server(t *testing.T) *httptest.Server {

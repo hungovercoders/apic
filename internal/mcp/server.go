@@ -15,12 +15,12 @@ import (
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/dataGriff/api-caller/internal/bdd"
-	"github.com/dataGriff/api-caller/internal/httpfile"
-	"github.com/dataGriff/api-caller/internal/project"
-	"github.com/dataGriff/api-caller/internal/runner"
-	"github.com/dataGriff/api-caller/internal/session"
-	"github.com/dataGriff/api-caller/internal/snippet"
+	"github.com/hungovercoders/apic/internal/bdd"
+	"github.com/hungovercoders/apic/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/project"
+	"github.com/hungovercoders/apic/internal/runner"
+	"github.com/hungovercoders/apic/internal/session"
+	"github.com/hungovercoders/apic/internal/snippet"
 )
 
 // Config controls the server.

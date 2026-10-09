@@ -98,7 +98,7 @@ flowchart LR
 - `internal/demoapi`: fake in-memory API (auth, API key, a todos CRUD resource with filtering and validation, polled jobs, multipart upload, GraphQL, a CSV report, a slow route, health; the route list is on `New`) and its embedded example project (`project/`), backing the `apic demo` command and its test suite. Every route exists so a lesson or a guide has something offline to run against; keep the project's requests and `features/todos.feature` in step with it
 - `examples/`: static sample projects, each `apic validate`-checked and `apic fmt --check`-ed in CI. `httpbin` (basic/bearer auth, needs network but no keys), `github` (bearer auth against a real token), `spotify` (`oauth2` client-credentials against a real app); the last two need the reader's own credentials in their `http-client.private.env.json`
 - `editors/vscode/`: the VS Code extension, TypeScript bundled with esbuild, a thin client over the binary's `--json` contract (it never parses `.http` files itself). It injects a grammar for `# @directive` lines into the `http` language REST Client provides rather than owning the language, and bundles the JSON schemas. Released on its own `vscode-v*` tags
-- `setup-apic/`: the composite GitHub Action (`uses: dataGriff/api-caller/setup-apic@v0`) that installs a release with the same checksum verification as `install.sh`, on all three runner OSes
+- `setup-apic/`: the composite GitHub Action (`uses: hungovercoders/apic/setup-apic@v0`) that installs a release with the same checksum verification as `install.sh`, on all three runner OSes
 - `docs/`: this site (MkDocs Material). The screenshots under `assets/` are generated from real output by `scripts/shot`; the course under `learn/` is one page per lesson whose marked blocks `scripts/learncheck` runs in CI; `scripts/schemas` generates the JSON schemas for `apic.yaml`, the env files and the session file into `docs/schemas` and `editors/vscode/schemas`; `scripts/clidocs` generates the "Commands and flags" section of `cli.md` and the man pages from the command tree
 
 ## How to add things
@@ -139,5 +139,5 @@ its staleness test fails otherwise).
 
 The repository's own conventions for tests, linting, licensing and
 releasing are in
-[AGENTS.md](https://github.com/dataGriff/api-caller/blob/main/AGENTS.md)
-and [CONTRIBUTING.md](https://github.com/dataGriff/api-caller/blob/main/CONTRIBUTING.md).
+[AGENTS.md](https://github.com/hungovercoders/apic/blob/main/AGENTS.md)
+and [CONTRIBUTING.md](https://github.com/hungovercoders/apic/blob/main/CONTRIBUTING.md).

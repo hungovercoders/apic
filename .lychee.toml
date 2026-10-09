@@ -27,9 +27,10 @@ exclude = [
   '\{\{',
   # The docs site and this repository's files: a page or file added in the
   # same pull request is not published yet, and mkdocs checks the pages.
-  '^https://datagriff\.github\.io/api-caller',
-  '^https://github\.com/dataGriff/api-caller/(blob|tree|releases|issues|pull|compare)',
-  '^https://raw\.githubusercontent\.com/dataGriff/api-caller',
+  '^https://hungovercoders\.github\.io/apic',
+  '^https://github\.com/hungovercoders/apic/(blob|tree|releases|issues|pull|compare)',
+  '^https://raw\.githubusercontent\.com/hungovercoders/apic',
+  '^https://github\.com/hungovercoders/homebrew-tap',
   # The extension's own listings exist once it is published.
   '^https://marketplace\.visualstudio\.com/items\?itemName=dataGriff\.',
   '^https://open-vsx\.org/extension/dataGriff/',

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dataGriff/api-caller/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/httpfile"
 )
 
 func httpfileCodes() map[string]string { return httpfile.Codes }

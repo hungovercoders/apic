@@ -24,7 +24,7 @@ You need [cosign](https://github.com/sigstore/cosign#installation).
 
 ```sh
 VERSION=v0.1.0
-BASE="https://github.com/dataGriff/api-caller/releases/download/$VERSION"
+BASE="https://github.com/hungovercoders/apic/releases/download/$VERSION"
 
 curl -fsSLO "$BASE/checksums.txt"
 curl -fsSLO "$BASE/checksums.txt.sig"
@@ -33,7 +33,7 @@ curl -fsSLO "$BASE/checksums.txt.pem"
 cosign verify-blob checksums.txt \
   --signature checksums.txt.sig \
   --certificate checksums.txt.pem \
-  --certificate-identity-regexp '^https://github\.com/dataGriff/api-caller/\.github/workflows/release\.yml@refs/tags/' \
+  --certificate-identity-regexp '^https://github\.com/hungovercoders/apic/\.github/workflows/release\.yml@refs/tags/' \
   --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'
 ```
 
@@ -55,24 +55,24 @@ the archive — is why only one file needs signing.
 
 ## Verify the container image
 
-The image `ghcr.io/datagriff/apic` is signed by the same workflow, keyless,
+The image `ghcr.io/hungovercoders/apic` is signed by the same workflow, keyless,
 so the same two identity flags apply:
 
 ```sh
-cosign verify ghcr.io/datagriff/apic:0.1.0 \
-  --certificate-identity-regexp '^https://github\.com/dataGriff/api-caller/\.github/workflows/release\.yml@refs/tags/' \
+cosign verify ghcr.io/hungovercoders/apic:0.1.0 \
+  --certificate-identity-regexp '^https://github\.com/hungovercoders/apic/\.github/workflows/release\.yml@refs/tags/' \
   --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'
 ```
 
 cosign prints the verified signatures as JSON, and exits non-zero if there
 are none from that identity. To pin what you run to what you verified,
-use the digest it reports: `ghcr.io/datagriff/apic@sha256:…`.
+use the digest it reports: `ghcr.io/hungovercoders/apic@sha256:…`.
 
 The image also carries an SBOM attestation, which buildx attached when it
 built it:
 
 ```sh
-docker buildx imagetools inspect ghcr.io/datagriff/apic:0.1.0 --format '{{ json .SBOM }}'
+docker buildx imagetools inspect ghcr.io/hungovercoders/apic:0.1.0 --format '{{ json .SBOM }}'
 ```
 
 ## Read the SBOM
@@ -106,5 +106,5 @@ licence text of every module compiled into that binary, alongside apic's own
 ## If verification fails
 
 A checksum mismatch or a failed signature on a file you downloaded from the
-releases page is worth reporting — see [SECURITY.md](https://github.com/dataGriff/api-caller/blob/main/SECURITY.md).
+releases page is worth reporting — see [SECURITY.md](https://github.com/hungovercoders/apic/blob/main/SECURITY.md).
 Please do not open a public issue for it.

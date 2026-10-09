@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dataGriff/api-caller/internal/httpfile"
-	"github.com/dataGriff/api-caller/internal/project"
+	"github.com/hungovercoders/apic/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/project"
 )
 
 func TestImportPetstore(t *testing.T) {

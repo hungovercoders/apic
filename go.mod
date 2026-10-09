@@ -1,4 +1,4 @@
-module github.com/dataGriff/api-caller
+module github.com/hungovercoders/apic
 
 go 1.25.7
 

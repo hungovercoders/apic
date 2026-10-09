@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dataGriff/api-caller/internal/session"
+	"github.com/hungovercoders/apic/internal/session"
 )
 
 const cookieHTTP = `

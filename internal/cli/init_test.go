@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dataGriff/api-caller/internal/project"
+	"github.com/hungovercoders/apic/internal/project"
 )
 
 // TestInitGitignoresEveryCredentialFile pins that `apic init` ignores each
@@ -51,7 +51,7 @@ func TestInitPointsAtTheSchema(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasPrefix(string(data), "# yaml-language-server: $schema=https://datagriff.github.io/api-caller/schemas/apic.schema.json\n") {
+	if !strings.HasPrefix(string(data), "# yaml-language-server: $schema=https://hungovercoders.github.io/apic/schemas/apic.schema.json\n") {
 		t.Fatalf("apic.yaml should start with the schema modeline:\n%s", data)
 	}
 	p, err := project.Load(dir)

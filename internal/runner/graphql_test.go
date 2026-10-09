@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dataGriff/api-caller/internal/project"
+	"github.com/hungovercoders/apic/internal/project"
 )
 
 // A GraphQL request, in either spelling, goes out as a POST with the

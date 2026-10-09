@@ -7,10 +7,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/dataGriff/api-caller/internal/auth"
-	"github.com/dataGriff/api-caller/internal/env"
-	"github.com/dataGriff/api-caller/internal/httpfile"
-	"github.com/dataGriff/api-caller/internal/template"
+	"github.com/hungovercoders/apic/internal/auth"
+	"github.com/hungovercoders/apic/internal/env"
+	"github.com/hungovercoders/apic/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/template"
 )
 
 // reAuthBuiltin is JetBrains' {{$auth.token("name")}} and

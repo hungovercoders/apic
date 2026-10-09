@@ -14,12 +14,12 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/dataGriff/api-caller/internal/assert"
-	"github.com/dataGriff/api-caller/internal/auth"
-	"github.com/dataGriff/api-caller/internal/env"
-	"github.com/dataGriff/api-caller/internal/httpfile"
-	"github.com/dataGriff/api-caller/internal/phrase"
-	"github.com/dataGriff/api-caller/internal/selector"
+	"github.com/hungovercoders/apic/internal/assert"
+	"github.com/hungovercoders/apic/internal/auth"
+	"github.com/hungovercoders/apic/internal/env"
+	"github.com/hungovercoders/apic/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/phrase"
+	"github.com/hungovercoders/apic/internal/selector"
 )
 
 // ConfigFile is the optional per-project configuration file name.

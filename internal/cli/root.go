@@ -18,10 +18,10 @@ import (
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
 
-	"github.com/dataGriff/api-caller/internal/demoapi"
-	"github.com/dataGriff/api-caller/internal/env"
-	"github.com/dataGriff/api-caller/internal/project"
-	"github.com/dataGriff/api-caller/internal/runner"
+	"github.com/hungovercoders/apic/internal/demoapi"
+	"github.com/hungovercoders/apic/internal/env"
+	"github.com/hungovercoders/apic/internal/project"
+	"github.com/hungovercoders/apic/internal/runner"
 )
 
 // Version is set at build time via -ldflags.
@@ -231,7 +231,7 @@ func (a *App) versionCmd() *cobra.Command {
 				return a.writeJSON(info)
 			}
 			fmt.Fprintf(a.Stdout, "apic %s %s\n", theme.Accent.Render(info.Version), theme.Dim.Render(fmt.Sprintf("· %s · %s %s/%s", info.Commit, info.Go, info.OS, info.Arch)))
-			fmt.Fprintln(a.Stdout, theme.Dim.Render("apic is epic · https://datagriff.github.io/api-caller/"))
+			fmt.Fprintln(a.Stdout, theme.Dim.Render("apic is epic · https://hungovercoders.github.io/apic/"))
 			return nil
 		},
 	}

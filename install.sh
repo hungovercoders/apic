@@ -1,10 +1,10 @@
 #!/bin/sh
 # Install the latest apic release binary from GitHub.
-#   curl -fsSL https://raw.githubusercontent.com/dataGriff/api-caller/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/hungovercoders/apic/main/install.sh | sh
 # Options: APIC_VERSION=v1.2.3 to pin, APIC_INSTALL_DIR to choose the directory.
 set -eu
 
-REPO="dataGriff/api-caller"
+REPO="hungovercoders/apic"
 VERSION="${APIC_VERSION:-}"
 INSTALL_DIR="${APIC_INSTALL_DIR:-}"
 
@@ -17,7 +17,7 @@ case "$arch" in
 esac
 case "$os" in
   linux|darwin) ;;
-  *) echo "unsupported OS: $os (on Windows, run install.ps1 in PowerShell: irm https://raw.githubusercontent.com/dataGriff/api-caller/main/install.ps1 | iex)" >&2; exit 1 ;;
+  *) echo "unsupported OS: $os (on Windows, run install.ps1 in PowerShell: irm https://raw.githubusercontent.com/hungovercoders/apic/main/install.ps1 | iex)" >&2; exit 1 ;;
 esac
 
 if [ -z "$VERSION" ]; then

@@ -1,7 +1,7 @@
 # Licence
 
 apic is released under the **MIT Licence**. The full text lives in
-[`LICENSE`](https://github.com/dataGriff/api-caller/blob/main/LICENSE) in the
+[`LICENSE`](https://github.com/hungovercoders/apic/blob/main/LICENSE) in the
 repository, and a copy ships inside every release archive.
 
 In short: use it, change it, ship it inside your own products, commercial or

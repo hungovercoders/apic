@@ -9,8 +9,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/dataGriff/api-caller/internal/mcp"
-	"github.com/dataGriff/api-caller/internal/runner"
+	"github.com/hungovercoders/apic/internal/mcp"
+	"github.com/hungovercoders/apic/internal/runner"
 )
 
 func (a *App) mcpCmd() *cobra.Command {

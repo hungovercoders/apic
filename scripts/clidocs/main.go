@@ -26,7 +26,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/dataGriff/api-caller/internal/cli"
+	"github.com/hungovercoders/apic/internal/cli"
 )
 
 // The markers around the generated section of docs/cli.md.
@@ -247,7 +247,7 @@ func manPage(c *cobra.Command) string {
 	if len(see) > 0 {
 		fmt.Fprintf(&b, ".SH SEE ALSO\n%s\n", roff(strings.Join(see, ", ")))
 	}
-	b.WriteString(".PP\nhttps://datagriff.github.io/api-caller/cli/\n")
+	b.WriteString(".PP\nhttps://hungovercoders.github.io/apic/cli/\n")
 	return b.String()
 }
 

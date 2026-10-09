@@ -26,7 +26,7 @@ Requests live in `api/*.http` and are run with `apic` (install: see README).
 Exit codes: 0 ok, 1 assertion failed, 2 usage/parse/missing variable, 3 network.
 On exit 2 or 3 with --json, stderr holds one object `{"error": {"code", "message", "hint", ...}}`:
 branch on `error.code` (E101 missing variable, E201 unknown request, E301 could not connect, ...),
-not on the message; https://datagriff.github.io/api-caller/errors/ explains each code.
+not on the message; https://hungovercoders.github.io/apic/errors/ explains each code.
 Values captured with `# @capture` (like a login token) persist in `.apic/session.json`,
 so run `login` once and dependent requests will find the token. A request that declares
 `# @ref login` runs login by itself when the token is missing. If a request reports a

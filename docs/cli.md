@@ -48,14 +48,14 @@ it and where the [error catalogue](errors.md) explains it:
 ```text
 error: me.http:1: missing variable
   {{token}}: pass --var token=... or add it to http-client.env.json
-  E101 missing variable · see https://datagriff.github.io/api-caller/errors/#e101
+  E101 missing variable · see https://hungovercoders.github.io/apic/errors/#e101
 ```
 
 Under `--json` the error is instead one JSON object on stderr, so a script
 branches on `error.code` rather than the wording:
 
 ```json
-{"error":{"code":"E101","title":"missing variable","message":"me.http:1: missing variable\n  {{token}}: …","hint":"Pass it with --var name=value, …","exit":2,"url":"https://datagriff.github.io/api-caller/errors/#e101"}}
+{"error":{"code":"E101","title":"missing variable","message":"me.http:1: missing variable\n  {{token}}: …","hint":"Pass it with --var name=value, …","exit":2,"url":"https://hungovercoders.github.io/apic/errors/#e101"}}
 ```
 
 A `run` result for a request that could not be sent carries the same object
@@ -428,7 +428,7 @@ result as `apic run --json` prints it, `saved_to` from `--output`
 included, so sensitive headers are masked and a `--redact` run stores the
 redacted form. A history that cannot be written (a read-only checkout, a
 full disk) does not fail the run: the result carries a `warnings` entry
-instead. See [Security](https://github.com/dataGriff/api-caller/blob/main/SECURITY.md)
+instead. See [Security](https://github.com/hungovercoders/apic/blob/main/SECURITY.md)
 for what that leaves on disk.
 
 `history <request>` lists the entries newest first, numbered from 1, with
@@ -911,7 +911,7 @@ ids and `.http` file names, and `--env` completes the environments in
 `apic.yaml` in the project root, all keys optional:
 
 ```yaml
-# yaml-language-server: $schema=https://datagriff.github.io/api-caller/schemas/apic.schema.json
+# yaml-language-server: $schema=https://hungovercoders.github.io/apic/schemas/apic.schema.json
 env: dev        # default --env
 dir: requests   # subdirectory to scan for .http files
 timeout: 30s    # default request timeout

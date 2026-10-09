@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dataGriff/api-caller/internal/project"
+	"github.com/hungovercoders/apic/internal/project"
 )
 
 // proxyServer is an HTTP proxy that answers every absolute-URI request

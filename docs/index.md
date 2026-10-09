@@ -24,24 +24,31 @@ claude mcp add api -- apic mcp      # let an agent call the same requests as too
 
 ## 30 seconds to epic
 
+=== "Homebrew"
+
+    ```sh
+    brew install hungovercoders/tap/apic
+    apic ui --demo
+    ```
+
 === "Go"
 
     ```sh
-    go install github.com/dataGriff/api-caller/cmd/apic@latest
+    go install github.com/hungovercoders/apic/cmd/apic@latest
     apic ui --demo
     ```
 
 === "Linux / macOS"
 
     ```sh
-    curl -fsSL https://raw.githubusercontent.com/dataGriff/api-caller/main/install.sh | sh
+    curl -fsSL https://raw.githubusercontent.com/hungovercoders/apic/main/install.sh | sh
     apic ui --demo
     ```
 
 === "Windows"
 
     ```powershell
-    irm https://raw.githubusercontent.com/dataGriff/api-caller/main/install.ps1 | iex
+    irm https://raw.githubusercontent.com/hungovercoders/apic/main/install.ps1 | iex
     apic ui --demo
     ```
 
@@ -112,4 +119,4 @@ VS Code, JetBrains and Neovim still send them with one click.
 
 ## Source
 
-[github.com/dataGriff/api-caller](https://github.com/dataGriff/api-caller)
+[github.com/hungovercoders/apic](https://github.com/hungovercoders/apic)

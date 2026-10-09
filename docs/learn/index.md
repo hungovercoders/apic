@@ -46,7 +46,7 @@ lesson cannot quietly stop working when apic changes.
 
 Every lesson is written; the episode column links to the video once it
 is recorded. Each lesson is tracked in the
-[course epic](https://github.com/dataGriff/api-caller/issues/28) on GitHub.
+[course epic](https://github.com/hungovercoders/apic/issues/28) on GitHub.
 
 Start with [lesson 0](00-what-is-apic.md), or jump straight to
 [lesson 1](01-first-request.md) if you already know why you are here.
@@ -56,7 +56,7 @@ Start with [lesson 0](00-what-is-apic.md), or jump straight to
 Nothing. Lesson 1 installs apic. If you want a head start:
 
 ```sh
-go install github.com/dataGriff/api-caller/cmd/apic@latest   # or see Getting started
+go install github.com/hungovercoders/apic/cmd/apic@latest   # or see Getting started
 apic ui --demo
 ```
 

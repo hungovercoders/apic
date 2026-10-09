@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dataGriff/api-caller/internal/selector"
+	"github.com/hungovercoders/apic/internal/selector"
 )
 
 func TestParseAndEval(t *testing.T) {

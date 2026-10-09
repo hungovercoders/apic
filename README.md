@@ -6,9 +6,9 @@
 <p align="center"><strong>apic is epic</strong>: run API requests from plain <code>.http</code> files, in the terminal, in CI, or from an AI agent, on any platform, with one static binary.</p>
 
 <p align="center">
-  <a href="https://github.com/dataGriff/api-caller/actions/workflows/ci.yml"><img src="https://github.com/dataGriff/api-caller/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://datagriff.github.io/api-caller/"><img src="https://github.com/dataGriff/api-caller/actions/workflows/docs.yml/badge.svg" alt="Docs"></a>
-  <a href="https://github.com/dataGriff/api-caller/releases/latest"><img src="https://img.shields.io/github/v/release/dataGriff/api-caller?color=7c5cff&label=release" alt="Latest release"></a>
+  <a href="https://github.com/hungovercoders/apic/actions/workflows/ci.yml"><img src="https://github.com/hungovercoders/apic/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://hungovercoders.github.io/apic/"><img src="https://github.com/hungovercoders/apic/actions/workflows/docs.yml/badge.svg" alt="Docs"></a>
+  <a href="https://github.com/hungovercoders/apic/releases/latest"><img src="https://img.shields.io/github/v/release/hungovercoders/apic?color=7c5cff&label=release" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/go-1.25%2B-00ADD8" alt="Go 1.25+">
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-7c5cff" alt="MIT licence"></a>
 </p>
@@ -31,7 +31,7 @@ a small fake API in-process and opens the terminal UI on an example project
 that targets it:
 
 ```sh
-go install github.com/dataGriff/api-caller/cmd/apic@latest
+go install github.com/hungovercoders/apic/cmd/apic@latest
 apic ui --demo
 ```
 
@@ -78,27 +78,30 @@ additions are comments.
 ## Install
 
 ```sh
-# Go 1.25+
-go install github.com/dataGriff/api-caller/cmd/apic@latest
+# macOS / Linux with Homebrew: binary, man pages and completions
+brew install hungovercoders/tap/apic
 
-# Linux / macOS: downloads the release binary and verifies its checksum
-curl -fsSL https://raw.githubusercontent.com/dataGriff/api-caller/main/install.sh | sh
+# Go 1.25+
+go install github.com/hungovercoders/apic/cmd/apic@latest
+
+# Linux / macOS without Homebrew: downloads the release binary and verifies its checksum
+curl -fsSL https://raw.githubusercontent.com/hungovercoders/apic/main/install.sh | sh
 
 # Debian/Ubuntu, Fedora/RHEL, Alpine: .deb, .rpm and .apk on every release
 sudo dpkg -i apic_<version>_linux_amd64.deb
 
 # Docker: the binary on scratch, amd64 and arm64
-docker run --rm -v "$PWD:/work" ghcr.io/datagriff/apic version
+docker run --rm -v "$PWD:/work" ghcr.io/hungovercoders/apic version
 
 # Windows (PowerShell): verifies the checksum, adds apic to your user PATH
-irm https://raw.githubusercontent.com/dataGriff/api-caller/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/hungovercoders/apic/main/install.ps1 | iex
 
 # Everything else: download from GitHub Releases
 ```
 
 ```yaml
 # GitHub Actions, any runner OS: verified, cached, on PATH
-- uses: dataGriff/api-caller/setup-apic@v0
+- uses: hungovercoders/apic/setup-apic@v0
 ```
 
 `APIC_VERSION=v1.2.3` pins a version and `APIC_INSTALL_DIR=~/bin` chooses
@@ -205,7 +208,7 @@ Every error also has a stable code (`E101 missing variable`, `E301 could not con
 
 ## Documentation
 
-Published at **[datagriff.github.io/api-caller](https://datagriff.github.io/api-caller/)**.
+Published at **[hungovercoders.github.io/apic](https://hungovercoders.github.io/apic/)**.
 
 | | |
 |---|---|

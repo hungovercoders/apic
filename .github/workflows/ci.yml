@@ -187,7 +187,7 @@ jobs:
       - run: |
           mkdir -p ctx/linux/amd64
           cp Dockerfile ctx/
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X github.com/dataGriff/api-caller/internal/cli.Version=ci" -o ctx/linux/amd64/apic ./cmd/apic
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X github.com/hungovercoders/apic/internal/cli.Version=ci" -o ctx/linux/amd64/apic ./cmd/apic
           docker buildx build --load --platform linux/amd64 -t apic:ci ctx
           docker run --rm apic:ci version | grep -F "apic ci"
           # Not root, and TLS roots and /tmp are there.
@@ -224,3 +224,14 @@ jobs:
         run: docker run --rm -v "$PWD/dist:/dist:ro" alpine:3.22 sh -c 'apk add --no-network --allow-untrusted /dist/apic_*_linux_amd64.apk && apic version'
       - name: The packages are in checksums.txt
         run: test "$(grep -cE '\.(deb|rpm|apk)$' dist/checksums.txt)" -eq 6
+      # The Homebrew cask the release would push to the tap: valid Ruby,
+      # with a block for each OS and the archive's man pages and completions.
+      - name: The Homebrew cask renders
+        run: |
+          cask=dist/homebrew/Casks/apic.rb
+          ruby -c "$cask"
+          grep -q '^  on_macos do' "$cask"
+          grep -q '^  on_linux do' "$cask"
+          grep -q 'manpage "man/apic.1"' "$cask"
+          grep -q 'zsh_completion "completions/apic.zsh"' "$cask"
+          tar -tzf dist/apic_*_linux_amd64.tar.gz | grep -q '^completions/apic.zsh$'

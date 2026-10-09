@@ -16,11 +16,25 @@ jobs:
     permissions:
       contents: write # create the release and upload its assets
       id-token: write # OIDC identity for cosign keyless signing
-      packages: write # push ghcr.io/datagriff/apic
+      packages: write # push ghcr.io/hungovercoders/apic
+    # Writing the Homebrew cask to hungovercoders/homebrew-tap needs a token
+    # for that repository: GITHUB_TOKEN only reaches this one. The secret is
+    # a fine-grained PAT with contents read and write on the tap, nothing
+    # else (see AGENTS.md, Releasing).
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      # Fail before anything is built or uploaded, not at the last step
+      # with the archives already on the release.
+      - name: The Homebrew tap token is set
+        env:
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+        run: |
+          if [ -z "$HOMEBREW_TAP_GITHUB_TOKEN" ]; then
+            echo "::error::HOMEBREW_TAP_GITHUB_TOKEN is not set: add a fine-grained PAT with contents write on hungovercoders/homebrew-tap as a repository secret"
+            exit 1
+          fi
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
@@ -44,12 +58,13 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
       # The published image runs, and reports the version it was tagged with.
       - name: Smoke-test the image
         run: |
           version="${GITHUB_REF_NAME#v}"
-          docker run --rm "ghcr.io/datagriff/apic:${version}" version | grep -F "apic ${version}"
-      # `uses: dataGriff/api-caller/setup-apic@v0` follows the newest 0.x
+          docker run --rm "ghcr.io/hungovercoders/apic:${version}" version | grep -F "apic ${version}"
+      # `uses: hungovercoders/apic/setup-apic@v0` follows the newest 0.x
       # release, the way actions/checkout@v4 does: move the major tag to
       # this commit once the release is out.
       - name: Move the major tag for setup-apic

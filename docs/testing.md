@@ -197,7 +197,7 @@ passed as `APIC_VAR_*` or `--var` are treated as secrets.
 
 ```yaml
 # GitHub Actions
-- uses: dataGriff/api-caller/setup-apic@v0
+- uses: hungovercoders/apic/setup-apic@v0
 - run: apic test -C api --env staging --format junit --output report.xml --redact
   env:
     APIC_VAR_password: ${{ secrets.API_PASSWORD }}

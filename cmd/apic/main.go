@@ -4,7 +4,7 @@ package main
 import (
 	"os"
 
-	"github.com/dataGriff/api-caller/internal/cli"
+	"github.com/hungovercoders/apic/internal/cli"
 )
 
 func main() {

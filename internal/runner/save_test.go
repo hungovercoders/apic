@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dataGriff/api-caller/internal/project"
+	"github.com/hungovercoders/apic/internal/project"
 )
 
 var pngish = append([]byte{0x89, 'P', 'N', 'G', 0, 0xff, 0xfe}, bytes.Repeat([]byte{0x00, 0x80, 0xff}, 40)...)

@@ -10,8 +10,8 @@ import (
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
 
-	"github.com/dataGriff/api-caller/internal/lsp"
-	"github.com/dataGriff/api-caller/internal/runner"
+	"github.com/hungovercoders/apic/internal/lsp"
+	"github.com/hungovercoders/apic/internal/runner"
 )
 
 func (a *App) lspCmd() *cobra.Command {

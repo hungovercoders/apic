@@ -22,7 +22,7 @@ for p in $platforms; do
   GOOS=${p%/*} GOARCH=${p#*/} go list -deps \
     -f '{{if and .Module (not .Standard)}}{{.Module.Path}}{{end}}' ./cmd/apic >> "$raw_mods"
 done
-mods=$(awk 'NF && $0 !~ /^github.com\/dataGriff\/api-caller/' "$raw_mods" | sort -u)
+mods=$(awk 'NF && $0 !~ /^github.com\/hungovercoders\/apic/' "$raw_mods" | sort -u)
 
 missing=""
 {

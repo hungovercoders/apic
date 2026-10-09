@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/dataGriff/api-caller/internal/runner"
+	"github.com/hungovercoders/apic/internal/runner"
 )
 
 func (a *App) initCmd() *cobra.Command {
@@ -70,7 +70,7 @@ unless --force is given.`,
 // schemaModeline is the first line of a scaffolded apic.yaml: the YAML
 // language server (and so VS Code, JetBrains and Neovim with it) picks up
 // the published schema for completion and validation.
-const schemaModeline = "# yaml-language-server: $schema=https://datagriff.github.io/api-caller/schemas/apic.schema.json"
+const schemaModeline = "# yaml-language-server: $schema=https://hungovercoders.github.io/apic/schemas/apic.schema.json"
 
 // writeInitProject writes the starter files, skipping ones that exist unless
 // force is set. The .gitignore is appended to rather than replaced.

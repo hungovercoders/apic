@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dataGriff/api-caller/internal/auth"
-	"github.com/dataGriff/api-caller/internal/httpfile"
-	"github.com/dataGriff/api-caller/internal/runner"
+	"github.com/hungovercoders/apic/internal/auth"
+	"github.com/hungovercoders/apic/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/runner"
 )
 
 var update = flag.Bool("update", false, "rewrite the golden files")

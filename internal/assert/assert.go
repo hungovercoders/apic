@@ -15,7 +15,7 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 
-	"github.com/dataGriff/api-caller/internal/selector"
+	"github.com/hungovercoders/apic/internal/selector"
 )
 
 // Operators lists the supported comparison operators.

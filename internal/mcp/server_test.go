@@ -12,7 +12,7 @@ import (
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/dataGriff/api-caller/internal/runner"
+	"github.com/hungovercoders/apic/internal/runner"
 )
 
 func TestServerEndToEnd(t *testing.T) {

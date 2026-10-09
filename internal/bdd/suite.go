@@ -13,7 +13,7 @@ import (
 	gherkin "github.com/cucumber/gherkin/go/v42"
 	"github.com/cucumber/godog"
 
-	"github.com/dataGriff/api-caller/internal/runner"
+	"github.com/hungovercoders/apic/internal/runner"
 )
 
 // Exit codes from Run, aligned with the rest of apic.

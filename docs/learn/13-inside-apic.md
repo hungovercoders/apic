@@ -13,8 +13,8 @@ with `task check` green.
   everything else, and a clone of the repository:
 
 ```sh
-git clone https://github.com/dataGriff/api-caller
-cd api-caller
+git clone https://github.com/hungovercoders/apic
+cd apic
 task build      # -> bin/apic
 task test       # no network: every test runs against httptest servers
 ```
@@ -184,8 +184,8 @@ task check
 task: [lint] golangci-lint run ./...
 0 issues.
 task: [test] go test ./...
-ok      github.com/dataGriff/api-caller/internal/cli
-ok      github.com/dataGriff/api-caller/internal/httpfile
+ok      github.com/hungovercoders/apic/internal/cli
+ok      github.com/hungovercoders/apic/internal/httpfile
 …
 ```
 
@@ -223,7 +223,7 @@ bundled project has none until you add some, so tag one and see `1`).
 ## Exercise
 
 Pick a `P3` issue from the
-[tracker](https://github.com/dataGriff/api-caller/issues?q=is%3Aissue+is%3Aopen+label%3AP3)
+[tracker](https://github.com/hungovercoders/apic/issues?q=is%3Aissue+is%3Aopen+label%3AP3)
 and open a pull request for it. `P3` issues are small and self-contained
 on purpose.
 
@@ -239,10 +239,10 @@ on purpose.
 - [Architecture](../architecture.md): the diagram, the package map and
   the checklists for a directive, a Gherkin step, a command and a config
   key
-- [AGENTS.md](https://github.com/dataGriff/api-caller/blob/main/AGENTS.md):
+- [AGENTS.md](https://github.com/hungovercoders/apic/blob/main/AGENTS.md):
   the conventions, including the ones that are easy to trip over
-- [CONTRIBUTING.md](https://github.com/dataGriff/api-caller/blob/main/CONTRIBUTING.md)
-  and [SECURITY.md](https://github.com/dataGriff/api-caller/blob/main/SECURITY.md)
+- [CONTRIBUTING.md](https://github.com/hungovercoders/apic/blob/main/CONTRIBUTING.md)
+  and [SECURITY.md](https://github.com/hungovercoders/apic/blob/main/SECURITY.md)
 
 ??? note "Episode script"
     **Length.** 12 minutes; a code walkthrough in an editor.

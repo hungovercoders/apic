@@ -11,8 +11,8 @@ team runs all of it.
 - The repository's `examples/` directory. Clone it, or download it:
 
 ```sh
-git clone --depth 1 https://github.com/dataGriff/api-caller
-cd api-caller
+git clone --depth 1 https://github.com/hungovercoders/apic
+cd apic
 ```
 
 - For step 2, a GitHub account; for step 3, a Spotify account. Step 1
@@ -314,7 +314,7 @@ API first if the real one needs credentials you do not have to hand.
 
 ## Going further
 
-- [The example projects](https://github.com/dataGriff/api-caller/tree/main/examples),
+- [The example projects](https://github.com/hungovercoders/apic/tree/main/examples),
   each with a README-level note in its files
 - [Using apic with Taskfile](../taskfile.md): every pattern, including
   piping output between tasks and installing apic from a task

@@ -17,7 +17,7 @@ One static binary, no runtime. Pick your platform:
 === "Linux / macOS"
 
     ```sh
-    curl -fsSL https://raw.githubusercontent.com/dataGriff/api-caller/main/install.sh | sh
+    curl -fsSL https://raw.githubusercontent.com/hungovercoders/apic/main/install.sh | sh
     ```
 
     The installer puts `apic` in `~/.local/bin` (or `/usr/local/bin` when
@@ -29,7 +29,7 @@ One static binary, no runtime. Pick your platform:
     In PowerShell:
 
     ```powershell
-    irm https://raw.githubusercontent.com/dataGriff/api-caller/main/install.ps1 | iex
+    irm https://raw.githubusercontent.com/hungovercoders/apic/main/install.ps1 | iex
     ```
 
     The installer puts `apic.exe` in `%LOCALAPPDATA%\Programs\apic`,
@@ -39,7 +39,7 @@ One static binary, no runtime. Pick your platform:
 === "Go"
 
     ```sh
-    go install github.com/dataGriff/api-caller/cmd/apic@latest   # Go 1.25 or newer
+    go install github.com/hungovercoders/apic/cmd/apic@latest   # Go 1.25 or newer
     ```
 
     This builds from source into `$(go env GOPATH)/bin`.
@@ -56,7 +56,7 @@ apic version
 
 ```
 apic v0.2.0 · 1a2b3c4 · go1.25.7 linux/amd64
-apic is epic · https://datagriff.github.io/api-caller/
+apic is epic · https://hungovercoders.github.io/apic/
 ```
 
 Your version and platform will differ; the shape is what matters.

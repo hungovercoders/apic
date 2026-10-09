@@ -14,9 +14,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dataGriff/api-caller/internal/auth"
-	"github.com/dataGriff/api-caller/internal/httpfile"
-	"github.com/dataGriff/api-caller/internal/runner"
+	"github.com/hungovercoders/apic/internal/auth"
+	"github.com/hungovercoders/apic/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/runner"
 )
 
 // Languages are the snippet languages, in the order the UI cycles them.

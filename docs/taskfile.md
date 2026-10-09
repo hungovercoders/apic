@@ -137,7 +137,7 @@ For a machine that has Task and curl but not apic:
     desc: Install apic if it is missing
     status: [command -v apic]
     cmds:
-      - curl -fsSL https://raw.githubusercontent.com/dataGriff/api-caller/main/install.sh | sh
+      - curl -fsSL https://raw.githubusercontent.com/hungovercoders/apic/main/install.sh | sh
 ```
 
 Add `deps: [api:install]` to the api tasks and a fresh checkout works with

@@ -12,9 +12,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/dataGriff/api-caller/internal/httpfile"
-	"github.com/dataGriff/api-caller/internal/selector"
-	"github.com/dataGriff/api-caller/internal/template"
+	"github.com/hungovercoders/apic/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/selector"
+	"github.com/hungovercoders/apic/internal/template"
 )
 
 // VarInfo describes where a variable's value came from.

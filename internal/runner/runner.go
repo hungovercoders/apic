@@ -27,15 +27,15 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/dataGriff/api-caller/internal/assert"
-	"github.com/dataGriff/api-caller/internal/auth"
-	"github.com/dataGriff/api-caller/internal/env"
-	"github.com/dataGriff/api-caller/internal/history"
-	"github.com/dataGriff/api-caller/internal/httpfile"
-	"github.com/dataGriff/api-caller/internal/project"
-	"github.com/dataGriff/api-caller/internal/selector"
-	"github.com/dataGriff/api-caller/internal/session"
-	"github.com/dataGriff/api-caller/internal/template"
+	"github.com/hungovercoders/apic/internal/assert"
+	"github.com/hungovercoders/apic/internal/auth"
+	"github.com/hungovercoders/apic/internal/env"
+	"github.com/hungovercoders/apic/internal/history"
+	"github.com/hungovercoders/apic/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/project"
+	"github.com/hungovercoders/apic/internal/selector"
+	"github.com/hungovercoders/apic/internal/session"
+	"github.com/hungovercoders/apic/internal/template"
 )
 
 // Version is stamped by the CLI for the User-Agent header.

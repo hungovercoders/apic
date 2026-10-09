@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dataGriff/api-caller/internal/history"
-	"github.com/dataGriff/api-caller/internal/output"
-	"github.com/dataGriff/api-caller/internal/runner"
+	"github.com/hungovercoders/apic/internal/history"
+	"github.com/hungovercoders/apic/internal/output"
+	"github.com/hungovercoders/apic/internal/runner"
 )
 
 // histView is the history tab's content for one request and environment,

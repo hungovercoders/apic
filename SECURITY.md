@@ -10,7 +10,7 @@ logs. Bugs in any of that are worth reporting.
 **Please do not open a public issue.**
 
 Use GitHub's private advisory form:
-<https://github.com/dataGriff/api-caller/security/advisories/new>
+<https://github.com/hungovercoders/apic/security/advisories/new>
 
 It lets you share details with the maintainer without the report being public,
 and it becomes the advisory if a fix ships.

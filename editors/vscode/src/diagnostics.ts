@@ -11,7 +11,7 @@ import { projectRoot } from "./project";
 import { parseUsageError, parseValidateOutput, problemsByPath, LINE_END } from "./validate";
 
 /** Where a diagnostic's code links to. */
-export const CODES_URL = "https://datagriff.github.io/api-caller/cli/#apic-validate";
+export const CODES_URL = "https://hungovercoders.github.io/apic/cli/#apic-validate";
 
 /** Files whose change means the project should be validated again (and its request list refreshed). */
 export function triggersValidation(uri: vscode.Uri): boolean {

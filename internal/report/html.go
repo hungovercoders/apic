@@ -18,7 +18,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dataGriff/api-caller/internal/runner"
+	"github.com/hungovercoders/apic/internal/runner"
 )
 
 //go:embed report.html.tmpl

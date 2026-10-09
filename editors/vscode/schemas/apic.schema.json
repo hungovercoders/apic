@@ -171,7 +171,7 @@
       "additionalProperties": false
     }
   },
-  "$id": "https://datagriff.github.io/api-caller/schemas/apic.schema.json",
+  "$id": "https://hungovercoders.github.io/apic/schemas/apic.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "apic.yaml",
   "description": "Per-project defaults for apic, read from apic.yaml in the project root. Every key is optional.",

@@ -18,7 +18,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dataGriff/api-caller/internal/session"
+	"github.com/hungovercoders/apic/internal/session"
 )
 
 // Dir is the history directory under the project's .apic directory.

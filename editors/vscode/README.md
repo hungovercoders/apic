@@ -3,7 +3,7 @@
 [![Visual Studio Marketplace](https://img.shields.io/visual-studio-marketplace/v/dataGriff.apic?label=Marketplace)](https://marketplace.visualstudio.com/items?itemName=dataGriff.apic)
 [![Open VSX](https://img.shields.io/open-vsx/v/dataGriff/apic?label=Open%20VSX)](https://open-vsx.org/extension/dataGriff/apic)
 
-Run the `.http` files you already have with [apic](https://datagriff.github.io/api-caller/):
+Run the `.http` files you already have with [apic](https://hungovercoders.github.io/apic/):
 environments, captured variables that persist, assertions, AWS and OAuth2
 auth, Gherkin tests and an MCP server, from one static binary. This
 extension drives that binary from the editor, so what you see here is what
@@ -82,20 +82,20 @@ commands on top.
   out the project root for a file.
 
 Coming next, tracked in the
-[VS Code epic](https://github.com/dataGriff/api-caller/issues/29): a
+[VS Code epic](https://github.com/hungovercoders/apic/issues/29): a
 language server for diagnostics as you type.
 
 ## Install
 
 From the Marketplace or Open VSX, search for **apic**. Or from a
 `.vsix`: every release on the
-[releases page](https://github.com/dataGriff/api-caller/releases?q=vscode)
+[releases page](https://github.com/hungovercoders/apic/releases?q=vscode)
 tagged `vscode-v*` carries one; `code --install-extension apic-<version>.vsix`.
 
 ## Requirements
 
 apic 0.1.2 or newer on your `PATH`, or its location in the `apic.path`
-setting. Install: [getting started](https://datagriff.github.io/api-caller/getting-started/#1-install).
+setting. Install: [getting started](https://hungovercoders.github.io/apic/getting-started/#1-install).
 Spans in the Problems panel, `# @ref`, the Session view's cookies and
 **Format Document** need the release that carries them (0.2).
 

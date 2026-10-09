@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dataGriff/api-caller/internal/session"
+	"github.com/hungovercoders/apic/internal/session"
 )
 
 // jobServer answers "running" for the first two polls and "done" after, and

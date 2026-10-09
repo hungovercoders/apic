@@ -8,8 +8,8 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/dataGriff/api-caller/internal/httpfile"
-	"github.com/dataGriff/api-caller/internal/runner"
+	"github.com/hungovercoders/apic/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/runner"
 )
 
 // Options controls how a result is rendered for humans.

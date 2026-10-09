@@ -3,7 +3,7 @@
 # .goreleaser.yaml) for linux/amd64 and linux/arm64, putting each platform's
 # binary at $TARGETPLATFORM/apic in the build context.
 #
-#   docker run --rm -v "$PWD/api:/work" ghcr.io/datagriff/apic run smoke.http
+#   docker run --rm -v "$PWD/api:/work" ghcr.io/hungovercoders/apic run smoke.http
 #
 # The Alpine stage only lays out files, so it runs on the build platform:
 # no emulation is needed for the arm64 image.

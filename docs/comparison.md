@@ -42,10 +42,10 @@ September 2026; they move fast, so a correction is a welcome pull request.
 | GUI | no | the editor | no | Neovim | VS Code extension | yes | no | terminal UI (`apic ui`) and a VS Code extension |
 
 What is coming is tracked in the parity epics:
-[the `.http` dialect](https://github.com/dataGriff/api-caller/issues/24),
-[the runner, auth and CLI](https://github.com/dataGriff/api-caller/issues/25),
-[distribution](https://github.com/dataGriff/api-caller/issues/26) and
-[the VS Code extension](https://github.com/dataGriff/api-caller/issues/29).
+[the `.http` dialect](https://github.com/hungovercoders/apic/issues/24),
+[the runner, auth and CLI](https://github.com/hungovercoders/apic/issues/25),
+[distribution](https://github.com/hungovercoders/apic/issues/26) and
+[the VS Code extension](https://github.com/hungovercoders/apic/issues/29).
 
 ## Size
 
@@ -180,7 +180,7 @@ So you are not surprised later:
   JSON, JUnit, HTML) and `run --json` or `run --report`.
 - Installing is `go install`, the install script, a release archive or the
   [GitHub Action](getting-started.md#7-put-it-in-ci); package managers are on the
-  [distribution epic](https://github.com/dataGriff/api-caller/issues/26).
+  [distribution epic](https://github.com/hungovercoders/apic/issues/26).
 
 ## Deliberately not planned
 

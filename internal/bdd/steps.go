@@ -8,9 +8,9 @@ import (
 
 	"github.com/cucumber/godog"
 
-	"github.com/dataGriff/api-caller/internal/assert"
-	"github.com/dataGriff/api-caller/internal/phrase"
-	"github.com/dataGriff/api-caller/internal/runner"
+	"github.com/hungovercoders/apic/internal/assert"
+	"github.com/hungovercoders/apic/internal/phrase"
+	"github.com/hungovercoders/apic/internal/runner"
 )
 
 // Vocabulary documents the built-in steps for `apic test --steps` and the docs.

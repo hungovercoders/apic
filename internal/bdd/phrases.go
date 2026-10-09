@@ -6,9 +6,9 @@ import (
 
 	"github.com/cucumber/godog"
 
-	"github.com/dataGriff/api-caller/internal/httpfile"
-	"github.com/dataGriff/api-caller/internal/phrase"
-	"github.com/dataGriff/api-caller/internal/project"
+	"github.com/hungovercoders/apic/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/phrase"
+	"github.com/hungovercoders/apic/internal/project"
 )
 
 // compiledPhrase is a `# @step` directive ready to register. It keeps the

@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/dataGriff/api-caller/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/httpfile"
 )
 
 // powershell renders Invoke-RestMethod for PowerShell 7, whose -Form,

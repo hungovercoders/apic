@@ -1,5 +1,5 @@
 # Install the latest apic release on Windows.
-#   irm https://raw.githubusercontent.com/dataGriff/api-caller/main/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/hungovercoders/apic/main/install.ps1 | iex
 #
 # Options, as environment variables:
 #   APIC_VERSION         a release to install, e.g. v1.2.3 (default: the latest)
@@ -18,7 +18,7 @@
     Set-StrictMode -Version 2
     $ProgressPreference = 'SilentlyContinue' # the progress bar makes downloads crawl in 5.1
 
-    $repo = 'dataGriff/api-caller'
+    $repo = 'hungovercoders/apic'
     $onWindows = [Environment]::OSVersion.Platform -eq 'Win32NT'
 
     # Windows PowerShell 5.1 does not offer TLS 1.2 by default.

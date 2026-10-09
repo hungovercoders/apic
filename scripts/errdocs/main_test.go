@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dataGriff/api-caller/internal/runner"
+	"github.com/hungovercoders/apic/internal/runner"
 )
 
 // TestErrorsPageIsCurrent fails when the catalogue changed without

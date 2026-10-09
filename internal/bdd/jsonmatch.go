@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/dataGriff/api-caller/internal/assert"
+	"github.com/hungovercoders/apic/internal/assert"
 )
 
 // decodeJSON keeps numbers as json.Number so large integers compare exactly.

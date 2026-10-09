@@ -233,6 +233,7 @@ Published at **[hungovercoders.github.io/apic](https://hungovercoders.github.io/
 
 Shell: `apic list --json`, `apic describe <id> --json`, `apic run <id> --json`.
 MCP: `claude mcp add api -- apic mcp --dir ./api --env dev`.
+Skill: `npx skills add hungovercoders/apic`, or copy [`skills/apic`](skills/apic) into the project.
 See [docs/agents.md](docs/agents.md) for the JSON contract and a snippet to
 paste into your project's `AGENTS.md`. The contract only grows: a body
 that is not text now comes as base64 with `body_encoding` beside it,

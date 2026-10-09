@@ -138,6 +138,11 @@ tasks:
     cmds:
       - go run ./scripts/clidocs
 
+  skill:
+    desc: Regenerate skills/apic/references/cheatsheet.md from docs/cheatsheet.md (a test fails when it is stale)
+    cmds:
+      - go run ./scripts/skilldocs
+
   docs:errors:
     desc: Regenerate docs/errors.md from the error catalogue in internal/runner/errors.go (a test fails when it is stale)
     cmds:
@@ -168,8 +173,8 @@ tasks:
     cmds:
       - codespell
       - vale sync
-      - vale docs README.md CONTRIBUTING.md AGENTS.md SECURITY.md
-      - lychee --config .lychee.toml --no-progress 'docs/**/*.md' README.md CONTRIBUTING.md SECURITY.md
+      - vale docs skills README.md CONTRIBUTING.md AGENTS.md SECURITY.md
+      - lychee --config .lychee.toml --no-progress 'docs/**/*.md' 'skills/**/*.md' README.md CONTRIBUTING.md SECURITY.md
 
   notices:
     desc: Generate THIRD_PARTY_NOTICES.md from the modules compiled into apic

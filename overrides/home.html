@@ -1,0 +1,354 @@
+{#-
+  The landing page: docs/index.md sets `template: home.html` and this file
+  renders it. The hero, the sections and the footer call to action are
+  written here; the install tabs stay in the markdown, rendered where
+  `page.content` appears below, so they keep the site's tabbed code blocks.
+  Styles live in docs/assets/landing.css, loaded only on this page.
+-#}
+{% extends "base.html" %}
+
+{% block extrahead %}
+  <link rel="stylesheet" href="{{ 'assets/landing.css' | url }}">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="apic is epic">
+  <meta property="og:description" content="{{ config.site_description }}">
+  <meta property="og:url" content="{{ config.site_url }}">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="apic is epic">
+  <meta name="twitter:description" content="{{ config.site_description }}">
+{% endblock %}
+
+{# No sidebars on the landing page: the header tabs are the navigation. #}
+{% block site_nav %}{% endblock %}
+
+{% block container %}
+<div class="apic-landing" data-md-component="content">
+
+  {# ---------------------------------------------------------------- hero #}
+  <section class="apic-hero">
+    <div class="apic-hero__glow" aria-hidden="true"></div>
+    <div class="apic-wrap apic-hero__inner">
+      <div class="apic-hero__copy">
+        <a class="apic-pill" href="https://github.com/hungovercoders/apic/releases/latest">
+          <span class="apic-pill__dot"></span>
+          One static binary · MIT · signed releases
+        </a>
+        <h1 class="apic-hero__title">apic is <span class="apic-gradient-text">epic</span></h1>
+        <p class="apic-hero__lead">
+          Run API requests from plain <code>.http</code> files, in the terminal,
+          in CI, or from an AI agent, on any platform. The files stay ordinary
+          <code>.http</code> files that VS Code, JetBrains and Neovim already send
+          with one click: everything apic adds is a comment.
+        </p>
+        <div class="apic-hero__actions">
+          <a class="apic-btn apic-btn--primary" href="{{ 'getting-started/' | url }}">Get started</a>
+          <a class="apic-btn apic-btn--ghost" href="{{ 'learn/' | url }}">Take the course</a>
+          <a class="apic-btn apic-btn--ghost" href="https://github.com/hungovercoders/apic">
+            <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+            GitHub
+          </a>
+        </div>
+        <div class="apic-install" data-apic-copy>
+          <span class="apic-install__prompt" aria-hidden="true">$</span>
+          <code class="apic-install__cmd">brew install hungovercoders/tap/apic &amp;&amp; apic ui --demo</code>
+          <button class="apic-install__copy" type="button" aria-label="Copy the install command" title="Copy">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/></svg>
+            <span class="apic-install__done" aria-hidden="true">Copied</span>
+          </button>
+        </div>
+        <p class="apic-hero__fine">No account, no API key, nothing to clone. <code>--demo</code> serves a fake API in-process and quits clean.</p>
+      </div>
+      <figure class="apic-hero__demo">
+        <img src="{{ 'assets/apic-demo.svg' | url }}" width="911" height="398"
+             alt="apic ui --demo: send a request, run a file as a flow, read the checks, see what was captured">
+      </figure>
+    </div>
+  </section>
+
+  {# ------------------------------------------------------ three audiences #}
+  <section class="apic-section apic-audiences">
+    <div class="apic-wrap">
+      <p class="apic-eyebrow">One file, three audiences</p>
+      <h2 class="apic-h2">The same request, from wherever you are</h2>
+      <p class="apic-sub">Write a request once. apic runs it for the person at the keyboard, the pipeline on a schedule, and the agent in the loop, with the same runner and the same result.</p>
+      <div class="apic-trio">
+        <article class="apic-card apic-card--code">
+          <header>
+            <span class="apic-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 5h16v14H4zM7 9l3 2.5L7 14M12 15h5"/></svg>
+            </span>
+            <h3>For humans</h3>
+          </header>
+          <p>A terminal UI that browses the project, sends the request under the cursor, runs a file as a flow and switches environment without leaving the keyboard.</p>
+<pre class="apic-code"><code><span class="t-prompt">$</span> apic ui --env staging
+<span class="t-cmt"># enter: send · f: run file · e: environment · ?: keys</span></code></pre>
+          <a class="apic-card__link" href="{{ 'tui/' | url }}">The terminal UI</a>
+        </article>
+        <article class="apic-card apic-card--code">
+          <header>
+            <span class="apic-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3v4M12 17v4M3 12h4M17 12h4M6.3 6.3l2.8 2.8M14.9 14.9l2.8 2.8M6.3 17.7l2.8-2.8M14.9 9.1l2.8-2.8"/></svg>
+            </span>
+            <h3>For CI</h3>
+          </header>
+          <p>Exit codes that mean something, a pass/fail summary per flow, JUnit reports, and <code>--redact</code> so a stored log says what failed without saying the secret.</p>
+<pre class="apic-code"><code><span class="t-kw">- uses:</span> hungovercoders/apic/setup-apic@v0
+<span class="t-kw">- run:</span> apic run smoke.http --env ci --redact</code></pre>
+          <a class="apic-card__link" href="{{ 'learn/08-ci/' | url }}">CI without leaking secrets</a>
+        </article>
+        <article class="apic-card apic-card--code">
+          <header>
+            <span class="apic-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3h1V6a4 4 0 0 1 4-4zM9 13h.01M15 13h.01M9 17h6"/></svg>
+            </span>
+            <h3>For agents</h3>
+          </header>
+          <p>Stable <code>--json</code> per request, <code>list</code> and <code>describe</code> for discovery, errors that say what to do next, and an MCP server that turns every request into a tool.</p>
+<pre class="apic-code"><code><span class="t-prompt">$</span> claude mcp add api -- apic mcp
+<span class="t-prompt">$</span> apic run whoami --json | jq .response.status</code></pre>
+          <a class="apic-card__link" href="{{ 'agents/' | url }}">Agents and MCP</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  {# ----------------------------------------------------- install (markdown) #}
+  <section class="apic-section apic-section--alt" id="install">
+    <div class="apic-wrap apic-wrap--narrow">
+      <p class="apic-eyebrow">Try it</p>
+      <h2 class="apic-h2">30 seconds to epic</h2>
+      <article class="md-content__inner md-typeset apic-md">
+        {{ page.content }}
+      </article>
+    </div>
+  </section>
+
+  {# ------------------------------------------------------------ features #}
+  <section class="apic-section">
+    <div class="apic-wrap">
+      <p class="apic-eyebrow">Why it's epic</p>
+      <h2 class="apic-h2">Everything the terminal and agents need, nothing the editor minds</h2>
+      <p class="apic-sub">Postman and Bruno are apps. Editor <code>.http</code> files are great until you leave the editor. <code>curl</code> runs anywhere but has no environments, no chaining, no assertions and no output a program can read. apic keeps the format and adds the rest.</p>
+      <div class="apic-features">
+        <a class="apic-feature" href="{{ 'format/#variables' | url }}">
+          <span class="apic-feature__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1 0 18 0 9 9 0 1 0-18 0zm0 0h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span>
+          <strong>Environments that travel</strong>
+          <span><code>http-client.env.json</code>, <code>.env</code>, the shell and <code>--var</code>, with one precedence order you can print with <code>apic env</code>.</span>
+        </a>
+        <a class="apic-feature" href="{{ 'format/#directives' | url }}">
+          <span class="apic-feature__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M7 11V7a5 5 0 0 1 10 0v4M5 11h14v10H5z"/></svg></span>
+          <strong>Tokens that persist</strong>
+          <span>Capture a value once with <code># @capture</code>. The next run, in a new shell or a new agent call, already has it. <code># @ref login</code> fetches it when it is missing.</span>
+        </a>
+        <a class="apic-feature" href="{{ 'format/#assertion-operators' | url }}">
+          <span class="apic-feature__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 12l5 5L20 6"/></svg></span>
+          <strong>Assertions and flows</strong>
+          <span>Check status, headers, JSON paths, types, lengths and JSON Schema. A file runs in order with a summary and an exit code; <code># @retry</code> polls until it passes.</span>
+        </a>
+        <a class="apic-feature" href="{{ 'auth/' | url }}">
+          <span class="apic-feature__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M15 7a4 4 0 1 1-3.3 6.3L3 22v-3l1.5-1.5L6 19l1.5-1.5L6 16l1.5-1.5L9 16l1.7-1.7A4 4 0 0 1 15 7z"/></svg></span>
+          <strong>Auth a text file cannot do</strong>
+          <span>AWS SigV4 from your normal credentials with no SDK, OAuth2 with caching and refresh, digest, API key, basic, bearer, or any CLI that prints a token.</span>
+        </a>
+        <a class="apic-feature" href="{{ 'testing/' | url }}">
+          <span class="apic-feature__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 3h6l1 4H8zM6 7h12l-1 14H7zM10 12l1.5 1.5L14 11"/></svg></span>
+          <strong>Gherkin without Cucumber</strong>
+          <span><code>apic test</code> runs <code>.feature</code> files against the same requests with a built-in vocabulary. JUnit and cucumber reports included.</span>
+        </a>
+        <a class="apic-feature" href="{{ 'cli/#apic-import' | url }}">
+          <span class="apic-feature__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 17l6-5-6-5M12 19h8"/></svg></span>
+          <strong>Escape hatches both ways</strong>
+          <span><code>apic import</code> scaffolds from OpenAPI, Postman or a curl command. <code>apic curl</code> and <code>apic snippet</code> print the same request for five other languages.</span>
+        </a>
+        <a class="apic-feature" href="{{ 'cli/#apic-fmt' | url }}">
+          <span class="apic-feature__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3l9 4.5-9 4.5-9-4.5zM3 12l9 4.5 9-4.5M3 16.5L12 21l9-4.5"/></svg></span>
+          <strong>Validate, format, lint</strong>
+          <span><code>apic validate</code> reports problems with line, column and a code, annotates pull requests and feeds code scanning. <code>apic fmt --check</code> keeps files canonical.</span>
+        </a>
+        <a class="apic-feature" href="{{ 'cli/#apic-run' | url }}">
+          <span class="apic-feature__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3a9 9 0 1 0 9 9M12 3v5M12 12l4-2M3 3l4 4M3 7V3h4"/></svg></span>
+          <strong>Safe to log</strong>
+          <span>Sensitive headers are masked on both sides without asking. <code>--redact</code> masks bodies, values and captures too, and keeps status, timing and pass/fail.</span>
+        </a>
+        <a class="apic-feature" href="{{ 'editors/' | url }}">
+          <span class="apic-feature__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 4h16v12H4zM8 20h8M12 16v4M8 9l2 2-2 2M12 13h4"/></svg></span>
+          <strong>Editors stay in the loop</strong>
+          <span>A language server for Neovim, Helix and JetBrains, and a VS Code extension: diagnostics as you type, completion, hover, run lenses and formatting.</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  {# ---------------------------------------------------------------- tour #}
+  <section class="apic-section apic-section--alt">
+    <div class="apic-wrap">
+      <p class="apic-eyebrow">60-second tour</p>
+      <h2 class="apic-h2">Log in once. Everything after it just works.</h2>
+      <p class="apic-sub">Two requests in one file. The first captures a token; the second uses it. Run them in any order and apic tells you what it needs.</p>
+      <div class="apic-tour">
+        <div class="apic-window">
+          <div class="apic-window__bar"><span></span><span></span><span></span><em>api/auth.http</em></div>
+<pre class="apic-code apic-code--tall"><code><span class="t-sep">### Log in and keep the token</span>
+<span class="t-dir"># @name</span> login
+<span class="t-dir"># @assert</span> status == 200
+<span class="t-dir"># @capture</span> token = body.$.access_token
+<span class="t-kw">POST</span> <span class="t-var">{{ '{{baseUrl}}' }}</span>/auth/login
+Content-Type: application/json
+
+{"user": "<span class="t-var">{{ '{{user}}' }}</span>", "password": "<span class="t-var">{{ '{{password}}' }}</span>"}
+
+<span class="t-sep">### Who am I</span>
+<span class="t-dir"># @name</span> whoami
+<span class="t-dir"># @assert</span> status == 200
+<span class="t-dir"># @assert</span> body.$.email endsWith @example.com
+<span class="t-kw">GET</span> <span class="t-var">{{ '{{baseUrl}}' }}</span>/me
+Authorization: Bearer <span class="t-var">{{ '{{token}}' }}</span></code></pre>
+        </div>
+        <div class="apic-window apic-window--term">
+          <div class="apic-window__bar"><span></span><span></span><span></span><em>terminal</em></div>
+<pre class="apic-code apic-code--tall"><code><span class="t-prompt">$</span> apic run whoami --env dev
+<span class="t-err">error:</span> auth.http:14: missing variable
+  <span class="t-var">{{ '{{token}}' }}</span>: it is captured by request "login";
+  run `apic run login` first, or pass --var token=...
+
+<span class="t-prompt">$</span> apic run login --env dev
+<span class="t-kw">POST</span> https://dev.example.com/auth/login
+<span class="t-ok">200 OK</span> · 87 ms · 412 B
+{ "access_token": "eyJ..." }
+<span class="t-ok">✓</span> status == 200
+<span class="t-cap">↳</span> token = eyJ...
+
+<span class="t-prompt">$</span> apic run whoami --env dev
+<span class="t-kw">GET</span> https://dev.example.com/me
+<span class="t-ok">200 OK</span> · 41 ms · 96 B
+{ "email": "alice@example.com" }
+<span class="t-ok">✓</span> status == 200
+<span class="t-ok">✓</span> body.$.email endsWith @example.com</code></pre>
+        </div>
+      </div>
+      <p class="apic-tour__note">
+        Exit codes are a contract: <strong>0</strong> ok · <strong>1</strong> an assertion or capture failed · <strong>2</strong> usage, parse error or missing variable · <strong>3</strong> network.
+        With <code>--json</code> every error carries a stable code an agent can branch on.
+        <a href="{{ 'cli/' | url }}">CLI reference</a> · <a href="{{ 'errors/' | url }}">Error catalogue</a>
+      </p>
+    </div>
+  </section>
+
+  {# ------------------------------------------------------------- editors #}
+  <section class="apic-section apic-editors">
+    <div class="apic-wrap apic-editors__inner">
+      <div>
+        <p class="apic-eyebrow">Compatible by design</p>
+        <h2 class="apic-h2">Everything apic adds is a comment</h2>
+        <p class="apic-sub">New features go in <code># @directive</code> lines before the request, never in the request itself. So the same file still runs with one click in the tools your team already has.</p>
+        <a class="apic-btn apic-btn--ghost" href="{{ 'format/' | url }}">The <code>.http</code> format</a>
+      </div>
+      <ul class="apic-logos" aria-label="Tools that read the same files">
+        <li>VS Code REST Client</li>
+        <li>JetBrains HTTP Client</li>
+        <li>Kulala.nvim</li>
+        <li>httpyac</li>
+        <li>ijhttp</li>
+        <li>the apic VS Code extension</li>
+      </ul>
+    </div>
+  </section>
+
+  {# ---------------------------------------------------------- comparison #}
+  <section class="apic-section apic-section--alt">
+    <div class="apic-wrap apic-wrap--narrow">
+      <p class="apic-eyebrow">An honest comparison</p>
+      <h2 class="apic-h2">Where apic lands</h2>
+      <p class="apic-sub">apic is deliberately narrow: run <code>.http</code> files anywhere, for humans and agents, from one binary. Here is where that leaves it next to the tools you might use instead.</p>
+      <div class="apic-compare">
+        <table>
+          <thead>
+            <tr><th></th><th>curl + Taskfile</th><th>Editors</th><th>Bruno</th><th>Hurl</th><th class="apic-compare__us">apic</th></tr>
+          </thead>
+          <tbody>
+            <tr><th>Nothing to install but a binary</th><td class="y">yes</td><td class="n">editor only</td><td class="n">needs Node</td><td class="y">yes</td><td class="y">yes</td></tr>
+            <tr><th>Files editors send with a click</th><td class="n">no</td><td class="y">yes</td><td class="m">its own <code>.bru</code></td><td class="n">no</td><td class="y"><code>.http</code></td></tr>
+            <tr><th>Captures persist between runs</th><td class="n">shell plumbing</td><td class="n">in-editor only</td><td class="m">in one run</td><td class="m">in one run</td><td class="y">yes</td></tr>
+            <tr><th>Output a program can read</th><td class="m">curl's</td><td class="n">no</td><td class="m">reports</td><td class="m">JSON report</td><td class="y">JSON per request, stable error codes</td></tr>
+            <tr><th>MCP server for agents</th><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="y">yes</td></tr>
+            <tr><th>Gherkin without Cucumber</th><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="y">yes</td></tr>
+            <tr><th>Scripting</th><td class="y">shell</td><td class="m">JetBrains JS</td><td class="y">JavaScript</td><td class="n">no</td><td class="n">no, on purpose</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="apic-compare__more">The full table has eight tools and thirty rows, and the things apic has decided not to do. <a href="{{ 'comparison/' | url }}">Read the comparison</a>, or move a project across from <a href="{{ 'migrate/postman/' | url }}">Postman</a>, <a href="{{ 'migrate/bruno/' | url }}">Bruno</a>, <a href="{{ 'migrate/hurl/' | url }}">Hurl</a>, <a href="{{ 'migrate/httpyac/' | url }}">httpyac</a> or <a href="{{ 'migrate/curl/' | url }}">curl</a>.</p>
+    </div>
+  </section>
+
+  {# ----------------------------------------------------------- platforms #}
+  <section class="apic-section">
+    <div class="apic-wrap">
+      <p class="apic-eyebrow">Install anywhere</p>
+      <h2 class="apic-h2">One binary, every platform, every release signed</h2>
+      <div class="apic-platforms">
+        <div class="apic-platform"><strong>Homebrew</strong><code>brew install hungovercoders/tap/apic</code><span>macOS and Linux, with man pages and completions</span></div>
+        <div class="apic-platform"><strong>Go</strong><code>go install github.com/hungovercoders/apic/cmd/apic@latest</code><span>Go 1.25 or newer</span></div>
+        <div class="apic-platform"><strong>Shell</strong><code>curl -fsSL …/install.sh | sh</code><span>Downloads the release and verifies its checksum</span></div>
+        <div class="apic-platform"><strong>PowerShell</strong><code>irm …/install.ps1 | iex</code><span>Verifies the checksum, adds apic to your PATH</span></div>
+        <div class="apic-platform"><strong>deb, rpm, apk</strong><code>sudo dpkg -i apic_*_linux_amd64.deb</code><span>Debian, Ubuntu, Fedora, RHEL and Alpine, amd64 and arm64</span></div>
+        <div class="apic-platform"><strong>Docker</strong><code>docker run --rm ghcr.io/hungovercoders/apic</code><span>The binary on scratch, amd64 and arm64</span></div>
+        <div class="apic-platform"><strong>GitHub Actions</strong><code>uses: hungovercoders/apic/setup-apic@v0</code><span>Verified, cached, on PATH, on any runner OS</span></div>
+        <div class="apic-platform"><strong>Releases</strong><code>checksums.txt, signed with cosign</code><span>An SPDX SBOM per archive. <a href="{{ 'verifying/' | url }}">Verify a download</a></span></div>
+      </div>
+    </div>
+  </section>
+
+  {# ----------------------------------------------------------------- CTA #}
+  <section class="apic-section apic-cta">
+    <div class="apic-wrap apic-cta__inner">
+      <h2 class="apic-h2">Ready to be epic?</h2>
+      <p class="apic-sub">Fourteen short lessons take you from nothing installed to running, testing and automating an API, all against the fake API that ships inside apic.</p>
+      <div class="apic-hero__actions apic-cta__actions">
+        <a class="apic-btn apic-btn--primary" href="{{ 'learn/' | url }}">From zero to apic</a>
+        <a class="apic-btn apic-btn--ghost" href="{{ 'cheatsheet/' | url }}">Cheat sheet</a>
+        <a class="apic-btn apic-btn--ghost" href="{{ 'cookbook/' | url }}">Cookbook</a>
+      </div>
+      <nav class="apic-next" aria-label="Where to go next">
+        <a href="{{ 'getting-started/' | url }}"><strong>Getting started</strong><span>Setting up apic for a project for the first time.</span></a>
+        <a href="{{ 'format/' | url }}"><strong>The .http format</strong><span>Every directive, selector and operator.</span></a>
+        <a href="{{ 'auth/' | url }}"><strong>Authentication</strong><span>SigV4, OAuth2, basic, or a token from a CLI.</span></a>
+        <a href="{{ 'testing/' | url }}"><strong>Testing with Gherkin</strong><span>Feature files that describe API behaviour.</span></a>
+        <a href="{{ 'agents/' | url }}"><strong>Agents and MCP</strong><span>Claude Code, Cursor or a shell-driven agent.</span></a>
+        <a href="{{ 'cli/' | url }}"><strong>CLI reference</strong><span>Commands, flags, JSON shape and exit codes.</span></a>
+        <a href="{{ 'taskfile/' | url }}"><strong>Taskfile</strong><span>When you already drive things with task.</span></a>
+        <a href="{{ 'faq/' | url }}"><strong>FAQ</strong><span>Something is not behaving and you want the short answer.</span></a>
+      </nav>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  // Copy button on the hero install line, and a gentle reveal as sections
+  // scroll into view (skipped when the visitor prefers reduced motion).
+  (function () {
+    var box = document.querySelector("[data-apic-copy]");
+    if (box && navigator.clipboard) {
+      var btn = box.querySelector("button");
+      btn.addEventListener("click", function () {
+        navigator.clipboard.writeText(box.querySelector("code").textContent).then(function () {
+          box.classList.add("is-copied");
+          setTimeout(function () { box.classList.remove("is-copied"); }, 1600);
+        });
+      });
+    }
+    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var items = document.querySelectorAll(".apic-section > .apic-wrap");
+    if (reduce || !("IntersectionObserver" in window)) {
+      items.forEach(function (el) { el.classList.add("is-in"); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add("is-in"); io.unobserve(e.target); }
+      });
+    }, { rootMargin: "0px 0px -10% 0px" });
+    items.forEach(function (el) { el.classList.add("apic-reveal"); io.observe(el); });
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,139 @@
+// Package session persists values captured from responses between apic
+// invocations, so `apic run login` followed by `apic run get-user` works the
+// way it does in a GUI client. State lives in .apic/session.json under the
+// project root; the directory ignores itself via .apic/.gitignore.
+package session
+
+import (
+	"encoding/json"
+	"errors"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"sort"
+)
+
+const (
+	Dir        = ".apic"
+	File       = "session.json"
+	DefaultEnv = "default"
+)
+
+// Store is the on-disk session.
+type Store struct {
+	path string
+	Envs map[string]map[string]string `json:"envs"`
+}
+
+// NewMemory returns a session that is never written to disk. Captured
+// values and cached tokens still work within the process.
+func NewMemory() *Store {
+	return &Store{Envs: map[string]map[string]string{}}
+}
+
+// Snapshot is a memory-only copy of the session: what it held when taken,
+// changed and read without touching the original or the disk. Each
+// iteration of `apic run --data` starts from one.
+func (s *Store) Snapshot() *Store {
+	out := NewMemory()
+	for env, vars := range s.Envs {
+		m := make(map[string]string, len(vars))
+		for k, v := range vars {
+			m[k] = v
+		}
+		out.Envs[env] = m
+	}
+	return out
+}
+
+// Open loads the session for a project root, or an empty one.
+func Open(root string) (*Store, error) {
+	s := &Store{path: filepath.Join(root, Dir, File), Envs: map[string]map[string]string{}}
+	data, err := os.ReadFile(s.path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return s, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(data, s); err != nil {
+		return nil, err
+	}
+	if s.Envs == nil {
+		s.Envs = map[string]map[string]string{}
+	}
+	return s, nil
+}
+
+func key(env string) string {
+	if env == "" {
+		return DefaultEnv
+	}
+	return env
+}
+
+// Vars returns a copy of the captured values for env.
+func (s *Store) Vars(env string) map[string]string {
+	out := map[string]string{}
+	for k, v := range s.Envs[key(env)] {
+		out[k] = v
+	}
+	return out
+}
+
+// Get returns one captured value.
+func (s *Store) Get(env, name string) (string, bool) {
+	v, ok := s.Envs[key(env)][name]
+	return v, ok
+}
+
+// Set merges vars into env's captured values (in memory; call Save).
+func (s *Store) Set(env string, vars map[string]string) {
+	k := key(env)
+	if s.Envs[k] == nil {
+		s.Envs[k] = map[string]string{}
+	}
+	for n, v := range vars {
+		s.Envs[k][n] = v
+	}
+}
+
+// Clear drops captured values for env, or for every env when env is "*".
+func (s *Store) Clear(env string) {
+	if env == "*" {
+		s.Envs = map[string]map[string]string{}
+		return
+	}
+	delete(s.Envs, key(env))
+}
+
+// EnvNames lists the environments that have captured values.
+func (s *Store) EnvNames() []string {
+	var names []string
+	for n, vars := range s.Envs {
+		if len(vars) > 0 {
+			names = append(names, n)
+		}
+	}
+	sort.Strings(names)
+	return names
+}
+
+// Save writes the session to disk, creating .apic/ and its .gitignore.
+// A memory-only store is a no-op.
+func (s *Store) Save() error {
+	if s.path == "" {
+		return nil
+	}
+	// Refuse to write tokens into a directory that is not ignored: this file
+	// is what keeps a captured OAuth2 access and refresh token out of a
+	// commit, so failing to create it is not something to shrug off.
+	if err := EnsureDir(filepath.Dir(s.path)); err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(s, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(s.path, append(data, '\n'), 0o600)
+}

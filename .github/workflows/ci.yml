@@ -1,0 +1,226 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Nothing in this workflow writes to the repository; jobs that need more say so.
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: go build ./...
+      - run: go test ./...
+      # The race detector is slow on the Windows runner and the suite is
+      # already cross-platform, so one leg carries it.
+      - run: go test -race ./...
+        if: matrix.os == 'ubuntu-latest'
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+      - run: go vet ./...
+      # Typos in comments, strings and the docs; .codespellrc says what to skip.
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install "codespell==2.4.3" && codespell
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.5.0
+
+  licences:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: test -f LICENSE || (echo "LICENSE is missing" >&2; exit 1)
+      # Fails if any module compiled into a released binary has no licence file.
+      - run: sh scripts/notices.sh /tmp/THIRD_PARTY_NOTICES.md
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: go test -coverprofile=coverage.out ./...
+      - run: go tool cover -func=coverage.out | tail -1
+      - uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          path: coverage.out
+
+  vulncheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      # Reports known CVEs in the dependency tree, and only those the binary
+      # actually reaches, so a finding here is worth acting on.
+      # setup-go v6+ pins GOTOOLCHAIN=local; the newest govulncheck needs a
+      # newer Go than go.mod asks for, so let go fetch one to build the tool.
+      # The scan itself still runs against the Go in go.mod, which is what
+      # the release binaries are built with.
+      - run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+        env:
+          GOTOOLCHAIN: auto
+
+  # The course pages under docs/learn and the migration guides under
+  # docs/migrate carry runnable blocks marked with
+  # <!-- learn -->; this builds apic, serves the demo API and runs them, so
+  # a lesson cannot quietly stop working.
+  learn:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: go run ./scripts/learncheck
+
+  # The VS Code extension in editors/vscode is the one place Node lives.
+  # It is linted, typechecked, bundled, tested in a real VS Code (headless
+  # under xvfb, with apic built onto PATH so the binary tests run too) and
+  # packaged, with the .vsix kept as an artifact.
+  vscode:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: editors/vscode
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: editors/vscode/package-lock.json
+      - run: go build -o "$RUNNER_TEMP/bin/apic" ./cmd/apic
+        working-directory: .
+      - run: echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm run test:unit
+      - run: xvfb-run -a npm test
+      - run: npm run package
+      - uses: actions/upload-artifact@v7
+        with:
+          name: vscode-extension
+          path: editors/vscode/*.vsix
+
+  # The screenshots and the animated demo are generated from real output;
+  # rendering them here proves a UI change did not break the generator,
+  # and the artifact lets a reviewer look at the frames.
+  shots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: go run ./scripts/shot -out shots
+      - uses: actions/upload-artifact@v7
+        with:
+          name: shots
+          path: shots
+
+  validate-examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: go run ./cmd/apic validate -C examples/httpbin
+      - run: go run ./cmd/apic validate -C examples/github
+      - run: go run ./cmd/apic validate -C examples/spotify
+      - run: go run ./cmd/apic fmt --check -C examples/httpbin
+      - run: go run ./cmd/apic fmt --check -C examples/github
+      - run: go run ./cmd/apic fmt --check -C examples/spotify
+      - run: |
+          go build -o /tmp/apic ./cmd/apic
+          /tmp/apic demo --out /tmp/apic-demo >/tmp/apic-demo.log 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          i=0
+          until [ -f /tmp/apic-demo/apic.yaml ]; do
+            i=$((i+1))
+            [ $i -ge 100 ] && echo demo scaffold not ready >&2 && exit 1
+            sleep 0.1
+          done
+          /tmp/apic validate -C /tmp/apic-demo
+
+  # The release image, built the way goreleaser lays it out ($TARGETPLATFORM/apic
+  # in the context), so a broken Dockerfile shows up here rather than on a tag.
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: |
+          mkdir -p ctx/linux/amd64
+          cp Dockerfile ctx/
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X github.com/dataGriff/api-caller/internal/cli.Version=ci" -o ctx/linux/amd64/apic ./cmd/apic
+          docker buildx build --load --platform linux/amd64 -t apic:ci ctx
+          docker run --rm apic:ci version | grep -F "apic ci"
+          # Not root, and TLS roots and /tmp are there.
+          docker run --rm --user 65534:65534 --entrypoint /apic apic:ci version
+          docker create --name probe apic:ci >/dev/null
+          docker export probe | tar -t | grep -x 'etc/ssl/certs/ca-certificates.crt' >/dev/null
+
+  # The deb, rpm and apk packages goreleaser builds for a release, installed
+  # on the distributions they are for. Signing, SBOMs and the image are
+  # skipped: the jobs above cover the image, and a release does the rest.
+  packages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: goreleaser/goreleaser-action@v7
+        with:
+          version: "~> v2"
+          args: release --snapshot --clean --skip=sign,sbom,docker
+      - name: deb on Ubuntu
+        run: |
+          sudo dpkg -i dist/apic_*_linux_amd64.deb
+          apic version
+          man -w apic
+          test -f /usr/share/bash-completion/completions/apic
+          sudo dpkg -r apic
+      - name: rpm on Fedora
+        run: docker run --rm -v "$PWD/dist:/dist:ro" fedora:41 sh -c 'rpm -i /dist/apic_*_linux_amd64.rpm && apic version && rpm -ql apic | grep -q man1/apic.1'
+      - name: apk on Alpine
+        run: docker run --rm -v "$PWD/dist:/dist:ro" alpine:3.22 sh -c 'apk add --no-network --allow-untrusted /dist/apic_*_linux_amd64.apk && apic version'
+      - name: The packages are in checksums.txt
+        run: test "$(grep -cE '\.(deb|rpm|apk)$' dist/checksums.txt)" -eq 6

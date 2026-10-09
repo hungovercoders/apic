@@ -1,0 +1,191 @@
+# https://taskfile.dev — developer tasks for apic itself.
+version: "3"
+
+vars:
+  BIN: bin/apic
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo dev
+  LDFLAGS: -s -w -X github.com/dataGriff/api-caller/internal/cli.Version={{.VERSION}}
+
+tasks:
+  default:
+    cmds:
+      - task --list
+
+  build:
+    desc: Build the apic binary into bin/
+    cmds:
+      - go build -ldflags "{{.LDFLAGS}}" -o {{.BIN}} ./cmd/apic
+
+  install:
+    desc: Install apic into $GOPATH/bin
+    cmds:
+      - go install -ldflags "{{.LDFLAGS}}" ./cmd/apic
+
+  test:
+    desc: Run unit and integration tests
+    cmds:
+      - go test ./...
+
+  lint:
+    desc: Run gofmt check, go vet and golangci-lint
+    cmds:
+      - test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+      - go vet ./...
+      - golangci-lint run ./...
+
+  race:
+    desc: Run the tests under the race detector
+    cmds:
+      - go test -race ./...
+
+  cover:
+    desc: Write coverage.out and print the per-package summary
+    cmds:
+      - go test -coverprofile=coverage.out ./...
+      - go tool cover -func=coverage.out
+
+  vuln:
+    desc: Check the dependency tree for known vulnerabilities
+    cmds:
+      - go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+  fmt:
+    desc: Format the tree (lint only checks)
+    cmds:
+      - gofmt -w .
+
+  validate-examples:
+    desc: Validate the example projects and check their formatting, as CI does
+    cmds:
+      - for: [httpbin, github, spotify]
+        cmd: go run ./cmd/apic validate -C examples/{{.ITEM}}
+      - for: [httpbin, github, spotify]
+        cmd: go run ./cmd/apic fmt --check -C examples/{{.ITEM}}
+
+  clean:
+    desc: Remove build, docs and coverage output
+    cmds:
+      - rm -rf bin dist site man completions coverage.out THIRD_PARTY_NOTICES.md
+
+  check:
+    desc: Everything CI runs
+    deps: [lint, test, race, licences, validate-examples]
+
+  licences:
+    desc: Check LICENSE is present and every compiled-in module has one
+    cmds:
+      - test -f LICENSE || (echo "LICENSE is missing" >&2; exit 1)
+      - sh scripts/notices.sh /tmp/THIRD_PARTY_NOTICES.md
+
+  example:
+    desc: Run the example project against the given environment (default dev = httpbin.org)
+    dir: examples/httpbin
+    cmds:
+      - ../../{{.BIN}} run auth.http --env {{.ENV | default "dev"}}
+      - ../../{{.BIN}} run users.http --env {{.ENV | default "dev"}} --keep-going
+    deps: [build]
+
+  example:github:
+    desc: Run the GitHub example (needs your own token in examples/github/http-client.private.env.json)
+    dir: examples/github
+    cmds:
+      - ../../{{.BIN}} run repo.http --env {{.ENV | default "dev"}} --keep-going
+    deps: [build]
+
+  example:spotify:
+    desc: Run the Spotify example (needs your own client id/secret in examples/spotify/http-client.private.env.json)
+    dir: examples/spotify
+    cmds:
+      - ../../{{.BIN}} run search.http --env {{.ENV | default "dev"}} --keep-going
+    deps: [build]
+
+  example:demo:
+    desc: Run the built-in demo project (no network needed)
+    deps: [build]
+    cmds:
+      # Task's built-in shell has no job control (no real `kill`), so the
+      # background server + trap cleanup needs a real shell via `sh -c`.
+      # Statements must stay newline-separated, not `&&`-chained: `&&` binds
+      # tighter than `&`, so chaining would background the wrong commands
+      # too and leave the rest running before the server is even up.
+      - |
+        sh -c "
+        {{.BIN}} demo --out bin/apic-demo --force &
+        pid=\$!
+        trap 'kill \$pid 2>/dev/null || true' EXIT
+        i=0
+        until [ -f bin/apic-demo/apic.yaml ] && {{.BIN}} run login -C bin/apic-demo --env local >/dev/null 2>&1; do
+          i=\$((i+1))
+          [ \$i -ge 100 ] && echo demo not ready >&2 && exit 1
+          sleep 0.1
+        done
+        {{.BIN}} run login whoami basic-auth oauth2-token api-key health slow daily-report graphql jobs.http list-todos list-open-todos create-todo get-todo update-todo get-updated delete-todo get-deleted create-todo-invalid redirect-followed redirect-raw -C bin/apic-demo --env local --keep-going
+        "
+
+  shots:
+    desc: Regenerate the terminal screenshots in docs/assets from real apic output
+    cmds:
+      - go run ./scripts/shot
+
+  schemas:
+    desc: Regenerate the JSON schemas in docs/schemas from the config types (a test fails when they are stale)
+    cmds:
+      - go run ./scripts/schemas
+
+  docs:cli:
+    desc: Regenerate the "Commands and flags" section of docs/cli.md from the command tree (a test fails when it is stale)
+    cmds:
+      - go run ./scripts/clidocs
+
+  docs:errors:
+    desc: Regenerate docs/errors.md from the error catalogue in internal/runner/errors.go (a test fails when it is stale)
+    cmds:
+      - go run ./scripts/errdocs
+
+  man:
+    desc: Write the man pages into man/ (goreleaser does this before packaging)
+    cmds:
+      - go run ./scripts/clidocs -man man
+
+  learn:check:
+    desc: Run every marked command block in the course (docs/learn) and the migration guides (docs/migrate) against apic demo
+    cmds:
+      - go run ./scripts/learncheck
+
+  docs:
+    desc: Serve the documentation site locally (needs `pip install "mkdocs<2" "mkdocs-material<10"`)
+    cmds:
+      - mkdocs serve
+
+  docs:build:
+    desc: Build the documentation site with strict link checking
+    cmds:
+      - mkdocs build --strict
+
+  docs:check:
+    desc: Spelling (codespell), prose style (vale) and external links (lychee), as the docs workflow runs them; needs the three tools on PATH
+    cmds:
+      - codespell
+      - vale sync
+      - vale docs README.md CONTRIBUTING.md AGENTS.md SECURITY.md
+      - lychee --config .lychee.toml --no-progress 'docs/**/*.md' README.md CONTRIBUTING.md SECURITY.md
+
+  notices:
+    desc: Generate THIRD_PARTY_NOTICES.md from the modules compiled into apic
+    cmds:
+      - sh scripts/notices.sh THIRD_PARTY_NOTICES.md
+
+  snapshot:
+    desc: Build release archives, packages and the container image for every platform without publishing (needs Docker)
+    cmds:
+      # Signing and SBOMs are skipped: they need cosign and syft, which the
+      # release runner installs, and a snapshot signature would mean nothing.
+      # The real release does both; see .goreleaser.yaml.
+      - go run github.com/goreleaser/goreleaser/v2@latest release --snapshot --clean --skip=sign,sbom
+
+  cross:
+    desc: Cross-compile for every release target (quick sanity check)
+    cmds:
+      - for: { matrix: { OS: [linux, darwin, windows], ARCH: [amd64, arm64] } }
+        cmd: GOOS={{.ITEM.OS}} GOARCH={{.ITEM.ARCH}} go build -o /dev/null ./cmd/apic

@@ -1,0 +1,32 @@
+### Log in and keep the token
+# httpbin echoes the JSON we post, so the "token" comes back under json.token.
+# @name login
+# @step I am logged in
+# @assert status == 200
+# @capture token = body.$.json.token
+POST {{baseUrl}}/post
+Content-Type: application/json
+
+{"user": "{{user}}", "password": "{{password}}", "token": "demo-{{$uuid}}"}
+
+### Call an endpoint that needs the token
+# @name whoami
+# @description Uses the token captured by login
+# @step I ask who I am
+# @assert status == 200
+# @assert body.$.authenticated == true
+GET {{baseUrl}}/bearer
+Authorization: Bearer {{token}}
+
+### Basic auth, encoded for you
+# @name basic-auth
+# @auth basic {{user}} {{password}}
+# @assert status == 200
+# @assert body.$.authenticated == true
+GET {{baseUrl}}/basic-auth/{{user}}/{{password}}
+
+### Bearer auth as a directive
+# @name bearer-auth
+# @auth bearer {{token}}
+# @assert status == 200
+GET {{baseUrl}}/bearer

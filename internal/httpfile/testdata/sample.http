@@ -1,0 +1,81 @@
+@baseUrl = https://api.example.com
+@user = alice
+
+### Log in and keep the token
+# @name login
+# @assert status == 200
+# @capture token = body.$.access_token
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"user": "{{user}}", "password": "{{password}}"}
+
+### Fetch a user
+# @name get-user
+# @description Fetch a single user by id
+# @ref login
+# @assert status == 200
+# @assert body.$.id == {{userId}}
+# @assert header.content-type contains json
+# @frobnicate yes
+GET {{baseUrl}}/users/{{userId}}
+    ?expand=profile
+    &fields=id,email
+Authorization: Bearer {{token}}
+// Accept header below
+Accept: application/json
+
+###
+{{baseUrl}}/health HTTP/1.1
+
+### Upload from file
+# @name upload
+# @retry 3 500ms
+POST {{baseUrl}}/upload
+Content-Type: application/json
+
+< ./payload.json
+
+### bad capture
+# @name bad
+# @capture nope
+GET {{baseUrl}}/x
+
+### Upload a report with a title
+# @name upload-report
+POST {{baseUrl}}/upload
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="title"
+
+Quarterly report for {{user}}
+--WebAppBoundary
+Content-Disposition: form-data; name="file"; filename="report.pdf"
+Content-Type: application/pdf
+
+< ./report.pdf
+--WebAppBoundary--
+
+### Todos by state, the JetBrains way
+# @name todos-by-state
+GRAPHQL {{baseUrl}}/graphql
+
+query Todos($done: Boolean) {
+  todos(done: $done) { id title }
+}
+
+{"done": {{done}}}
+
+### The same, the REST Client way
+# @name todos-rest-client
+POST {{baseUrl}}/graphql
+X-REQUEST-TYPE: GraphQL
+
+{ todos { id } }
+
+### Rate limited, kept out of the flow
+# @name slow-report
+# @disabled
+# @sleep 1500ms
+GET {{baseUrl}}/reports/slow

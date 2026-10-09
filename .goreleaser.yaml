@@ -130,6 +130,8 @@ homebrew_casks:
       - man/apic-session-clear.1
       - man/apic-session-cookies.1
       - man/apic-session.1
+      - man/apic-skill-install.1
+      - man/apic-skill.1
       - man/apic-snippet.1
       - man/apic-test.1
       - man/apic-ui.1

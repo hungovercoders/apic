@@ -22,6 +22,9 @@ Requests live in `api/*.http` and are run with `apic` (install: see README).
 - `apic curl <id>`: the equivalent curl command; `apic snippet <id> --lang python` the same in HTTPie, PowerShell, Python, JavaScript or Go
 - `apic test --json`: run the Gherkin features in features/; `apic test --steps --json` lists the steps you may use
 - `apic validate --json`: parse every file and report problems before running anything
+- `apic run <id> --dry-run --json`: the request as it would be sent, resolved, without sending it; look before a call that changes something
+- `apic run <id> --assert '<expr>' --capture name=selector`: try a check or a selector for one run before writing it into the file
+- `apic fmt <file>.http#<id>`: format the one request you added and nothing else
 
 Exit codes: 0 ok, 1 assertion failed, 2 usage/parse/missing variable, 3 network.
 On exit 2 or 3 with --json, stderr holds one object `{"error": {"code", "message", "hint", ...}}`:
@@ -129,16 +132,19 @@ loaded on demand: the agent sees one line describing when it applies and
 reads the rest only when a task involves `.http` files or an API call.
 [`skills/apic`](https://github.com/hungovercoders/apic/tree/main/skills/apic)
 in the repository is that skill, in the
-[Agent Skills](https://agentskills.io) format every major agent reads:
+[Agent Skills](https://agentskills.io) format every major agent reads,
+and the binary carries a copy:
 
 ```sh
-npx skills add hungovercoders/apic          # into the project, for the agents it finds
-npx skills add hungovercoders/apic -g       # for every project
+apic skill install                          # into .claude/skills and .agents/skills of the project
+apic skill                                  # print it, for an agent that can run commands
+npx skills add hungovercoders/apic          # the same files from the repository, for the agents the CLI finds
 ```
 
-Or copy the directory: to `.claude/skills/apic` for Claude Code,
-`.agents/skills/apic` for most others, or wherever your agent reads
-skills from. `SKILL.md` carries the workflow (validate, list, describe,
+`apic init` installs it too, so a new project briefs its agents from the
+start; commit the directories. `--to <dir>` picks another location, and
+copying the directory by hand works wherever your agent reads skills
+from. `SKILL.md` carries the workflow (validate, list, describe,
 run, chain), the `--json` shape and exit codes, the error codes to branch
 on, the rules for writing a request and where secrets belong, and when
 to use `apic test` or the MCP tools instead; `references/cheatsheet.md`

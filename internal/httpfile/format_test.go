@@ -89,3 +89,27 @@ func TestFormatIsIdempotentOnRepositoryFiles(t *testing.T) {
 		t.Errorf("CRLF: %q", got)
 	}
 }
+
+func TestFormatRequest(t *testing.T) {
+	src := "@base = https://x\n\n###  a\n# @assert status == 200\n# @name a\nGET {{base}}/a\n\n\n### b\n# @name   b\nGET   {{base}}/b\n"
+	got, ok := FormatRequest(src, "b")
+	if !ok || got != "@base = https://x\n\n###  a\n# @assert status == 200\n# @name a\nGET {{base}}/a\n\n\n### b\n# @name b\nGET {{base}}/b\n" {
+		t.Errorf("by name: ok=%v\n%s", ok, got)
+	}
+	got, ok = FormatRequest(src, "1")
+	if !ok || got != "@base = https://x\n\n### a\n# @name a\n# @assert status == 200\nGET {{base}}/a\n\n### b\n# @name   b\nGET   {{base}}/b\n" {
+		t.Errorf("by number: ok=%v\n%s", ok, got)
+	}
+	if _, ok = FormatRequest(src, "c"); ok {
+		t.Error("an unknown name should not match")
+	}
+	if _, ok = FormatRequest(src, "3"); ok {
+		t.Error("a number past the last block should not match")
+	}
+	// Formatting every request one by one is the whole-file format.
+	both, _ := FormatRequest(src, "a")
+	both, _ = FormatRequest(both, "b")
+	if both != Format(src) {
+		t.Errorf("one by one:\n%s\nwhole:\n%s", both, Format(src))
+	}
+}

@@ -80,7 +80,7 @@ narrow this with `dir: api`.
 ## apic run
 
 ```
-apic run <target>... [-v] [--body-only] [--keep-going] [--retry "<n> [interval]"] [--no-retry] [--output <file>] [--report <file.html>] [--data rows.csv|rows.json|- [--data-share-session]]
+apic run <target>... [-v] [--body-only] [--keep-going] [--retry "<n> [interval]"] [--no-retry] [--output <file>] [--report <file.html>] [--data rows.csv|rows.json|- [--data-share-session]] [--assert <expr>]... [--capture <name=selector>]... [--dry-run]
 ```
 
 Sends requests and reports status, timing, body, captures and assertions.
@@ -114,6 +114,9 @@ shows progress.
 | `--output <file>` | Save the response body to this file, relative to the working directory, overwriting: what a `>>! file` line in the request does (see [format.md](format.md#saving-a-response)). One request only; a flow is refused, and so is a project input as the target. The text output says `↳ saved to <file>` and `--json` carries `saved_to`. |
 | `--data <file>` | Run the targets once per row: a CSV file whose header row names the variables, or a JSON array of objects; `-` reads stdin. See [Data-driven runs](#data-driven-runs). |
 | `--data-share-session` | With `--data`, let one iteration's captures reach the next and the session file. |
+| `--assert <expr>` | Check the response with an expression, as `# @assert` would, for this run only; repeatable. The result lists it after the request's own assertions, and a failure exits 1 like any other. A bad expression is a flag error before anything is sent. Try a check here before writing it into the file. |
+| `--capture <name=selector>` | Capture a value, as `# @capture` would, for this run only; repeatable. It goes into the result and the session like a directive's capture. |
+| `--dry-run` | Resolve each target and print the request that would be sent (method, URL, headers and body, with `-v`'s detail) without sending it: no dependency runs, no auth is applied, nothing is captured. A missing variable is the same error a run gives. `--json` prints the run object with `"dry_run": true` and no `response`. Refused with `--data`, `--output` and `--report`. |
 
 Examples:
 
@@ -541,7 +544,7 @@ each press moves to the next language.
 ## apic fmt
 
 ```
-apic fmt [path...] [--check] [--diff]
+apic fmt [path|file.http#name...] [--check] [--diff]
 apic fmt - < file.http
 ```
 
@@ -564,9 +567,12 @@ several people (or agents) stop drifting:
 - trailing whitespace removed outside bodies, one final newline.
 
 Formatting twice changes nothing. Without paths every request file of the
-project is formatted; a path may be a file or a directory. `-` reads
-stdin and writes the result to stdout, which is what the VS Code
-extension's **Format Document** uses.
+project is formatted; a path may be a file or a directory. `file.http#name`
+(or `file.http#3`, counting `###` blocks) formats that one request and
+leaves the rest of the file byte for byte, so an agent that added a request
+to a file it does not own can format its own change and nothing else; a
+name that is not in the file is E201. `-` reads stdin and writes the result
+to stdout, which is what the VS Code extension's **Format Document** uses.
 
 | Flag | Meaning |
 |---|---|
@@ -867,23 +873,59 @@ them.
 ## apic init
 
 ```
-apic init [dir] [--base-url URL] [--env NAME] [--force]
+apic init [dir] [--base-url URL] [--env NAME] [--force] [--no-skill]
 ```
 
 Writes a working starting point into `dir` (default: the current
 directory): `apic.yaml`, `http-client.env.json`, a `http-client.private.env.json`
 with mode 0600, `api.http` with two annotated requests, a
-`features/smoke.feature`, and `.gitignore` lines for the private env file
-and `.apic/`. Existing files are kept unless `--force` is given, and the
-`.gitignore` is appended to rather than replaced.
+`features/smoke.feature`, `.gitignore` lines for the private env file
+and `.apic/`, and the [Agent Skill](agents.md#3-a-skill-claude-code-codex-cursor-any-agent-that-loads-skills)
+under `.claude/skills/apic` and `.agents/skills/apic`, so an AI agent
+working in the project knows how to use apic from the first session.
+Existing files are kept unless `--force` is given, and the `.gitignore` is
+appended to rather than replaced; the skill is apic's own text, so an older
+copy is refreshed without `--force`.
 
 | Flag | Default | Meaning |
 |---|---|---|
 | `--base-url` | `https://api.example.com` | `baseUrl` for the environment. |
 | `--env` | `dev` | Name of the first environment, also written as `env:` in `apic.yaml`. |
 | `--force` | off | Overwrite files that already exist. |
+| `--no-skill` | off | Do not write the Agent Skill. |
 
 `--json` prints `{"out", "env", "written", "skipped"}`.
+
+## apic skill
+
+```
+apic skill
+apic skill install [dir] [--to <dir>]...
+```
+
+`skill` prints `SKILL.md`, the briefing an AI agent reads before working
+with a project's `.http` files: the validate, list, describe, run
+workflow, the `--json` shape and exit codes, the error codes to branch
+on, how to write a request and where secrets belong. It is
+[`skills/apic`](https://github.com/hungovercoders/apic/tree/main/skills/apic)
+from the repository, compiled into the binary, so an agent that can run
+commands gets the whole briefing from `apic skill` with no repository or
+network. `--json` prints `{"name": "apic", "files": {"SKILL.md": …,
+"references/cheatsheet.md": …}}`.
+
+`skill install` writes the skill into `<dir>/.claude/skills/apic` (what
+Claude Code reads) and `<dir>/.agents/skills/apic` (what Codex, Cursor
+and the other agents that share that directory read), `dir` being the
+project (`-C`) unless given. A file already holding the same text is
+reported as `unchanged`; any other is overwritten, since the text is
+apic's rather than the project's. Commit the result so every clone briefs
+its agents. `apic init` runs the same install.
+
+| Flag | Meaning |
+|---|---|
+| `--to <dir>` | Install into this directory under the project instead of the two defaults; repeatable. `--to .claude/skills` is Claude Code only. |
+
+`--json` prints `{"written": [...], "unchanged": [...]}`.
 
 ## apic version, apic completion
 
@@ -1179,6 +1221,7 @@ apic init [dir] [flags]
 | `--base-url <string>` | baseUrl for the environment (default `https://api.example.com`) |
 | `--env <string>` | name of the first environment (default `dev`) |
 | `--force` | overwrite existing files |
+| `--no-skill` | do not write the Agent Skill into .claude/skills and .agents/skills |
 
 ### apic list
 
@@ -1223,9 +1266,12 @@ apic run <request|file.http|file.http#name>... [flags]
 
 | Flag | Meaning |
 |---|---|
+| `--assert <string>` | check the response with an expression, as # @assert would, for this run only (repeatable) |
 | `--body-only` | print only the response body (for piping) |
+| `--capture <string>` | capture a value, name=selector, as # @capture would, for this run only (repeatable) |
 | `--data <string>` | run the targets once per row of a CSV file (header row names the variables) or JSON array of objects; - reads stdin |
 | `--data-share-session` | with --data, let captures from one iteration reach the next and the session file |
+| `--dry-run` | resolve the targets and print the requests that would be sent, without sending them |
 | `--keep-going` | in a flow, continue after a failure |
 | `--no-retry` | send every request once, ignoring # @retry, --retry and apic.yaml |
 | `--output <string>` | save the response body to this file (one request only; like a "&gt;&gt;! file" line in the request) |
@@ -1264,6 +1310,28 @@ apic session cookies
 ```
 
 No flags of its own.
+
+### apic skill
+
+Print the Agent Skill that briefs an AI agent on apic.
+
+```
+apic skill
+```
+
+No flags of its own.
+
+### apic skill install
+
+Write the skill into a project for the agents that load skills.
+
+```
+apic skill install [dir] [flags]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--to <string>` | directory under the project to install into, instead of .claude/skills and .agents/skills (repeatable) |
 
 ### apic snippet
 

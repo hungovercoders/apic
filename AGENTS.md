@@ -18,7 +18,7 @@ is the offline API and project behind `apic demo`; `examples/` are the
 static sample projects CI validates and format-checks; `editors/vscode/`
 is the extension, released on its own `vscode-v*` tags; `setup-apic/` the
 GitHub Action; `skills/apic/` the Agent Skill users install into their own
-projects (`SKILL.md` is hand-written, `references/cheatsheet.md` generated); `docs/` the site, with the course under `docs/learn/` (and the migration guides under `docs/migrate/`, whose runnable blocks `task learn:check` runs too) and
+projects (`SKILL.md` is hand-written, `references/cheatsheet.md` generated), embedded by `skills/embed.go` for `apic skill` and `apic init`; `docs/` the site, with the course under `docs/learn/` (and the migration guides under `docs/migrate/`, whose runnable blocks `task learn:check` runs too) and
 the generators under `scripts/`.
 
 Two things worth knowing that the page also says: the OpenAPI and Postman
@@ -43,7 +43,7 @@ never parses `.http` files itself (it reads `--json`).
 - `task docs` / `task docs:build`: preview or strictly build the docs site (`pip install "mkdocs<2" "mkdocs-material<10"`)
 - `task docs:check`: codespell, Vale and lychee, as the docs workflow runs them (needs the three on PATH). Prose is British English: Vale's `Apic.British` rule fails on `color` or `behavior` outside code spans. A deliberate typo in an example goes in `.codespellrc`'s `ignore-words-list`; a name Vale should hold to one spelling goes in `docs/.vale/styles/config/vocabularies/Apic/accept.txt`
 - `task docs:cli`: regenerate the "Commands and flags" section at the end of `docs/cli.md` from the command tree (`scripts/clidocs`; a test fails when it is stale); `task man` writes the man pages goreleaser ships
-- `task skill`: regenerate `skills/apic/references/cheatsheet.md` from `docs/cheatsheet.md` with absolute links (`scripts/skilldocs`; a test fails when it is stale). `SKILL.md` is the briefing an agent reads on demand: keep it under 200 lines, point at the reference for detail, and know that its test fails on an `apic <word>` that is not a command
+- `task skill`: regenerate `skills/apic/references/cheatsheet.md` from `docs/cheatsheet.md` with absolute links (`scripts/skilldocs`; a test fails when it is stale). `SKILL.md` is the briefing an agent reads on demand: keep it under 200 lines, point at the reference for detail, and know that its test fails on an `apic <word>` that is not a command. `skills/apic/evals/evals.json` holds the two tasks used to judge the skill against a fresh `apic demo` project, with and without it, in separate agents: rerun them when the briefing or an agent-facing output changes
 - `task docs:errors`: regenerate `docs/errors.md` from `runner.Catalogue` (`scripts/errdocs`; a test fails when it is stale). A new error gets a code from the catalogue: `runner.Usage(runner.CodeX, msg)` or `usagef(CodeX, …)`, never a bare message; a new code needs an entry in `Catalogue` and a case in `internal/cli/errors_test.go`, which runs a real command for every code
 - New commands need a row in the README table, a section in `docs/cli.md` and a line in `docs/cheatsheet.md`; a new or changed flag needs `task docs:cli`. A flag's usage text must not contain backticks: cobra reads the first backticked word as the value's name (a test checks)
 

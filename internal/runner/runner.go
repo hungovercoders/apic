@@ -470,6 +470,9 @@ type Result struct {
 	// Error is the error that stopped the request, with its catalogue
 	// code, when one did; Errors keeps the message too.
 	Error *ErrorInfo `json:"error,omitempty"`
+	// DryRun marks a result from DryRun: the request as it would be sent,
+	// with no response because nothing was.
+	DryRun bool `json:"dry_run,omitempty"`
 	// Attempts is how many times the request was sent under a `# @retry`
 	// policy (or --retry, or retry in apic.yaml); zero when none applied.
 	Attempts int `json:"attempts,omitempty"`
@@ -558,6 +561,22 @@ func (r Result) DisplayCaptures() map[string]string {
 
 // Raw returns the underlying response for renderers.
 func (r *Result) Raw() *selector.Response { return r.raw }
+
+// DryRun resolves a request as Run would and stops there: variables are
+// substituted and a missing one is the same error a run gives, but no
+// dependency runs, no auth is applied, nothing is sent and nothing is
+// captured. The result carries the request and DryRun set, for an agent
+// (or a person) to look at before a call that changes something.
+func (r *Runner) DryRun(req *httpfile.Request) (*Result, error) {
+	resolved, err := r.Resolve(req)
+	if err != nil {
+		return nil, err
+	}
+	if len(resolved.missing) > 0 {
+		return nil, r.MissingError(req, dedupe(resolved.missing))
+	}
+	return &Result{Request: *resolved, OK: true, Redact: r.Opts.Redact, DryRun: true, req: req}, nil
+}
 
 // Resolve substitutes variables in a request without sending it.
 func (r *Runner) Resolve(req *httpfile.Request) (*Resolved, error) {

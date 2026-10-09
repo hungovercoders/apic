@@ -24,6 +24,7 @@ apic describe <id> --json            # the variables it needs, where each comes 
 apic run <id> --json                 # one JSON object; exit 0 ok, 1 an assertion failed
 apic run <id> --body-only            # just the response body, for piping to jq
 apic run <file>.http --json          # the file in order as a flow, one object per line
+apic run <id> --dry-run --json       # the resolved request, sent nowhere: look before a PUT or DELETE
 ```
 
 `describe` says which request captures a missing variable (`captured_by`),
@@ -97,7 +98,8 @@ Content-Type: application/json
 - Capture what later requests need (`# @capture token = body.$.access_token`) and refer to it as `{{token}}`; add `# @ref login` to the dependants so each works on its own.
 - Hosts and public settings go in `http-client.env.json` under an environment name; secrets go in `http-client.private.env.json`, which is gitignored, or come in as `APIC_VAR_name`. Never write a token or password into a `.http` file or the public env file.
 - Keep to standard `.http` syntax plus `# @` directives, so the file still opens in VS Code and JetBrains; unknown directives are warnings from `apic validate`, not features.
-- Afterwards run `apic validate --json` and `apic fmt`, then `apic run <id> --json` to prove it.
+- Try a check or a selector before writing it: `apic run <id> --assert 'body.$.items.# >= 1'` and `--capture id=body.$.id` apply for that run only, so you need no probe file and no extra calls to the API.
+- Afterwards run `apic validate --json`, then `apic fmt <file>.http#<id>` to format your request without touching the rest of the file, then `apic run <id> --json` to prove it.
 
 `apic import openapi.yaml`, `apic import collection.postman.json` and
 `apic import --curl '<command>' --into file.http` write requests from what

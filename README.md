@@ -176,7 +176,7 @@ Set `env: dev` in `api/apic.yaml` to drop the `--env` flag.
 
 | Command | What it does |
 |---|---|
-| `apic run <id \| file.http \| file.http#id>...` | Send a request, or a file in order as a flow. `--json`, `--body-only`, `-v` headers, `--var k=v`, `--env`, `--keep-going`, `--no-session`, `--redact`. |
+| `apic run <id \| file.http \| file.http#id>...` | Send a request, or a file in order as a flow. `--json`, `--body-only`, `-v` headers, `--var k=v`, `--env`, `--keep-going`, `--no-session`, `--redact`; `--assert` and `--capture` try a check or a selector for one run, `--dry-run` shows the request without sending it. |
 | `apic ui` | Terminal UI: browse, run, inspect, switch environment. `--demo` needs no project. |
 | `apic test [paths...]` | Run Gherkin features with the built-in vocabulary and `# @step` phrases. `--format pretty\|progress\|junit\|cucumber`, `--tags`, `--steps`. |
 | `apic list [pattern]` | Every request: id, method, URL template, file:line, description. |
@@ -186,12 +186,13 @@ Set `env: dev` in `api/apic.yaml` to drop the `--env` flag.
 | `apic history <request>` | The responses a request returned before, and `apic history diff` for what changed. Off until `history: N` is set in `apic.yaml`. |
 | `apic curl <id>` | Equivalent curl command with variables resolved. |
 | `apic snippet <id> --lang python` | The same request as HTTPie, PowerShell, Python, JavaScript or Go code. |
-| `apic init [dir]` | Scaffold a project: config, env files, a first request and a feature. |
+| `apic init [dir]` | Scaffold a project: config, env files, a first request, a feature and the Agent Skill. |
+| `apic skill [install]` | Print the briefing an AI agent reads before using apic, or write it into the project's `.claude/skills` and `.agents/skills`. |
 | `apic import <openapi.yaml>` | One `.http` per tag, one named request per operation, example bodies from schemas. |
 | `apic import <collection.postman.json>` | Folders to files, requests to named requests, variables to env files, simple `pm.test` checks to assertions. |
 | `apic import --curl '<command>'` | One named request from a curl command, appended to a file with `--into`. |
 | `apic validate` | Parse every file and report problems with line, column and a code; non-zero exit on errors. `--format github` annotates a pull request, `--format sarif` feeds code scanning. |
-| `apic fmt` | Rewrite `.http` files in their canonical form: directive order, header case, JSON bodies. `--check` for CI, `-` for editors. |
+| `apic fmt` | Rewrite `.http` files in their canonical form: directive order, header case, JSON bodies. `--check` for CI, `-` for editors, `file.http#name` for one request. |
 | `apic mcp` | Serve the project to AI agents over MCP (stdio). |
 | `apic lsp` | A language server for Neovim, Helix, JetBrains and any LSP editor: diagnostics as you type, completion, hover, run lenses, formatting. |
 | `apic demo` | Scaffold and serve a fake API (`--out`, `--port`, `--force`). |
@@ -233,7 +234,7 @@ Published at **[hungovercoders.github.io/apic](https://hungovercoders.github.io/
 
 Shell: `apic list --json`, `apic describe <id> --json`, `apic run <id> --json`.
 MCP: `claude mcp add api -- apic mcp --dir ./api --env dev`.
-Skill: `npx skills add hungovercoders/apic`, or copy [`skills/apic`](skills/apic) into the project.
+Skill: `apic skill install` writes the briefing into the project (`apic init` does too); `apic skill` prints it, and `npx skills add hungovercoders/apic` fetches the same [`skills/apic`](skills/apic).
 See [docs/agents.md](docs/agents.md) for the JSON contract and a snippet to
 paste into your project's `AGENTS.md`. The contract only grows: a body
 that is not text now comes as base64 with `body_encoding` beside it,

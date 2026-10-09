@@ -30,10 +30,12 @@ blocks and file bodies are kept as they are, and formatting twice changes
 nothing.
 
 Without paths every .http and .rest file of the project is formatted. A
-path may be a file or a directory. "-" reads stdin and writes the result
-to stdout, which is what editors use.`,
+path may be a file or a directory, or file.http#name (or file.http#3) to
+format that one request and leave the rest of the file as written. "-"
+reads stdin and writes the result to stdout, which is what editors use.`,
 		Example: `  apic fmt
   apic fmt users.http auth.http
+  apic fmt users.http#get-user   # one request; the rest of the file untouched
   apic fmt --check          # exit 1 and list the files that would change (CI)
   apic fmt --diff           # show what would change
   apic fmt - < users.http`,
@@ -52,17 +54,24 @@ to stdout, which is what editors use.`,
 			}
 			var changed []string
 			diffs := map[string]string{}
-			for _, file := range files {
+			for _, target := range files {
+				file := target.path
 				data, err := os.ReadFile(file) //nolint:gosec // a request file of the project, or one the user named
 				if err != nil {
 					return runner.Usage(runner.CodeFile, err.Error())
 				}
+				shown := a.fmtRel(file)
 				formatted := httpfile.Format(string(data))
+				if target.request != "" {
+					var ok bool
+					if formatted, ok = httpfile.FormatRequest(string(data), target.request); !ok {
+						return runner.Usage(runner.CodeUnknownRequest, fmt.Sprintf("%s: no request named %q (apic list shows the names)", shown, target.request))
+					}
+				}
 				if formatted == string(data) {
 					continue
 				}
 				changed = append(changed, file)
-				shown := a.fmtRel(file)
 				if diff {
 					diffs[shown] = unifiedDiff(shown, string(data), formatted)
 				}
@@ -91,6 +100,8 @@ to stdout, which is what editors use.`,
 				for _, c := range changed {
 					rel = append(rel, a.fmtRel(c))
 				}
+				// A file formatted for one request counts as changed only
+				// when that request changed, as above.
 				var diffOut map[string]string
 				if diff {
 					diffOut = diffs
@@ -129,9 +140,17 @@ func writeFormatted(file, formatted string) error {
 	return nil
 }
 
+// fmtTarget is a file to format, and the one request in it when the
+// argument was file.http#name.
+type fmtTarget struct {
+	path, request string
+}
+
 // fmtTargets resolves the files to format: the project's request files, or
-// the files and directories named (walked the way the project is).
-func (a *App) fmtTargets(args []string) ([]string, error) {
+// the files and directories named (walked the way the project is). An
+// argument that is not a file but has a #name suffix names one request of
+// the file before the #.
+func (a *App) fmtTargets(args []string) ([]fmtTarget, error) {
 	if len(args) == 0 {
 		p, err := a.loadProject()
 		if err != nil {
@@ -142,29 +161,45 @@ func (a *App) fmtTargets(args []string) ([]string, error) {
 			files = append(files, filepath.Join(p.Root, f.Path))
 		}
 		sort.Strings(files)
-		return files, nil
+		var targets []fmtTarget
+		for _, f := range files {
+			targets = append(targets, fmtTarget{path: f})
+		}
+		return targets, nil
 	}
-	var files []string
+	var targets []fmtTarget
 	for _, arg := range args {
 		path := arg
 		if !filepath.IsAbs(path) {
 			path = filepath.Join(a.g.dir, arg)
 		}
 		info, err := os.Stat(path)
+		request := ""
+		if err != nil {
+			// A file named with a # in it wins over a request selector, so
+			// the selector is tried only when the path as given is not one.
+			if file, name, ok := strings.Cut(path, "#"); ok && name != "" {
+				if fi, ferr := os.Stat(file); ferr == nil && !fi.IsDir() {
+					path, request, info, err = file, name, fi, nil
+				}
+			}
+		}
 		if err != nil {
 			return nil, runner.Usage(runner.CodeFile, err.Error())
 		}
 		if !info.IsDir() {
-			files = append(files, path)
+			targets = append(targets, fmtTarget{path: path, request: request})
 			continue
 		}
 		found, err := project.Discover(path)
 		if err != nil {
 			return nil, runner.Usage(runner.CodeFile, err.Error())
 		}
-		files = append(files, found...)
+		for _, f := range found {
+			targets = append(targets, fmtTarget{path: f})
+		}
 	}
-	return files, nil
+	return targets, nil
 }
 
 // fmtRel shows a path relative to the project directory when it is under it.

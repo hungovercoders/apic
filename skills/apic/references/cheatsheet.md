@@ -36,6 +36,8 @@ Content-Type: application/json
 |---|---|
 | `apic run <target>...` | Send requests; several targets run in order as a flow; `--output file` saves one response body |
 | `apic run <target> --data rows.csv` | Run once per row of a CSV file or JSON array; each row's columns are variables |
+| `apic run <target> --assert <expr> --capture <name=selector>` | A check or a capture for this run only, before writing it into the file |
+| `apic run <target> --dry-run` | The request as it would be sent, resolved; nothing sent, nothing captured |
 | `apic ui` | [Terminal UI](https://hungovercoders.github.io/apic/tui/); `--demo` needs no project |
 | `apic test [paths]` | Run [Gherkin features](https://hungovercoders.github.io/apic/testing/) |
 | `apic list [pattern]` | Every request, filtered by id, URL, file or description |
@@ -45,11 +47,12 @@ Content-Type: application/json
 | `apic history <id>` | Past responses (needs `history: 20` in `apic.yaml`); `--show 2`, `diff`, `clear <id>` or `clear --all` |
 | `apic curl <id>` | The equivalent curl command |
 | `apic snippet <id> --lang python` | The request as httpie, powershell, python, js or go code |
-| `apic init [dir]` | Scaffold a project |
+| `apic init [dir]` | Scaffold a project, Agent Skill included (`--no-skill`) |
+| `apic skill [install]` | Print the briefing for an AI agent, or write it into `.claude/skills` and `.agents/skills` |
 | `apic import <spec>` | `.http` files from an OpenAPI 3 document or a Postman collection (`--postman-env` for its environments) |
 | `apic import --curl '<cmd>' --into f.http` | One request block from a curl command |
 | `apic validate` | Parse everything and report problems (CI); `--format github\|sarif` |
-| `apic fmt [--check\|--diff]` | Canonical formatting for `.http` files; `-` filters stdin |
+| `apic fmt [--check\|--diff]` | Canonical formatting for `.http` files; `-` filters stdin; `file.http#name` for one request |
 | `apic mcp` | Serve the project to agents over MCP |
 | `apic lsp` | Language server for any LSP editor ([set-up](https://hungovercoders.github.io/apic/editors/#any-editor-with-an-lsp-client)) |
 | `apic demo` | Scaffold and serve the bundled fake API |

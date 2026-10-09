@@ -14,15 +14,17 @@ import (
 
 func (a *App) initCmd() *cobra.Command {
 	var baseURL, envName string
-	var force bool
+	var force, noSkill bool
 	cmd := &cobra.Command{
 		Use:   "init [dir]",
 		Short: "Scaffold a new apic project: config, env files and a first request",
 		Long: `init writes a small, working project into dir (default: the current
 directory): apic.yaml, http-client.env.json, a gitignored
-http-client.private.env.json, api.http with one annotated request, and a
-features/smoke.feature to run with apic test. Existing files are left alone
-unless --force is given.`,
+http-client.private.env.json, api.http with one annotated request, a
+features/smoke.feature to run with apic test, and the Agent Skill under
+.claude/skills and .agents/skills so an AI agent working in the project
+knows how to use apic (see apic skill; --no-skill leaves it out). Existing
+files are left alone unless --force is given.`,
 		Example: `  apic init
   apic init api --base-url https://dev.example.com --env dev
   apic init --json`,
@@ -38,6 +40,16 @@ unless --force is given.`,
 			written, skipped, err := writeInitProject(dir, baseURL, envName, force)
 			if err != nil {
 				return err
+			}
+			if !noSkill {
+				// The skill is apic's own text, so it is refreshed rather than
+				// kept: an older copy is the one thing --force should not be
+				// needed for.
+				wrote, _, err := writeSkill(dir, SkillDirs)
+				if err != nil {
+					return err
+				}
+				written = append(written, wrote...)
 			}
 			if a.g.json {
 				return a.writeJSON(struct {
@@ -64,6 +76,7 @@ unless --force is given.`,
 	cmd.Flags().StringVar(&baseURL, "base-url", "https://api.example.com", "baseUrl for the environment")
 	cmd.Flags().StringVar(&envName, "env", "dev", "name of the first environment")
 	cmd.Flags().BoolVar(&force, "force", false, "overwrite existing files")
+	cmd.Flags().BoolVar(&noSkill, "no-skill", false, "do not write the Agent Skill into .claude/skills and .agents/skills")
 	return cmd
 }
 

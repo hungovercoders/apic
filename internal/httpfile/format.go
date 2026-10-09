@@ -6,6 +6,7 @@ import (
 	"net/textproto"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -286,4 +287,68 @@ func trimTrailingBlank(lines []string) []string {
 		lines = lines[:len(lines)-1]
 	}
 	return lines
+}
+
+// FormatRequest formats one request of a file and leaves every other byte
+// as written: the block whose `# @name` is name, or the n-th `###` block
+// when name is a number, as `apic run file.http#3` counts them. ok is false
+// when no block matches. It is for an agent (or an editor) that added or
+// changed one request in a file it does not own, so the change stays that
+// request's.
+func FormatRequest(src, name string) (out string, ok bool) {
+	src = strings.ReplaceAll(src, "\r\n", "\n")
+	lines := strings.Split(src, "\n")
+	// Each explicit block runs from its separator line to the line before
+	// the next one, trailing blank lines included.
+	var starts []int
+	for i, line := range lines {
+		if reSeparator.MatchString(line) {
+			starts = append(starts, i)
+		}
+	}
+	index := -1
+	if n, err := strconv.Atoi(name); err == nil && n >= 1 && n <= len(starts) {
+		index = n - 1
+	}
+	for k, start := range starts {
+		end := len(lines)
+		if k+1 < len(starts) {
+			end = starts[k+1]
+		}
+		if index < 0 && !blockNamed(lines[start:end], name) {
+			continue
+		}
+		if index >= 0 && k != index {
+			continue
+		}
+		block := strings.Split(strings.TrimSuffix(Format(strings.Join(lines[start:end], "\n")), "\n"), "\n")
+		// One blank line before the next block, or the file's final newline
+		// (the empty last element of the split) when this block is last.
+		if end < len(lines) || strings.HasSuffix(src, "\n") {
+			block = append(block, "")
+		}
+		return strings.Join(append(append(append([]string{}, lines[:start]...), block...), lines[end:]...), "\n"), true
+	}
+	return src, false
+}
+
+// blockNamed reports whether a block's preamble carries `# @name name`.
+func blockNamed(lines []string, name string) bool {
+	for _, line := range lines {
+		t := strings.TrimSpace(line)
+		if t == "" {
+			continue
+		}
+		m := reComment.FindStringSubmatch(t)
+		if m == nil {
+			if reFileVar.MatchString(t) {
+				continue
+			}
+			return false // the request line: no more directives
+		}
+		if d := reDirective.FindStringSubmatch(strings.TrimSpace(m[1])); d != nil && d[1] == "name" && strings.TrimSpace(d[2]) == name {
+			return true
+		}
+	}
+	return false
 }

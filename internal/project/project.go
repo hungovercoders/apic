@@ -1,0 +1,621 @@
+// Package project discovers .http files under a directory and indexes their
+// requests by name.
+package project
+
+import (
+	"errors"
+	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
+
+	"gopkg.in/yaml.v3"
+
+	"github.com/hungovercoders/apic/internal/assert"
+	"github.com/hungovercoders/apic/internal/auth"
+	"github.com/hungovercoders/apic/internal/env"
+	"github.com/hungovercoders/apic/internal/httpfile"
+	"github.com/hungovercoders/apic/internal/phrase"
+	"github.com/hungovercoders/apic/internal/selector"
+)
+
+// ConfigFile is the optional per-project configuration file name.
+const ConfigFile = "apic.yaml"
+
+// Config is the content of apic.yaml.
+type Config struct {
+	Env     string `yaml:"env"`     // default environment
+	Dir     string `yaml:"dir"`     // directory holding .http files, relative to the project root
+	Timeout string `yaml:"timeout"` // default request timeout, e.g. "30s"
+	Retry   string `yaml:"retry"`   // default retry policy, "<attempts> [interval]", e.g. "10 2s"
+	Cookies bool   `yaml:"cookies"` // keep a cookie jar per environment in .apic/cookies.json
+	// History keeps the last N responses of each named request, per
+	// environment, under .apic/history; zero (the default) keeps none.
+	History int `yaml:"history"`
+	// Proxy is an http, https or socks5 proxy URL every request goes
+	// through; NoProxy lists the hosts that bypass it. `--proxy` beats
+	// it and `--no-proxy` switches it off for one command.
+	Proxy   string   `yaml:"proxy"`
+	NoProxy []string `yaml:"noProxy"`
+	// MaxBodyBytes caps how much of a response apic will read into memory.
+	// Zero means the built-in default; see runner.DefaultMaxBodyBytes.
+	MaxBodyBytes int64      `yaml:"maxBodyBytes"`
+	Auth         AuthConfig `yaml:"auth"`
+	Test         TestConfig `yaml:"test"`
+	TLS          TLSConfig  `yaml:"tls"`
+}
+
+// TLSConfig is the `tls:` section of apic.yaml. Paths are relative to the
+// project root and confined to it.
+type TLSConfig struct {
+	CAFile     string             `yaml:"caFile"`     // PEM bundle added to the system roots
+	CertFile   string             `yaml:"certFile"`   // client certificate (PEM)
+	KeyFile    string             `yaml:"keyFile"`    // its private key (PEM); defaults to certFile
+	VerifyHost *bool              `yaml:"verifyHost"` // verify the server certificate; default true
+	Hosts      map[string]TLSHost `yaml:"hosts"`      // per-host overrides, by host name or *.suffix
+}
+
+// TLSHost overrides TLSConfig for one host.
+type TLSHost struct {
+	CAFile     string `yaml:"caFile"`
+	CertFile   string `yaml:"certFile"`
+	KeyFile    string `yaml:"keyFile"`
+	VerifyHost *bool  `yaml:"verifyHost"`
+}
+
+// TestConfig is the `test:` section of apic.yaml.
+type TestConfig struct {
+	Paths []string `yaml:"paths"` // feature files or directories, relative to the root (default: features)
+}
+
+// AuthConfig is the `auth:` section of apic.yaml.
+type AuthConfig struct {
+	Default   string `yaml:"default"`   // auth spec applied to requests without `# @auth`, e.g. "aws region=eu-west-2"
+	AllowExec bool   `yaml:"allowExec"` // permit `# @auth exec ...`
+}
+
+// Project is a loaded set of .http files.
+type Project struct {
+	Root        string // absolute path of the project root (where apic.yaml / env files live)
+	Config      Config
+	Files       []*httpfile.File
+	Diagnostics []httpfile.Diagnostic
+	byName      map[string][]*httpfile.Request
+	byPath      map[string]*httpfile.File
+}
+
+var skipDirs = map[string]bool{"node_modules": true, "vendor": true, ".git": true, ".apic": true, "testdata": true}
+
+// Discover lists the request files under a directory the way Load reads
+// them: every *.http and *.rest, sorted, skipping hidden directories,
+// node_modules, vendor and testdata. `apic fmt` uses the same walk so the
+// two commands agree on what a project holds.
+func Discover(dir string) ([]string, error) {
+	var paths []string
+	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			if path != dir && (skipDirs[d.Name()] || strings.HasPrefix(d.Name(), ".")) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if ext := filepath.Ext(d.Name()); ext == ".http" || ext == ".rest" {
+			paths = append(paths, path)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	sort.Strings(paths)
+	return paths, nil
+}
+
+// Load discovers and parses every *.http and *.rest file under root.
+func Load(root string) (*Project, error) { return LoadOverlay(root, nil) }
+
+// LoadOverlay is Load with some files' content supplied rather than read:
+// overlay maps an absolute path to the text to parse in its place, as an
+// editor holds a buffer that is not saved yet. A request file in the
+// overlay that is not on disk yet is loaded too.
+func LoadOverlay(root string, overlay map[string]string) (*Project, error) {
+	abs, err := filepath.Abs(root)
+	if err != nil {
+		return nil, err
+	}
+	p := &Project{Root: abs, byName: map[string][]*httpfile.Request{}, byPath: map[string]*httpfile.File{}}
+	if data, err := os.ReadFile(filepath.Join(abs, ConfigFile)); err == nil { //nolint:gosec // reading the project's own apic.yaml
+		if err := yaml.Unmarshal(data, &p.Config); err != nil {
+			return nil, fmt.Errorf("%s: %w", ConfigFile, err)
+		}
+	}
+	scan := abs
+	if p.Config.Dir != "" {
+		scan = filepath.Join(abs, p.Config.Dir)
+	}
+	paths, err := Discover(scan)
+	if err != nil {
+		return nil, err
+	}
+	paths = withOverlay(scan, paths, overlay)
+	for _, path := range paths {
+		var f *httpfile.File
+		var diags []httpfile.Diagnostic
+		if content, ok := overlay[path]; ok {
+			f, diags = httpfile.Parse(path, content)
+		} else if f, diags, err = httpfile.ParseFile(path); err != nil {
+			return nil, err
+		}
+		rel, _ := filepath.Rel(abs, path)
+		f.Path = filepath.ToSlash(rel)
+		for i := range diags {
+			diags[i].Path = f.Path
+		}
+		p.Diagnostics = append(p.Diagnostics, diags...)
+		p.Files = append(p.Files, f)
+		p.byPath[f.Path] = f
+		for _, r := range f.Requests {
+			if r.Name != "" {
+				p.byName[r.Name] = append(p.byName[r.Name], r)
+			}
+		}
+	}
+	return p, nil
+}
+
+// withOverlay adds the overlay's request files under scan that Discover
+// did not find (new, unsaved files), keeping the list sorted. A file
+// Discover would skip (under a hidden directory, node_modules, vendor,
+// testdata or .apic) stays out, open or not, so a project is the same
+// set of files in an editor as on the command line.
+func withOverlay(scan string, paths []string, overlay map[string]string) []string {
+	have := make(map[string]bool, len(paths))
+	for _, p := range paths {
+		have[p] = true
+	}
+	added := false
+	for p := range overlay {
+		ext := filepath.Ext(p)
+		if have[p] || (ext != ".http" && ext != ".rest") {
+			continue
+		}
+		rel, ok := Within(scan, p)
+		if !ok || skipped(rel) {
+			continue
+		}
+		paths = append(paths, p)
+		added = true
+	}
+	if added {
+		sort.Strings(paths)
+	}
+	return paths
+}
+
+// skipped reports whether Discover leaves out a file at rel, a path
+// relative to the directory it walks: one under a directory it skips.
+func skipped(rel string) bool {
+	dirs := strings.Split(filepath.ToSlash(filepath.Dir(rel)), "/")
+	for _, d := range dirs {
+		if d != "." && (skipDirs[d] || strings.HasPrefix(d, ".")) {
+			return true
+		}
+	}
+	return false
+}
+
+// Requests returns every request in file order.
+func (p *Project) Requests() []*httpfile.Request {
+	var out []*httpfile.Request
+	for _, f := range p.Files {
+		out = append(out, f.Requests...)
+	}
+	return out
+}
+
+// Lookup finds a request by name. It fails when the name is ambiguous.
+func (p *Project) Lookup(name string) (*httpfile.Request, error) {
+	rs := p.byName[name]
+	switch len(rs) {
+	case 0:
+		return nil, p.notFound(name)
+	case 1:
+		return rs[0], nil
+	}
+	var where []string
+	for _, r := range rs {
+		where = append(where, fmt.Sprintf("%s:%d", r.File.Path, r.Line))
+	}
+	return nil, fmt.Errorf("request name %q is defined more than once (%s); use file#name", name, strings.Join(where, ", "))
+}
+
+// Resolve turns a command-line target into one or more requests:
+//
+//	get-user            a request by @name
+//	users.http          every request in that file, in order
+//	users.http#get-user a named request in a specific file
+//	users.http#3        the third request in that file
+func (p *Project) Resolve(target string) ([]*httpfile.Request, error) {
+	file, frag, hasFrag := strings.Cut(target, "#")
+	if !hasFrag {
+		if f := p.fileFor(file); f != nil {
+			return f.Requests, nil
+		}
+		r, err := p.Lookup(target)
+		if err != nil {
+			return nil, err
+		}
+		return []*httpfile.Request{r}, nil
+	}
+	f := p.fileFor(file)
+	if f == nil {
+		return nil, fmt.Errorf("no .http file %q in %s", file, p.Root)
+	}
+	if n, err := strconv.Atoi(frag); err == nil {
+		if n < 1 || n > len(f.Requests) {
+			return nil, fmt.Errorf("%s has %d requests, no #%d", f.Path, len(f.Requests), n)
+		}
+		return []*httpfile.Request{f.Requests[n-1]}, nil
+	}
+	for _, r := range f.Requests {
+		if r.Name == frag {
+			return []*httpfile.Request{r}, nil
+		}
+	}
+	return nil, fmt.Errorf("no request named %q in %s", frag, f.Path)
+}
+
+// File returns the request file at path (relative to the root, or
+// absolute), or nil. The whole path is the file name: a `#` in it is not
+// a fragment.
+func (p *Project) File(path string) *httpfile.File { return p.fileFor(path) }
+
+func (p *Project) fileFor(name string) *httpfile.File {
+	if !strings.HasSuffix(name, ".http") && !strings.HasSuffix(name, ".rest") {
+		return nil
+	}
+	clean := filepath.ToSlash(filepath.Clean(name))
+	if f, ok := p.byPath[clean]; ok {
+		return f
+	}
+	if abs, err := filepath.Abs(name); err == nil {
+		if rel, err := filepath.Rel(p.Root, abs); err == nil {
+			if f, ok := p.byPath[filepath.ToSlash(rel)]; ok {
+				return f
+			}
+		}
+	}
+	return nil
+}
+
+func (p *Project) notFound(name string) error {
+	var names []string
+	for n := range p.byName {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	if len(names) == 0 {
+		return fmt.Errorf("no request named %q: no named requests found under %s (add `# @name %s` above a request line)", name, p.Root, name)
+	}
+	if len(names) > 12 {
+		names = append(names[:12], "...")
+	}
+	return fmt.Errorf("no request named %q; known: %s (run `apic list`)", name, strings.Join(names, ", "))
+}
+
+// diag builds a diagnostic spanning [col, end) on line; zero columns mean
+// the whole line.
+func diag(path, severity, code string, line, col, end int, msg string) httpfile.Diagnostic {
+	d := httpfile.Diagnostic{Path: path, Line: line, Severity: severity, Code: code, Message: msg}
+	if col > 0 {
+		d.Column, d.EndLine, d.EndColumn = col, line, end
+	}
+	return d
+}
+
+// Within reports whether path (existing or not) lies under root, lexically:
+// both are cleaned and the relative path must not start with `..`. It
+// returns that relative path. Callers that must see through symlinks
+// resolve both sides first.
+func Within(root, path string) (string, bool) {
+	rel, err := filepath.Rel(filepath.Clean(root), filepath.Clean(path))
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", false
+	}
+	return rel, true
+}
+
+// Validate returns parse diagnostics plus project-level checks.
+func (p *Project) Validate() []httpfile.Diagnostic {
+	diags := append([]httpfile.Diagnostic(nil), p.Diagnostics...)
+	for name, rs := range p.byName {
+		if len(rs) > 1 {
+			for _, r := range rs {
+				line, col, end := r.DirectiveSpan("name")
+				diags = append(diags, diag(r.File.Path, "warning", "duplicate-name", line, col, end,
+					fmt.Sprintf("request name %q is also used elsewhere; `apic run %s` will be ambiguous", name, name)))
+			}
+		}
+	}
+	diags = append(diags, validateAuthConfigs(p.Root)...)
+	if p.Config.Auth.Default != "" {
+		if spec, err := auth.Parse(p.Config.Auth.Default); err != nil {
+			diags = append(diags, diag(ConfigFile, "error", "bad-config-auth", 0, 0, 0, "auth.default: "+err.Error()))
+		} else if spec.Type == "exec" && !p.Config.Auth.AllowExec {
+			diags = append(diags, diag(ConfigFile, "warning", "exec-disabled", 0, 0, 0, "auth.default: @auth exec will be refused until apic.yaml sets auth.allowExec: true"))
+		}
+	}
+	if p.Config.Retry != "" {
+		if _, _, err := httpfile.ParseRetry(p.Config.Retry); err != nil {
+			diags = append(diags, diag(ConfigFile, "error", "bad-retry", 0, 0, 0, fmt.Sprintf("retry %q: %v", p.Config.Retry, err)))
+		}
+	}
+	type declared struct {
+		req  *httpfile.Request
+		ph   *phrase.Phrase
+		line int // line of the # @step directive
+	}
+	var phrases []declared
+	for _, r := range p.Requests() {
+		for _, d := range r.Directives {
+			if d.Key != "step" {
+				continue
+			}
+			col, end := d.Column, d.Column+len(d.Value)
+			ph, err := phrase.Parse(d.Value)
+			if err != nil {
+				diags = append(diags, diag(r.File.Path, "error", "bad-step", d.Line, col, end, err.Error()))
+				continue
+			}
+			if err := ph.ConflictsWithBuiltin(); err != nil {
+				diags = append(diags, diag(r.File.Path, "error", "ambiguous-step", d.Line, col, end, err.Error()))
+			}
+			for _, other := range phrases {
+				if ph.ConflictsWith(other.ph) {
+					diags = append(diags, diag(r.File.Path, "error", "ambiguous-step", d.Line, col, end,
+						fmt.Sprintf("@step %q matches the same text as @step %q on %s (%s:%d)", ph.Text, other.ph.Text, other.req.ID(), other.req.File.Path, other.line)))
+				}
+			}
+			phrases = append(phrases, declared{r, ph, d.Line})
+		}
+		for _, ref := range r.Refs() {
+			col, end := ref.Column, ref.Column+len(ref.ID)
+			key := "@ref"
+			if ref.Force {
+				key = "@forceRef"
+			}
+			target, err := p.refTarget(ref)
+			if err != nil {
+				diags = append(diags, diag(r.File.Path, "error", "bad-ref", ref.Line, col, end, fmt.Sprintf("%s %s: %v", key, ref.ID, err)))
+				continue
+			}
+			if chain := p.refPath(target, r, nil); chain != nil {
+				ids := []string{r.ID()}
+				for _, c := range chain {
+					ids = append(ids, c.ID())
+				}
+				diags = append(diags, diag(r.File.Path, "error", "ref-cycle", ref.Line, col, end,
+					fmt.Sprintf("%s %s is a cycle: %s", key, ref.ID, strings.Join(ids, " -> "))))
+			}
+		}
+		for _, d := range r.Directives {
+			switch d.Key {
+			case "retry":
+				if _, _, err := httpfile.ParseRetry(d.Value); err != nil {
+					col, end := d.Column, d.Column+len(d.Value)
+					diags = append(diags, diag(r.File.Path, "error", "bad-retry", d.Line, col, end, fmt.Sprintf("@retry %q: %v", d.Value, err)))
+				}
+			case "sleep":
+				if _, err := httpfile.ParseSleep(d.Value); err != nil {
+					col, end := d.Column, d.Column+len(d.Value)
+					diags = append(diags, diag(r.File.Path, "error", "bad-sleep", d.Line, col, end, "@sleep: "+err.Error()))
+				}
+			}
+		}
+		for _, d := range r.Directives {
+			if d.Key != "auth" {
+				continue
+			}
+			col, end := d.Column, d.Column+len(d.Value)
+			spec, err := auth.Parse(d.Value)
+			if err != nil {
+				diags = append(diags, diag(r.File.Path, "error", "bad-auth", d.Line, col, end, err.Error()))
+			} else if spec.Type == "exec" && !p.Config.Auth.AllowExec {
+				diags = append(diags, diag(r.File.Path, "warning", "exec-disabled", d.Line, col, end, "@auth exec will be refused until apic.yaml sets auth.allowExec: true"))
+			}
+		}
+		for _, a := range r.Asserts {
+			expr, err := assert.Parse(a.Expr)
+			if err != nil {
+				diags = append(diags, diag(r.File.Path, "error", "bad-assert", a.Line, a.Column, a.Column+len(a.Expr), err.Error()))
+				continue
+			}
+			if err := selector.Check(expr.Selector); err != nil {
+				// The selector opens the expression, so its span starts where
+				// the expression does.
+				diags = append(diags, diag(r.File.Path, "error", "unknown-selector", a.Line, a.Column, a.Column+len(expr.Selector),
+					fmt.Sprintf("assert %q: %s", a.Expr, selectorProblem(err))))
+			}
+			if expr.Op == "matchesSchema" && !strings.Contains(expr.Value, "{{") {
+				// Resolved as the runner reads it: relative to the file or
+				// absolute, through symlinks, confined to the root.
+				schema, err := Confine(p.Root, filepath.Join(p.Root, filepath.Dir(r.File.Path)), expr.Value)
+				if err == nil {
+					_, err = os.Stat(schema)
+				}
+				if err != nil {
+					col := a.Column + strings.LastIndex(a.Expr, expr.Value)
+					why := "not found"
+					if errors.Is(err, ErrOutsideRoot) {
+						why = "resolves outside the project root"
+					}
+					diags = append(diags, diag(r.File.Path, "error", "missing-schema-file", a.Line, col, col+len(expr.Value),
+						fmt.Sprintf("schema file %s %s", expr.Value, why)))
+				}
+			}
+		}
+		for _, c := range r.Captures {
+			if err := selector.Check(c.Selector); err != nil {
+				diags = append(diags, diag(r.File.Path, "error", "unknown-selector", c.Line, c.Column, c.Column+len(c.Selector),
+					fmt.Sprintf("capture %q: %s", c.Name, selectorProblem(err))))
+			}
+		}
+		if _, err := r.Multipart(); err != nil {
+			line := r.BodyLine
+			if line == 0 {
+				line = r.Line
+			}
+			diags = append(diags, diag(r.File.Path, "error", "bad-multipart", line, 0, 0, err.Error()))
+		}
+		if sv := r.SaveTo; sv != nil {
+			target := sv.Path
+			if !filepath.IsAbs(target) {
+				target = filepath.Join(p.Root, filepath.Dir(r.File.Path), target)
+			}
+			if _, ok := Within(p.Root, target); !ok {
+				diags = append(diags, diag(r.File.Path, "error", "bad-save-path", sv.Line, sv.Column, sv.Column+len(sv.Path),
+					fmt.Sprintf(">> %s resolves outside the project root; the response body is only written inside it", sv.Path)))
+			}
+		}
+		if r.IsGraphQL() {
+			if _, _, err := r.GraphQL(); err != nil {
+				line := r.BodyLine
+				if line == 0 {
+					line = r.Line
+				}
+				diags = append(diags, diag(r.File.Path, "error", "bad-graphql", line, 0, 0, err.Error()))
+			}
+		}
+		for _, ref := range r.BodyFiles() {
+			if _, err := os.Stat(filepath.Join(p.Root, filepath.Dir(r.File.Path), ref.Path)); errors.Is(err, fs.ErrNotExist) {
+				line := ref.Line
+				if line == 0 {
+					line = r.Line
+				}
+				diags = append(diags, diag(r.File.Path, "error", "missing-body-file", line, ref.Column, ref.Column+len(ref.Path),
+					fmt.Sprintf("body file %s not found", ref.Path)))
+			}
+		}
+	}
+	sort.SliceStable(diags, func(i, j int) bool {
+		if diags[i].Path != diags[j].Path {
+			return diags[i].Path < diags[j].Path
+		}
+		if diags[i].Line != diags[j].Line {
+			return diags[i].Line < diags[j].Line
+		}
+		return diags[i].Column < diags[j].Column
+	})
+	return diags
+}
+
+// selectorProblem is how validate words a selector it cannot read: the
+// short `unknown selector "x"` for a form apic does not know, and the
+// parser's own message (naming the part) for a body path.
+func selectorProblem(err error) string {
+	var unknown *selector.UnknownError
+	if errors.As(err, &unknown) {
+		return fmt.Sprintf("unknown selector %q", unknown.Selector)
+	}
+	return err.Error()
+}
+
+// refTarget resolves a `# @ref` target to the one request it names. A
+// request naming itself resolves, and is reported as a cycle by refPath.
+func (p *Project) refTarget(ref httpfile.Ref) (*httpfile.Request, error) {
+	if ref.ID == "" {
+		return nil, errors.New("needs a request name")
+	}
+	targets, err := p.Resolve(ref.ID)
+	if err != nil {
+		return nil, err
+	}
+	if len(targets) != 1 {
+		return nil, fmt.Errorf("names %d requests; refer to one request by name or file#name", len(targets))
+	}
+	return targets[0], nil
+}
+
+// refPath follows `# @ref` directives from `from` and returns the requests
+// on the way to `to` (ending with it), or nil when `to` is not reachable.
+// Targets that do not resolve are skipped: bad-ref reports those.
+func (p *Project) refPath(from, to *httpfile.Request, seen map[*httpfile.Request]bool) []*httpfile.Request {
+	if from == to {
+		return []*httpfile.Request{to}
+	}
+	if seen == nil {
+		seen = map[*httpfile.Request]bool{}
+	}
+	if seen[from] {
+		return nil
+	}
+	seen[from] = true
+	for _, ref := range from.Refs() {
+		target, err := p.refTarget(ref)
+		if err != nil {
+			continue
+		}
+		if rest := p.refPath(target, to, seen); rest != nil {
+			return append([]*httpfile.Request{from}, rest...)
+		}
+	}
+	return nil
+}
+
+// CapturedBy returns the first request that captures a variable of this name.
+func (p *Project) CapturedBy(name string) *httpfile.Request {
+	for _, r := range p.Requests() {
+		for _, c := range r.Captures {
+			if c.Name == name {
+				return r
+			}
+		}
+	}
+	return nil
+}
+
+// validateAuthConfigs checks the env files' JetBrains Security.Auth
+// configurations as each environment sees them (the private file's fields
+// merged over the public file's): one that cannot be used is an error,
+// a field apic does not act on a warning. Each is reported once.
+func validateAuthConfigs(root string) []httpfile.Diagnostic {
+	envs, err := env.Load(root)
+	if err != nil {
+		return nil // the env files' own errors are reported when they are loaded
+	}
+	var diags []httpfile.Diagnostic
+	seen := map[string]bool{}
+	for _, name := range append([]string{""}, envs.Names()...) {
+		configs := envs.Auth(name)
+		names := make([]string, 0, len(configs))
+		for n := range configs {
+			names = append(names, n)
+		}
+		sort.Strings(names)
+		for _, n := range names {
+			c := configs[n]
+			file := c.Files[len(c.Files)-1]
+			jb, err := auth.FromJetBrains(c.Fields, func(s string) (string, error) { return s, nil })
+			if err != nil {
+				if msg := fmt.Sprintf("Security.Auth %q: %v", n, err); !seen[msg] {
+					seen[msg] = true
+					diags = append(diags, diag(file, "error", "bad-auth-config", 0, 0, 0, msg))
+				}
+				continue
+			}
+			for _, field := range jb.Ignored {
+				if msg := fmt.Sprintf("Security.Auth %q: %q is not used by apic (ignored)", n, field); !seen[msg] {
+					seen[msg] = true
+					diags = append(diags, diag(file, "warning", "unknown-auth-key", 0, 0, 0, msg))
+				}
+			}
+		}
+	}
+	return diags
+}

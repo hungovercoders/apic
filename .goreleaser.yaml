@@ -1,0 +1,223 @@
+version: 2
+project_name: apic
+
+before:
+  hooks:
+    - sh scripts/notices.sh THIRD_PARTY_NOTICES.md
+    # man/apic.1, man/apic-run.1 and the rest, from the command tree; the
+    # packages and the Homebrew formula install them from the archive.
+    - go run ./scripts/clidocs -man man
+    # Shell completions for the deb, rpm and apk packages.
+    - sh -c 'mkdir -p completions && for s in bash zsh fish; do go run ./cmd/apic completion $s > completions/apic.$s; done'
+
+builds:
+  - main: ./cmd/apic
+    binary: apic
+    env: [CGO_ENABLED=0]
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w -X github.com/hungovercoders/apic/internal/cli.Version={{.Version}}
+
+archives:
+  - formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    # completions/ is what the Homebrew cask installs; the packages below
+    # take theirs from the same directory.
+    files: [README.md, LICENSE, THIRD_PARTY_NOTICES.md, docs/*, man/*, completions/*]
+
+# deb, rpm and apk packages, attached to the release like the archives (no
+# apt, yum or apk repository). They are in checksums.txt, so the one
+# signature covers them too. apk packages are unsigned: install them with
+# --allow-untrusted after checking the checksum.
+nfpms:
+  - package_name: apic
+    file_name_template: "{{ .PackageName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [deb, rpm, apk]
+    vendor: hungovercoders
+    homepage: https://hungovercoders.github.io/apic/
+    maintainer: dataGriff <16266964+dataGriff@users.noreply.github.com>
+    description: |-
+      Run .http request files from the terminal, CI or an AI agent.
+      apic runs the files VS Code REST Client and JetBrains send, with
+      environments, captured values that persist, assertions, JSON output
+      and an MCP server.
+    license: MIT
+    section: utils
+    bindir: /usr/bin
+    contents:
+      - src: ./LICENSE
+        dst: /usr/share/doc/apic/LICENSE
+      - src: ./THIRD_PARTY_NOTICES.md
+        dst: /usr/share/doc/apic/THIRD_PARTY_NOTICES.md
+      - src: ./README.md
+        dst: /usr/share/doc/apic/README.md
+      - src: ./man/*.1
+        dst: /usr/share/man/man1/
+      - src: ./completions/apic.bash
+        dst: /usr/share/bash-completion/completions/apic
+      - src: ./completions/apic.fish
+        dst: /usr/share/fish/vendor_completions.d/apic.fish
+      # Debian's zsh looks in vendor-completions; Fedora's and Alpine's in
+      # site-functions.
+      - src: ./completions/apic.zsh
+        dst: /usr/share/zsh/vendor-completions/_apic
+        packager: deb
+      - src: ./completions/apic.zsh
+        dst: /usr/share/zsh/site-functions/_apic
+        packager: rpm
+      - src: ./completions/apic.zsh
+        dst: /usr/share/zsh/site-functions/_apic
+        packager: apk
+
+checksum:
+  name_template: checksums.txt
+
+# `brew install hungovercoders/tap/apic`. On each release goreleaser writes
+# Casks/apic.rb to hungovercoders/homebrew-tap, pointing at the macOS and
+# Linux archives of this release with their SHA-256s. A cask rather than a
+# formula: goreleaser deprecated `brews:` (formulas) for prebuilt binaries
+# in favour of `homebrew_casks:`, and a cask installs the archive's binary,
+# man pages and completions without a build step. The man page list is
+# explicit because a cask names each file; scripts/clidocs has a test that
+# fails when a command is added without a line here.
+#
+# Pushing to the tap needs a token with contents write on that repository
+# only: the HOMEBREW_TAP_GITHUB_TOKEN secret, which release.yml checks for
+# before goreleaser runs. A snapshot renders the cask into
+# dist/homebrew/Casks/apic.rb and never pushes, so the token is optional
+# there (envOrDefault: a missing key is otherwise a template error).
+homebrew_casks:
+  - name: apic
+    repository:
+      owner: hungovercoders
+      name: homebrew-tap
+      branch: main
+      token: '{{ envOrDefault "HOMEBREW_TAP_GITHUB_TOKEN" "" }}'
+    directory: Casks
+    commit_author:
+      name: goreleaser
+      email: bot@goreleaser.com
+    commit_msg_template: "apic {{ .Tag }}"
+    homepage: https://hungovercoders.github.io/apic/
+    description: Run .http request files from the terminal, CI or an AI agent
+    # Prereleases (v1.0.0-rc1) are published to GitHub but not to the tap.
+    skip_upload: auto
+    binaries: [apic]
+    manpages:
+      - man/apic-completion-bash.1
+      - man/apic-completion-fish.1
+      - man/apic-completion-powershell.1
+      - man/apic-completion-zsh.1
+      - man/apic-completion.1
+      - man/apic-curl.1
+      - man/apic-demo.1
+      - man/apic-describe.1
+      - man/apic-env.1
+      - man/apic-fmt.1
+      - man/apic-history-clear.1
+      - man/apic-history-diff.1
+      - man/apic-history.1
+      - man/apic-import.1
+      - man/apic-init.1
+      - man/apic-list.1
+      - man/apic-lsp.1
+      - man/apic-mcp.1
+      - man/apic-run.1
+      - man/apic-session-clear.1
+      - man/apic-session-cookies.1
+      - man/apic-session.1
+      - man/apic-snippet.1
+      - man/apic-test.1
+      - man/apic-ui.1
+      - man/apic-validate.1
+      - man/apic-version.1
+      - man/apic.1
+    completions:
+      bash: completions/apic.bash
+      zsh: completions/apic.zsh
+      fish: completions/apic.fish
+    # The binaries are not notarised by Apple, so macOS quarantines what
+    # Homebrew downloaded and refuses to run it. Clearing the attribute is
+    # what Homebrew's own docs suggest for a cask of a plain binary; the
+    # guard keeps the hook a no-op on Linux, which has no xattr.
+    hooks:
+      post:
+        install: |
+          if system_command("/usr/bin/xattr", args: ["-h"]).exit_status == 0
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/apic"]
+          end
+
+# Signing and SBOMs each need a tool release.yml installs -- cosign and syft --
+# and goreleaser attempts both even on a snapshot, so `task snapshot` passes
+# --skip=sign,sbom to keep a local build a plain build check.
+#
+# Keyless signing: cosign gets a short-lived certificate from Fulcio, bound to
+# this workflow's OIDC identity, and the signature is logged in Rekor. There is
+# no private key to hold or rotate, and anyone can verify that a release came
+# from this repository's release workflow and not from someone with a token.
+#
+# Only checksums.txt is signed. It names every archive with its SHA-256, so one
+# signature covers the whole release: verify the signature, then verify an
+# archive against the file it vouches for. docs/verifying.md walks through it.
+signs:
+  - cmd: cosign
+    certificate: "${artifact}.pem"
+    args:
+      - sign-blob
+      - "--output-certificate=${certificate}"
+      - "--output-signature=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum
+    output: true
+
+# One SPDX 2.3 SBOM per archive (syft's default format), so a consumer can see
+# exactly which module versions are inside the binary they downloaded without
+# trusting this repo's go.mod to still match. Per archive rather than per
+# release because the set differs by platform: cobra pulls in mousetrap on
+# Windows only.
+sboms:
+  - artifacts: archive
+
+# ghcr.io/hungovercoders/apic, for CI systems that install tools as images
+# (GitLab, Jenkins, Azure Pipelines). The binary on scratch, with the CA
+# bundle and a /tmp from Alpine (see Dockerfile). One multi-platform image
+# per release, tagged with the version, v-prefixed version, major.minor and
+# latest; a snapshot builds it locally without pushing.
+dockers_v2:
+  - images: [ghcr.io/hungovercoders/apic]
+    tags:
+      - "{{ .Version }}"
+      - "v{{ .Version }}"
+      - "{{ if not .Prerelease }}v{{ .Major }}.{{ .Minor }}{{ end }}"
+      - "{{ if not .Prerelease }}latest{{ end }}"
+    platforms: [linux/amd64, linux/arm64]
+    labels:
+      org.opencontainers.image.title: apic
+      org.opencontainers.image.description: Run .http request files from the terminal, CI or an AI agent.
+      org.opencontainers.image.source: https://github.com/hungovercoders/apic
+      org.opencontainers.image.url: https://hungovercoders.github.io/apic/
+      org.opencontainers.image.licenses: MIT
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.created: "{{ .Date }}"
+
+# The image is signed keylessly like checksums.txt: the signature is bound to
+# the release workflow's identity and recorded in the transparency log, and
+# docs/verifying.md has the `cosign verify` command.
+docker_signs:
+  - args: ["sign", "${artifact}@${digest}", "--yes"]
+
+changelog:
+  use: github
+  filters:
+    exclude: ["^docs:", "^chore:"]
+
+release:
+  # v0.1.0 went out as a draft so the first, unproven set of archives could be
+  # inspected before going public. That pipeline is proven now.
+  draft: false

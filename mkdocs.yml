@@ -1,0 +1,113 @@
+site_name: apic
+site_description: apic is epic — run .http request files from the terminal, CI or an AI agent, on any platform.
+site_url: https://hungovercoders.github.io/apic/
+repo_url: https://github.com/hungovercoders/apic
+repo_name: hungovercoders/apic
+edit_uri: edit/main/docs/
+docs_dir: docs
+strict: true
+
+nav:
+  - Home: index.md
+  - Start:
+      - Getting started: getting-started.md
+      - Terminal UI: tui.md
+      - Cheat sheet: cheatsheet.md
+  - Learn:
+      - From zero to apic: learn/index.md
+      - "0. What apic is and why": learn/00-what-is-apic.md
+      - "1. Install and send your first request": learn/01-first-request.md
+      - "2. Variables and environments": learn/02-variables-and-environments.md
+      - "3. Capture, the session and flows": learn/03-capture-session-flows.md
+      - "4. Assertions, validation and polling": learn/04-assertions.md
+      - "5. The terminal UI tour": learn/05-terminal-ui.md
+      - "6. Authentication": learn/06-authentication.md
+      - "7. Behaviour tests with Gherkin": learn/07-gherkin.md
+      - "8. CI without leaking secrets": learn/08-ci.md
+      - "9. From OpenAPI to a project, and back to curl": learn/09-import-export.md
+      - "10. Agents and MCP": learn/10-agents.md
+      - "11. Real APIs and the Taskfile front door": learn/11-real-apis.md
+      - "12. Editors": learn/12-editors.md
+      - "13. How apic works inside, and contributing": learn/13-inside-apic.md
+  - Guides:
+      - The .http format: format.md
+      - Authentication: auth.md
+      - Testing with Gherkin: testing.md
+      - Cookbook: cookbook.md
+      - Agents and MCP: agents.md
+      - Editors: editors.md
+      - Taskfile: taskfile.md
+      - Migrate:
+          - From Postman: migrate/postman.md
+          - From Bruno: migrate/bruno.md
+          - From Hurl: migrate/hurl.md
+          - From httpyac: migrate/httpyac.md
+          - From curl and Taskfile: migrate/curl.md
+  - Reference:
+      - CLI reference: cli.md
+      - Errors: errors.md
+      - Architecture: architecture.md
+      - FAQ: faq.md
+      - Verifying a release: verifying.md
+      - Licence: licence.md
+      - Comparison: comparison.md
+
+theme:
+  name: material
+  logo: assets/logo.svg
+  favicon: assets/favicon.svg
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - toc.follow
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.action.edit
+    - search.suggest
+    - search.highlight
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: pink
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: pink
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+extra_css:
+  - assets/extra.css
+
+markdown_extensions:
+  - tables
+  - admonition
+  - attr_list
+  - md_in_html
+  - def_list
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.details
+  - pymdownx.keys
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search

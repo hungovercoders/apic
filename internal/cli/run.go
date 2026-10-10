@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"github.com/hungovercoders/apic/internal/output"
 	"github.com/hungovercoders/apic/internal/report"
 	"github.com/hungovercoders/apic/internal/runner"
+	"github.com/hungovercoders/apic/internal/selector"
 )
 
 func (a *App) runCmd() *cobra.Command {
@@ -243,27 +245,39 @@ sending it: no dependency runs, no auth is applied and nothing is captured.`,
 	return cmd
 }
 
+// captureName is what `# @capture` accepts as a name (httpfile's reCapture).
+var captureName = regexp.MustCompile(`^[A-Za-z_][\w.-]*$`)
+
 // withAdHoc returns the targets with the --assert expressions and --capture
 // definitions added, on copies so the project's requests are untouched.
-// Both are checked here, so a typo is a flag error naming the flag rather
-// than a directive error pointing at a line that does not exist.
+// Both get the checks `apic validate` gives the directives (the expression
+// parses, the selector is one apic knows, the name is one a directive
+// could have), so a typo is a flag error naming the flag before anything
+// is sent, not a failure after a request that may have changed something.
 func withAdHoc(reqs []*httpfile.Request, asserts, captures []string) ([]*httpfile.Request, error) {
 	if len(asserts) == 0 && len(captures) == 0 {
 		return reqs, nil
 	}
 	var extraAsserts []httpfile.Assert
-	for _, expr := range asserts {
-		if _, err := assert.Parse(expr); err != nil {
-			return nil, runner.Usage(runner.CodeFlag, fmt.Sprintf("--assert %q: %v", expr, err))
+	for _, raw := range asserts {
+		expr, err := assert.Parse(raw)
+		if err == nil {
+			err = selector.Check(expr.Selector)
 		}
-		extraAsserts = append(extraAsserts, httpfile.Assert{Expr: expr})
+		if err != nil {
+			return nil, runner.Usage(runner.CodeFlag, fmt.Sprintf("--assert %q: %v", raw, err))
+		}
+		extraAsserts = append(extraAsserts, httpfile.Assert{Expr: raw})
 	}
 	var extraCaptures []httpfile.Capture
 	for _, def := range captures {
 		name, sel, ok := strings.Cut(def, "=")
 		name, sel = strings.TrimSpace(name), strings.TrimSpace(sel)
-		if !ok || name == "" || sel == "" || strings.ContainsAny(name, " \t") {
+		if !ok || !captureName.MatchString(name) || sel == "" {
 			return nil, runner.Usage(runner.CodeFlag, fmt.Sprintf("--capture %q: expected name=selector, e.g. token=body.$.access_token", def))
+		}
+		if err := selector.Check(sel); err != nil {
+			return nil, runner.Usage(runner.CodeFlag, fmt.Sprintf("--capture %q: %v", def, err))
 		}
 		extraCaptures = append(extraCaptures, httpfile.Capture{Name: name, Selector: sel})
 	}

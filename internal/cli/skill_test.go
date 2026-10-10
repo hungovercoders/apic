@@ -111,3 +111,39 @@ func TestRootHelpPointsAgentsAtTheSkill(t *testing.T) {
 		t.Fatalf("root help:\n%s", out)
 	}
 }
+
+// The install stays under the project: a --to that climbs out, or a
+// symlink in the way, is refused rather than followed. A project named
+// relative to the working directory, as `apic init my-api` does, is still
+// inside it.
+func TestSkillInstallStaysUnderTheProject(t *testing.T) {
+	t.Chdir(t.TempDir())
+	if code, _, errb := execute(t, "init", "my-api"); code != 0 {
+		t.Fatalf("relative project: code=%d err=%s", code, errb)
+	}
+	if _, err := os.Stat(filepath.Join("my-api", ".agents", "skills", "apic", "SKILL.md")); err != nil {
+		t.Error(err)
+	}
+	dir := t.TempDir()
+	code, _, errb := execute(t, "skill", "install", dir, "--to", "../outside")
+	if code != 2 || !strings.Contains(errb, "resolves outside") {
+		t.Fatalf("--to ../outside: code=%d err=%s", code, errb)
+	}
+	if _, err := os.Stat(filepath.Join(filepath.Dir(dir), "outside")); !os.IsNotExist(err) {
+		t.Error("something was written outside the project")
+	}
+	elsewhere := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, ".claude"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(elsewhere, filepath.Join(dir, ".claude", "skills")); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	code, _, errb = execute(t, "skill", "install", dir)
+	if code != 2 || !strings.Contains(errb, "resolves outside") {
+		t.Fatalf("symlinked skills dir: code=%d err=%s", code, errb)
+	}
+	if entries, _ := os.ReadDir(elsewhere); len(entries) != 0 {
+		t.Error("the symlink was followed out of the project")
+	}
+}

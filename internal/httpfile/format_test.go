@@ -113,3 +113,18 @@ func TestFormatRequest(t *testing.T) {
 		t.Errorf("one by one:\n%s\nwhole:\n%s", both, Format(src))
 	}
 }
+
+// A CRLF file keeps its CRLF outside the formatted block, byte for byte,
+// and the formatted block takes the file's line ending.
+func TestFormatRequestKeepsCRLF(t *testing.T) {
+	src := "###  a\r\n# @name   a\r\nGET https://x/a\r\n\r\n### b\r\n# @name   b\r\nGET https://x/b\r\n"
+	got, ok := FormatRequest(src, "b")
+	want := "###  a\r\n# @name   a\r\nGET https://x/a\r\n\r\n### b\r\n# @name b\r\nGET https://x/b\r\n"
+	if !ok || got != want {
+		t.Errorf("got %q\nwant %q", got, want)
+	}
+	got, _ = FormatRequest(src, "a")
+	if want = "### a\r\n# @name a\r\nGET https://x/a\r\n\r\n### b\r\n# @name   b\r\nGET https://x/b\r\n"; got != want {
+		t.Errorf("first block: got %q\nwant %q", got, want)
+	}
+}

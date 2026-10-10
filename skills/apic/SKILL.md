@@ -50,9 +50,9 @@ Read the result, not the terminal output:
 
 ```json
 {"ok": true,
- "request":  {"name": "whoami", "method": "GET", "url": "https://…/me", "headers": {"Authorization": "***"}},
- "response": {"status": 200, "headers": {…}, "body": {"email": "a@b.c"}, "duration_ms": 41},
- "captures": {"token": "eyJ…"},
+ "request":  {"name": "whoami", "method": "GET", "url": "https://api.example.com/me", "headers": {"Authorization": "***"}},
+ "response": {"status": 200, "headers": {"content-type": "application/json"}, "body": {"email": "a@b.c"}, "duration_ms": 41},
+ "captures": {"token": "eyJhbGci"},
  "asserts":  [{"expr": "status == 200", "pass": true, "actual": "200", "expected": "200"}],
  "errors":   []}
 ```
@@ -71,7 +71,7 @@ Branch on the error code, never on the message, whose wording may change:
 |---|---|---|
 | `1` | `ok: false`, `asserts[].pass` | an assertion or capture failed: report the `actual` against the `expected` |
 | `2` | stderr `{"error": {"code", "message", "hint", …}}` | E101 missing variable: run the request named in the hint, or pass `--var`. E201 unknown request: `apic list`. E103 file has errors: `apic validate`. E204 unknown environment: `apic env` |
-| `3` | the same object, codes E301 to E305 | the server is down, slow or untrusted; retrying the same call will not help, so tell the user |
+| `3` | the same object, codes E300 to E305 | follow the `hint`. E301 could not connect and E303 TLS failed: the server is down or untrusted, so tell the user rather than retrying. E302 timed out: once with a longer `--timeout`, then tell the user. E304 protocol problem and E300 anything else: report the message. E305 cancelled: run the command again |
 
 https://hungovercoders.github.io/apic/errors/ explains every code.
 

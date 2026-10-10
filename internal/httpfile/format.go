@@ -296,8 +296,11 @@ func trimTrailingBlank(lines []string) []string {
 // changed one request in a file it does not own, so the change stays that
 // request's.
 func FormatRequest(src, name string) (out string, ok bool) {
-	src = strings.ReplaceAll(src, "\r\n", "\n")
+	// The source is split as it is, so the lines around the block keep
+	// their bytes, CRLF included; the formatted block is given the file's
+	// line ending so the result stays one kind.
 	lines := strings.Split(src, "\n")
+	crlf := strings.Contains(src, "\r\n")
 	// Each explicit block runs from its separator line to the line before
 	// the next one, trailing blank lines included.
 	var starts []int
@@ -322,9 +325,18 @@ func FormatRequest(src, name string) (out string, ok bool) {
 			continue
 		}
 		block := strings.Split(strings.TrimSuffix(Format(strings.Join(lines[start:end], "\n")), "\n"), "\n")
-		// One blank line before the next block, or the file's final newline
-		// (the empty last element of the split) when this block is last.
-		if end < len(lines) || strings.HasSuffix(src, "\n") {
+		if crlf {
+			for i := range block {
+				block[i] += "\r"
+			}
+		}
+		// One blank line before the next block (a bare "\r" under CRLF, so
+		// the join gives "\r\n"), or the file's final newline, the empty
+		// last element of the split, when this block is last.
+		switch {
+		case end < len(lines) && crlf:
+			block = append(block, "\r")
+		case end < len(lines) || strings.HasSuffix(src, "\n"):
 			block = append(block, "")
 		}
 		return strings.Join(append(append(append([]string{}, lines[:start]...), block...), lines[end:]...), "\n"), true

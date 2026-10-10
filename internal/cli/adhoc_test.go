@@ -152,3 +152,25 @@ func TestFmtOneRequest(t *testing.T) {
 		t.Errorf("unknown: code=%d err=%s", code, errb)
 	}
 }
+
+// A selector or a name a directive would be refused for is refused on the
+// flag too, before the request is sent: an agent trying `--capture` on a
+// DELETE must not learn of its typo from the response.
+func TestRunAdHocFlagsAreCheckedBeforeSending(t *testing.T) {
+	dir, hits := adHocProject(t)
+	for _, bad := range [][]string{
+		{"--assert", "nope == 1"},
+		{"--assert", "header == 1"},
+		{"--capture", "x=not-a-selector"},
+		{"--capture", "1bad=body.$.id"},
+		{"--capture", "two words=body.$.id"},
+	} {
+		code, _, errb := execute(t, "-C", dir, "--env", "dev", "--no-session", "run", "other", "--var", "id=1", bad[0], bad[1])
+		if code != 2 || !strings.Contains(errb, bad[0]+" ") {
+			t.Errorf("%v: code=%d err=%s", bad, code, errb)
+		}
+	}
+	if hits.Load() != 0 {
+		t.Fatalf("%d requests were sent before the flag check", hits.Load())
+	}
+}

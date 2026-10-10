@@ -2,12 +2,14 @@ package cli
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
 
+	"github.com/hungovercoders/apic/internal/project"
 	"github.com/hungovercoders/apic/internal/runner"
 	"github.com/hungovercoders/apic/skills"
 )
@@ -99,13 +101,30 @@ Commit the result so every clone briefs its agents.`,
 
 // writeSkill writes the skill into each of dirs under root, as
 // <dir>/apic/<file>. A file already holding the same text is reported as
-// unchanged rather than rewritten, so a second install is a no-op.
+// unchanged rather than rewritten, so a second install is a no-op. Every
+// path is confined to root, symlinks followed, so neither `--to ../x` nor
+// a link under .claude/skills can put the files outside the project.
 func writeSkill(root string, dirs []string) (written, unchanged []string, err error) {
+	// Confine compares real paths, so the root must be absolute: `apic init
+	// my-api` names it relative to the working directory.
+	root, err = filepath.Abs(root)
+	if err != nil {
+		return nil, nil, runner.Usage(runner.CodeFile, err.Error())
+	}
+	if err := os.MkdirAll(root, 0o755); err != nil { //nolint:gosec // the project directory the user named, which they browse and commit
+		return nil, nil, runner.Usage(runner.CodeFile, err.Error())
+	}
 	files := skills.Files()
 	for _, dir := range dirs {
-		base := filepath.Join(root, dir, skills.Name)
 		for _, name := range skills.Paths() {
-			target := filepath.Join(base, filepath.FromSlash(name))
+			rel := filepath.Join(dir, skills.Name, filepath.FromSlash(name))
+			target, err := project.Confine(root, root, rel)
+			if errors.Is(err, project.ErrOutsideRoot) {
+				return nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s resolves outside %s; the skill is installed under the project", rel, root))
+			}
+			if err != nil {
+				return nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s: %v", rel, err))
+			}
 			content := []byte(files[name])
 			if existing, err := os.ReadFile(target); err == nil && bytes.Equal(existing, content) { //nolint:gosec // the skill file this command wrote before, under the project
 				unchanged = append(unchanged, target)

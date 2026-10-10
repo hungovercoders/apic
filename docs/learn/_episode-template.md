@@ -30,7 +30,7 @@ static binary. Every lesson runs against the fake API that ships inside
 apic, so you can follow along with nothing but the binary.
 
 📄 Lesson page, with every command to copy:
-https://hungovercoders.github.io/apic/learn/<NN-slug>/
+https://apic.sh/learn/<NN-slug>/
 
 ▶ Try it in 30 seconds:
     go install github.com/hungovercoders/apic/cmd/apic@latest
@@ -45,9 +45,9 @@ Chapters
 <m:ss> Next lesson
 
 Links
-🏠 Docs: https://hungovercoders.github.io/apic/
+🏠 Docs: https://apic.sh/
 📦 Source and issues: https://github.com/hungovercoders/apic
-📚 The whole course: https://hungovercoders.github.io/apic/learn/
+📚 The whole course: https://apic.sh/learn/
 ⬅ Previous: <link or "this is the first one">
 ➡ Next: <link or "coming soon">
 

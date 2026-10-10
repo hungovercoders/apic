@@ -1,5 +1,5 @@
-// Command skilldocs writes skills/apic/references/cheatsheet.md from
-// docs/cheatsheet.md, the one page an agent needs when it writes a request.
+// Command skilldocs writes skills/apic/references/cheatsheet.md from the
+// site's cheatsheet.md, the one page an agent needs when it writes a request.
 // The skill is copied into other projects, where the docs' relative links
 // mean nothing, so each becomes a link to the published site. A test fails
 // when the copy is stale; `task skill` regenerates it.
@@ -13,13 +13,14 @@ import (
 	"strings"
 )
 
-// Site is where mkdocs publishes the docs (use_directory_urls, so
-// `format.md#anchor` is served at `format/#anchor`).
-const Site = "https://hungovercoders.github.io/apic/"
+// Site is where the docs are published. A page links to another as
+// `format.md#anchor`; the site serves it at `format/#anchor`
+// (website/plugins/remark-doc-links.mjs does the same rewrite at build).
+const Site = "https://apic.sh/"
 
 // Source and Target are relative to the repository root.
 const (
-	Source = "docs/cheatsheet.md"
+	Source = "website/src/content/docs/cheatsheet.md"
 	Target = "skills/apic/references/cheatsheet.md"
 )
 

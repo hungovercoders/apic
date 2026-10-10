@@ -1,0 +1,115 @@
+---
+title: apic is epic
+description: Run API requests from plain .http files, in the terminal, in CI, or from an AI agent, on any platform, with one static binary.
+template: splash
+hero:
+  title: apic is epic
+  tagline: Run API requests from plain <code>.http</code> files, in the terminal, in CI, or from an AI agent, on any platform, with one static binary.
+  image:
+    file: ../../assets/logo.svg
+    alt: ''
+  actions:
+    - text: Get started
+      link: /getting-started/
+      icon: right-arrow
+    - text: Learn the format
+      link: /format/
+      variant: minimal
+    - text: GitHub
+      link: https://github.com/hungovercoders/apic
+      icon: github
+      variant: minimal
+---
+
+import { Tabs, TabItem, LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+![apic ui --demo: send a request, run a file as a flow, read the checks, see what was captured](assets/apic-demo.svg)
+
+```sh
+apic ui --demo                      # a fake API and a UI to poke it with, no setup
+apic run login                      # POST, capture the token
+apic run get-user --env staging     # reuse the token, check assertions
+apic run smoke.http --json | jq     # whole file as a flow, one JSON line per request
+apic test                           # run Gherkin features against the same requests
+claude mcp add api -- apic mcp      # let an agent call the same requests as tools
+```
+
+## 30 seconds to epic
+
+<Tabs>
+<TabItem label="Homebrew">
+
+```sh
+brew install hungovercoders/tap/apic
+apic ui --demo
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```sh
+go install github.com/hungovercoders/apic/cmd/apic@latest
+apic ui --demo
+```
+
+</TabItem>
+<TabItem label="Linux / macOS">
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/hungovercoders/apic/main/install.sh | sh
+apic ui --demo
+```
+
+</TabItem>
+<TabItem label="Windows">
+
+```powershell
+irm https://raw.githubusercontent.com/hungovercoders/apic/main/install.ps1 | iex
+apic ui --demo
+```
+
+</TabItem>
+</Tabs>
+
+`--demo` serves a small fake API inside the same process and opens the
+[terminal UI](tui.md) on an example project that targets it. There is
+nothing to sign up for or clone, and nothing is left behind when you quit.
+
+:::tip[Prefer the plain CLI?]
+`apic demo` writes the same example project to `./apic-demo` and serves
+the API, so you can drive it by hand:
+`apic run login whoami -C apic-demo`.
+:::
+
+## Why it's epic
+
+<CardGrid>
+{/* Component hrefs are attributes, not Markdown links, so they are written as the site serves them. */}
+<LinkCard title="Environments that travel" href="/format/#variables" description="http-client.env.json, .env, the shell and --var, with one precedence order you can print." />
+<LinkCard title="Tokens that persist" href="/format/#directives" description="Capture a value once; the next run, in a new shell or a new agent call, already has it." />
+<LinkCard title="Assertions and flows" href="/format/#assertion-operators" description="Check status, headers and JSON paths. A file runs in order with a pass/fail summary and an exit code." />
+<LinkCard title="Auth a text file cannot do" href="/auth/" description="AWS SigV4 with no SDK, OAuth2 with caching and refresh, basic, bearer, or any CLI that prints a token." />
+<LinkCard title="Gherkin without Cucumber" href="/testing/" description="Features run against the same requests with a built-in vocabulary. JUnit and cucumber reports included." />
+<LinkCard title="Built for agents" href="/agents/" description="Stable --json per request, discoverable requests, errors that say what to do next, and an MCP server." />
+</CardGrid>
+
+The files stay ordinary `.http` files: everything apic adds is a comment, so
+VS Code, JetBrains and Neovim still send them with one click.
+
+## Where to go next
+
+| Guide | Read it when |
+|---|---|
+| [Getting started](getting-started.md) | You are setting up apic for a project for the first time. |
+| [Terminal UI](tui.md) | You want to browse and run requests interactively. |
+| [Cheat sheet](cheatsheet.md) | You want every directive, selector and operator on one page. |
+| [The `.http` format](format.md) | You are writing or editing request files. |
+| [Authentication](auth.md) | Your API needs AWS SigV4, OAuth2, basic auth or a token from a CLI. |
+| [Testing with Gherkin](testing.md) | You want `.feature` files to describe API behaviour. |
+| [Cookbook](cookbook.md) | You have a specific job to do and want a worked recipe. |
+| [CLI reference](cli.md) | You want every command, flag, output shape and exit code. |
+| [Using apic from an AI agent](agents.md) | You want Claude Code, Cursor or a shell-driven agent to call your API. |
+| [FAQ](faq.md) | Something is not behaving and you want the short answer. |
+| [Taskfile integration](taskfile.md) | You already drive things with `task`. |
+| [Comparison](comparison.md) | You are deciding between apic, Bruno, Hurl, Postman or curl. |
+| [From zero to apic](learn/index.md) | You want a course: fourteen short lessons, each with a YouTube episode. |

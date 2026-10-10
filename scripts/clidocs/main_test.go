@@ -13,7 +13,7 @@ import (
 // TestReferenceIsCurrent fails when a flag or command changed without
 // `task docs:cli`, which is how CI catches a stale docs/cli.md.
 func TestReferenceIsCurrent(t *testing.T) {
-	path := filepath.Join("..", "..", "docs", "cli.md")
+	path := filepath.Join("..", "..", Page)
 	current, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

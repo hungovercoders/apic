@@ -1,6 +1,7 @@
 # External link check for the docs and the README (`task docs:check`, and
 # the docs workflow on pull requests that touch them). Internal links are
-# mkdocs build --strict's job, so only http and https are checked here.
+# the site build's job (starlight-links-validator fails it on a broken one),
+# so only http and https are checked here.
 scheme = ["https", "http"]
 
 # A link fails on 404 Not Found and 410 Gone. Other answers, such as a site
@@ -26,7 +27,9 @@ exclude = [
   '^https?://proxy',
   '\{\{',
   # The docs site and this repository's files: a page or file added in the
-  # same pull request is not published yet, and mkdocs checks the pages.
+  # same pull request is not published yet, and the site build checks the
+  # pages. The old GitHub Pages address still serves redirects to apic.sh.
+  '^https://apic\.sh',
   '^https://hungovercoders\.github\.io/apic',
   '^https://github\.com/hungovercoders/apic/(blob|tree|releases|issues|pull|compare)',
   '^https://raw\.githubusercontent\.com/hungovercoders/apic',
@@ -36,4 +39,4 @@ exclude = [
   '^https://open-vsx\.org/extension/dataGriff/',
 ]
 
-exclude_path = ["site", "editors/vscode/node_modules", "node_modules"]
+exclude_path = ["website/node_modules", "website/dist", "editors/vscode/node_modules", "node_modules"]

@@ -1,6 +1,8 @@
-<!-- Generated from docs/cheatsheet.md by scripts/skilldocs (`task skill`); edit that page, not this file. -->
+<!-- Generated from website/src/content/docs/cheatsheet.md by scripts/skilldocs (`task skill`); edit that page, not this file. -->
 # apic cheat sheet
-
+---
+title: "Cheat sheet"
+---
 Everything apic understands, on one page. Each section links to the full
 explanation.
 
@@ -25,10 +27,10 @@ Content-Type: application/json
 |---|---|
 | Inline | Everything after the blank line, `{{vars}}` substituted |
 | From a file | `< ./payload.json` as it is, `<@ ./payload.json` with `{{vars}}` substituted |
-| Multipart upload | `Content-Type: multipart/form-data; boundary=X`, parts between `--X` lines, `< ./report.pdf` as a part's content; see [format](https://hungovercoders.github.io/apic/format/#multipart-uploads) |
-| GraphQL | `GRAPHQL {{baseUrl}}/graphql` (or `X-REQUEST-TYPE: GraphQL`), the query as the body, variables as a JSON object after a blank line; sent as a JSON POST; see [format](https://hungovercoders.github.io/apic/format/#graphql) |
-| Save the response | `>> ./out.json` (create) or `>>! ./out.json` (overwrite) after the body; `apic run --output file` for one run; see [format](https://hungovercoders.github.io/apic/format/#saving-a-response) |
-| HTTP version | `GET https://x/ HTTP/1.1` never uses HTTP/2; `HTTP/2` requires it; none negotiates; see [format](https://hungovercoders.github.io/apic/format/#http-version) |
+| Multipart upload | `Content-Type: multipart/form-data; boundary=X`, parts between `--X` lines, `< ./report.pdf` as a part's content; see [format](https://apic.sh/format/#multipart-uploads) |
+| GraphQL | `GRAPHQL {{baseUrl}}/graphql` (or `X-REQUEST-TYPE: GraphQL`), the query as the body, variables as a JSON object after a blank line; sent as a JSON POST; see [format](https://apic.sh/format/#graphql) |
+| Save the response | `>> ./out.json` (create) or `>>! ./out.json` (overwrite) after the body; `apic run --output file` for one run; see [format](https://apic.sh/format/#saving-a-response) |
+| HTTP version | `GET https://x/ HTTP/1.1` never uses HTTP/2; `HTTP/2` requires it; none negotiates; see [format](https://apic.sh/format/#http-version) |
 
 ## Commands
 
@@ -39,8 +41,8 @@ Content-Type: application/json
 | `apic run <target> --assert <expr> --capture <name=selector>` | A check or a capture for this run only, before writing it into the file |
 | `apic run <target> --dry-run` | The request as it would be sent, resolved; nothing sent, nothing captured |
 | `apic run <target> --body-limit 4k` | At most that much body in the output, marked `body_truncated`; the history keeps it all |
-| `apic ui` | [Terminal UI](https://hungovercoders.github.io/apic/tui/); `--demo` needs no project |
-| `apic test [paths]` | Run [Gherkin features](https://hungovercoders.github.io/apic/testing/) |
+| `apic ui` | [Terminal UI](https://apic.sh/tui/); `--demo` needs no project |
+| `apic test [paths]` | Run [Gherkin features](https://apic.sh/testing/) |
 | `apic list [pattern]` | Every request, filtered by id, URL, file or description |
 | `apic describe <id>` | Variables, sources, captures, asserts, readiness |
 | `apic env` | Environments and the variables in effect |
@@ -56,7 +58,7 @@ Content-Type: application/json
 | `apic validate` | Parse everything and report problems (CI); `--format github\|sarif` |
 | `apic fmt [--check\|--diff]` | Canonical formatting for `.http` files; `-` filters stdin; `file.http#name` for one request |
 | `apic mcp` | Serve the project to agents over MCP |
-| `apic lsp` | Language server for any LSP editor ([set-up](https://hungovercoders.github.io/apic/editors/#any-editor-with-an-lsp-client)) |
+| `apic lsp` | Language server for any LSP editor ([set-up](https://apic.sh/editors/#any-editor-with-an-lsp-client)) |
 | `apic demo` | Scaffold and serve the bundled fake API |
 
 **Targets:** `get-user` (by name) · `users.http` (whole file as a flow) ·
@@ -79,7 +81,7 @@ Written as comments before the request line, so editors ignore them.
 | `# @description text` | One line shown by `list` and `describe` |
 | `# @capture name = selector` | Store a value from the response for later runs |
 | `# @assert selector op value` | Check the response; failures exit 1 |
-| `# @auth type ...` | `none`, `bearer`, `basic`, `apikey`, `digest`, `aws`, `oauth2`, `exec`; see [auth](https://hungovercoders.github.io/apic/auth/) |
+| `# @auth type ...` | `none`, `bearer`, `basic`, `apikey`, `digest`, `aws`, `oauth2`, `exec`; see [auth](https://apic.sh/auth/) |
 | `# @step a user named {name} exists` | Gherkin phrase that runs this request |
 | `# @ref login` | Run `login` first when a variable is missing |
 | `# @forceRef login` | Run `login` first every time |
@@ -124,7 +126,7 @@ First match wins:
 | `{{$processEnv NAME}}` / `{{$env.NAME}}` | shell environment variable |
 | `{{$dotenv NAME}}` | value from `.env` |
 | `{{$projectRoot}}` | absolute project root |
-| `{{$auth.token("name")}}` | token of a JetBrains `Security.Auth` configuration; see [auth](https://hungovercoders.github.io/apic/auth/#jetbrains-projects) |
+| `{{$auth.token("name")}}` | token of a JetBrains `Security.Auth` configuration; see [auth](https://apic.sh/auth/#jetbrains-projects) |
 | `{{login.response.body.$.token}}` | an earlier response in the same flow |
 
 ## Selectors
@@ -137,7 +139,7 @@ First match wins:
 | `cookie.<name>` | value of a cookie the response set |
 | `body` | raw body |
 | `body.$` | whole JSON body |
-| `body.$.<path>` | `body.$.items[0].id`, `[-1]`, `[1:3]`, `[*]`, `body.$..id`, `body.$.items[?(@.done == true)].id`, `.#` or `.length` (count), `body.$["key.with.dots"]`; see [format](https://hungovercoders.github.io/apic/format/#body-paths) |
+| `body.$.<path>` | `body.$.items[0].id`, `[-1]`, `[1:3]`, `[*]`, `body.$..id`, `body.$.items[?(@.done == true)].id`, `.#` or `.length` (count), `body.$["key.with.dots"]`; see [format](https://apic.sh/format/#body-paths) |
 | `duration` | round-trip time in milliseconds |
 
 ## Assertion operators
@@ -211,4 +213,4 @@ api/
 <kbd>/</kbd> filter · <kbd>1</kbd>-<kbd>4</kbd> tabs · <kbd>H</kbd> headers ·
 <kbd>c</kbd> curl · <kbd>e</kbd> environment · <kbd>r</kbd> reload ·
 <kbd>o</kbd> edit · <kbd>x</kbd> clear session · <kbd>?</kbd> help ·
-<kbd>q</kbd> quit. Full list in [the TUI guide](https://hungovercoders.github.io/apic/tui/#keys).
+<kbd>q</kbd> quit. Full list in [the TUI guide](https://apic.sh/tui/#keys).

@@ -235,7 +235,7 @@ func (a *App) versionCmd() *cobra.Command {
 				return a.writeJSON(info)
 			}
 			fmt.Fprintf(a.Stdout, "apic %s %s\n", theme.Accent.Render(info.Version), theme.Dim.Render(fmt.Sprintf("· %s · %s %s/%s", info.Commit, info.Go, info.OS, info.Arch)))
-			fmt.Fprintln(a.Stdout, theme.Dim.Render("apic is epic · https://hungovercoders.github.io/apic/"))
+			fmt.Fprintln(a.Stdout, theme.Dim.Render("apic is epic · https://apic.sh/"))
 			return nil
 		},
 	}

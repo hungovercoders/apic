@@ -195,7 +195,7 @@ func sarifReport(diags []httpfile.Diagnostic) map[string]any {
 		rules = append(rules, map[string]any{
 			"id":               c,
 			"shortDescription": map[string]string{"text": httpfile.Codes[c]},
-			"helpUri":          "https://hungovercoders.github.io/apic/cli/#apic-validate",
+			"helpUri":          "https://apic.sh/cli/#apic-validate",
 		})
 	}
 	if rules == nil {
@@ -242,7 +242,7 @@ func sarifReport(diags []httpfile.Diagnostic) map[string]any {
 			"tool": map[string]any{"driver": map[string]any{
 				"name":           "apic",
 				"version":        Version,
-				"informationUri": "https://hungovercoders.github.io/apic/",
+				"informationUri": "https://apic.sh/",
 				"rules":          rules,
 			}},
 			"results": results,

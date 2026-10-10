@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="docs/assets/logo.svg" width="72" alt=""><br>
+  <img src="website/src/assets/logo.svg" width="72" alt=""><br>
   apic
 </h1>
 
@@ -7,13 +7,13 @@
 
 <p align="center">
   <a href="https://github.com/hungovercoders/apic/actions/workflows/ci.yml"><img src="https://github.com/hungovercoders/apic/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://hungovercoders.github.io/apic/"><img src="https://github.com/hungovercoders/apic/actions/workflows/docs.yml/badge.svg" alt="Docs"></a>
+  <a href="https://apic.sh/"><img src="https://github.com/hungovercoders/apic/actions/workflows/docs.yml/badge.svg" alt="Docs"></a>
   <a href="https://github.com/hungovercoders/apic/releases/latest"><img src="https://img.shields.io/github/v/release/hungovercoders/apic?color=7c5cff&label=release" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/go-1.25%2B-00ADD8" alt="Go 1.25+">
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-7c5cff" alt="MIT licence"></a>
 </p>
 
-<p align="center"><img src="docs/assets/apic-demo.svg" width="820" alt="apic ui --demo: send a request, run a file as a flow, read the checks, see what was captured"></p>
+<p align="center"><img src="website/public/assets/apic-demo.svg" width="820" alt="apic ui --demo: send a request, run a file as a flow, read the checks, see what was captured"></p>
 
 ```sh
 apic ui --demo                      # a fake API and a UI to poke it with, no setup
@@ -50,7 +50,7 @@ Every command resolves `.http` files relative to `-C` (default: the current
 directory), so `apic ui` on its own in that second terminal won't see the
 project `apic demo` just wrote — point it at the directory explicitly.
 
-<p align="center"><img src="docs/assets/apic-run.svg" width="620" alt="apic run output: status, timing, highlighted body, assertions and captures"></p>
+<p align="center"><img src="website/public/assets/apic-run.svg" width="620" alt="apic run output: status, timing, highlighted body, assertions and captures"></p>
 
 ## Why it's epic
 
@@ -111,7 +111,7 @@ mismatch; the action does the same and takes `with: version: v1.2.3`.
 
 Every release is signed with cosign and ships an SPDX SBOM per archive (the
 image is signed too, with an SBOM attestation); see
-[docs/verifying.md](docs/verifying.md) to check a download before trusting it.
+[verifying a release](https://apic.sh/verifying/) to check a download before trusting it.
 
 ## 60-second tour
 
@@ -206,37 +206,38 @@ disabled when output is not a terminal or `NO_COLOR` is set.
 
 **Exit codes:** `0` ok · `1` assertion or capture failed · `2` usage, parse error or missing variable · `3` network error.
 Every error also has a stable code (`E101 missing variable`, `E301 could not connect`, …), explained in the
-[error catalogue](docs/errors.md).
+[error catalogue](https://apic.sh/errors/).
 
 ## Documentation
 
-Published at **[hungovercoders.github.io/apic](https://hungovercoders.github.io/apic/)**.
+Published at **[apic.sh](https://apic.sh/)** (source in [`website/`](website)).
 
 | | |
 |---|---|
-| [Getting started](docs/getting-started.md) | Install, first project, login flow, CI, agents |
-| [Terminal UI](docs/tui.md) | What `apic ui` shows and every key it takes |
-| [Cheat sheet](docs/cheatsheet.md) | Directives, selectors, operators and commands on one page |
-| [Cookbook](docs/cookbook.md) | Recipes: login once, CI smoke tests, AWS, OAuth2, polling, uploads |
-| [CLI reference](docs/cli.md) | Every command, flag, JSON shape and exit code |
-| [The `.http` format](docs/format.md) | Directives, variables, selectors, assertions |
-| [Authentication](docs/auth.md) | AWS SigV4, OAuth2, digest, API keys, basic, bearer, exec |
-| [Testing with Gherkin](docs/testing.md) | `.feature` files, the step vocabulary, reports |
-| [Agents](docs/agents.md) | Shell and MCP integration, JSON contract |
-| [Editors](docs/editors.md) | VS Code (REST Client plus the apic extension), JetBrains, Neovim |
-| [Architecture](docs/architecture.md) | The request lifecycle, the packages, the three contracts, how to add a directive |
-| [Errors](docs/errors.md) | Every error code, its exit status and what to do about it |
-| [FAQ](docs/faq.md) | Missing variables, 403s, secrets in logs, Windows |
-| [Taskfile](docs/taskfile.md) | Keep `task` as the front door |
-| [Comparison](docs/comparison.md) | apic against Bruno, Hurl, Postman, httpyac, ijhttp, Kulala.nvim, curl |
-| Migration guides | From [Postman](docs/migrate/postman.md), [Bruno](docs/migrate/bruno.md), [Hurl](docs/migrate/hurl.md), [httpyac](docs/migrate/httpyac.md), [curl and Taskfile](docs/migrate/curl.md) |
+| [Getting started](https://apic.sh/getting-started/) | Install, first project, login flow, CI, agents |
+| [From zero to apic](https://apic.sh/learn/) | The course: fourteen short lessons, each with a YouTube episode |
+| [Terminal UI](https://apic.sh/tui/) | What `apic ui` shows and every key it takes |
+| [Cheat sheet](https://apic.sh/cheatsheet/) | Directives, selectors, operators and commands on one page |
+| [Cookbook](https://apic.sh/cookbook/) | Recipes: login once, CI smoke tests, AWS, OAuth2, polling, uploads |
+| [CLI reference](https://apic.sh/cli/) | Every command, flag, JSON shape and exit code |
+| [The `.http` format](https://apic.sh/format/) | Directives, variables, selectors, assertions |
+| [Authentication](https://apic.sh/auth/) | AWS SigV4, OAuth2, digest, API keys, basic, bearer, exec |
+| [Testing with Gherkin](https://apic.sh/testing/) | `.feature` files, the step vocabulary, reports |
+| [Agents](https://apic.sh/agents/) | Shell and MCP integration, JSON contract |
+| [Editors](https://apic.sh/editors/) | VS Code (REST Client plus the apic extension), JetBrains, Neovim |
+| [Errors](https://apic.sh/errors/) | Every error code, its exit status and what to do about it |
+| [FAQ](https://apic.sh/faq/) | Missing variables, 403s, secrets in logs, Windows |
+| [Taskfile](https://apic.sh/taskfile/) | Keep `task` as the front door |
+| [Comparison](https://apic.sh/comparison/) | apic against Bruno, Hurl, Postman, httpyac, ijhttp, Kulala.nvim, curl |
+| Migration guides | From [Postman](https://apic.sh/migrate/postman/), [Bruno](https://apic.sh/migrate/bruno/), [Hurl](https://apic.sh/migrate/hurl/), [httpyac](https://apic.sh/migrate/httpyac/), [curl and Taskfile](https://apic.sh/migrate/curl/) |
+| [Architecture](docs/architecture.md) | For contributors: the request lifecycle, the packages, the three contracts, how to add a directive |
 
 ## For agents
 
 Shell: `apic list --json`, `apic describe <id> --json`, `apic run <id> --json`.
 MCP: `claude mcp add api -- apic mcp --dir ./api --env dev`.
 Skill: `apic skill install` writes the briefing into the project (`apic init` does too); `apic skill` prints it, and `npx skills add hungovercoders/apic` fetches the same [`skills/apic`](skills/apic).
-See [docs/agents.md](docs/agents.md) for the JSON contract and a snippet to
+See [the agents guide](https://apic.sh/agents/) for the JSON contract and a snippet to
 paste into your project's `AGENTS.md`. The contract only grows: a body
 that is not text now comes as base64 with `body_encoding` beside it,
 `saved_to` names the file a `>> file` line wrote, a `# @disabled`
@@ -251,7 +252,7 @@ stderr (stdout is unchanged).
 
 ## The format
 
-See [docs/format.md](docs/format.md) for the full spec: structure,
+See [the format guide](https://apic.sh/format/) for the full spec: structure,
 directives, variable precedence, built-ins, selectors and assertion
 operators. Short version: standard `.http`, plus
 

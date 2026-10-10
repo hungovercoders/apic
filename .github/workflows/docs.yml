@@ -2,9 +2,9 @@ name: docs
 on:
   push:
     branches: [main]
-    paths: [docs/**, mkdocs.yml, .github/workflows/docs.yml]
+    paths: [website/**, docs/**, .github/workflows/docs.yml]
   pull_request:
-    paths: [docs/**, skills/**, mkdocs.yml, README.md, CONTRIBUTING.md, AGENTS.md, SECURITY.md, .vale.ini, .codespellrc, .lychee.toml, .github/workflows/docs.yml]
+    paths: [website/**, docs/**, skills/**, README.md, CONTRIBUTING.md, AGENTS.md, SECURITY.md, .vale.ini, .codespellrc, .lychee.toml, .github/workflows/docs.yml]
   workflow_dispatch:
 
 permissions:
@@ -35,7 +35,7 @@ jobs:
         run: |
           curl -sSfL "https://github.com/errata-ai/vale/releases/download/v${VALE_VERSION}/vale_${VALE_VERSION}_Linux_64-bit.tar.gz" | tar -xz -C "$RUNNER_TEMP" vale
           "$RUNNER_TEMP/vale" sync
-          "$RUNNER_TEMP/vale" docs skills README.md CONTRIBUTING.md AGENTS.md SECURITY.md
+          "$RUNNER_TEMP/vale" website/src/content/docs docs skills README.md CONTRIBUTING.md AGENTS.md SECURITY.md
       # External links rot on their own schedule, so they are checked when
       # the docs change in a pull request, not on the way to deploying main.
       - if: github.event_name == 'pull_request'
@@ -47,22 +47,35 @@ jobs:
       - if: github.event_name == 'pull_request'
         uses: lycheeverse/lychee-action@v2
         with:
-          args: --config .lychee.toml --no-progress 'docs/**/*.md' 'skills/**/*.md' README.md CONTRIBUTING.md SECURITY.md
+          args: --config .lychee.toml --no-progress 'website/src/content/docs/**/*.md' 'website/src/content/docs/**/*.mdx' 'docs/**/*.md' 'skills/**/*.md' README.md CONTRIBUTING.md SECURITY.md
           fail: true
 
+  # apic.sh itself is deployed by Cloudflare Workers Builds from website/
+  # (main, and a preview URL per pull request), not from here. This job
+  # proves the build and every internal link on each change, and renders
+  # the legacy pages for GitHub Pages: the docs lived at
+  # hungovercoders.github.io/apic/ before apic.sh, and the 0.1.x binaries
+  # and the apic.yaml files they wrote still link there (see
+  # website/scripts/legacy.mjs).
   build:
     needs: check
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-node@v7
         with:
-          python-version: "3.12"
-      - run: pip install "mkdocs>=1.6,<2" "mkdocs-material>=9.7,<10"
-      - run: mkdocs build --strict
+          node-version: 22
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm run legacy
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: site
+          path: website/legacy
 
   deploy:
     if: github.event_name != 'pull_request'

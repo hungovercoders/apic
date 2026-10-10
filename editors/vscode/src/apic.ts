@@ -11,7 +11,7 @@ import * as path from "node:path";
 export const MIN_VERSION = "0.1.2";
 
 /** Where a missing or too-old apic is sent. */
-export const INSTALL_URL = "https://hungovercoders.github.io/apic/getting-started/#1-install";
+export const INSTALL_URL = "https://apic.sh/getting-started/#1-install";
 
 /** What `apic version --json` prints. */
 export interface VersionInfo {

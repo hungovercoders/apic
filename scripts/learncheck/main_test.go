@@ -73,7 +73,7 @@ func TestTemplateRunsEndToEnd(t *testing.T) {
 	if err := os.Chdir(root); err != nil {
 		t.Fatal(err)
 	}
-	if err := run([]string{filepath.Join("docs", "learn"), filepath.Join("docs", "migrate")}, false); err != nil {
+	if err := run([]string{Learn, Migrate}, false); err != nil {
 		t.Fatal(err)
 	}
 }

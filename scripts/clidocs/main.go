@@ -29,15 +29,17 @@ import (
 	"github.com/hungovercoders/apic/internal/cli"
 )
 
-// The markers around the generated section of docs/cli.md.
+// Page is the CLI reference on the site, relative to the repository root,
+// and Begin and End mark its generated section.
 const (
+	Page  = "website/src/content/docs/cli.md"
 	Begin = "<!-- BEGIN GENERATED: go run ./scripts/clidocs (task docs:cli) rewrites this section; edit the flags in internal/cli instead -->"
 	End   = "<!-- END GENERATED -->"
 )
 
 func main() {
 	check := flag.Bool("check", false, "exit 1 if the page is stale instead of rewriting it")
-	page := flag.String("md", filepath.Join("docs", "cli.md"), "the page holding the generated section")
+	page := flag.String("md", Page, "the page holding the generated section")
 	man := flag.String("man", "", "write man pages into this directory instead of updating the page")
 	flag.Parse()
 	root := Tree()
@@ -247,7 +249,7 @@ func manPage(c *cobra.Command) string {
 	if len(see) > 0 {
 		fmt.Fprintf(&b, ".SH SEE ALSO\n%s\n", roff(strings.Join(see, ", ")))
 	}
-	b.WriteString(".PP\nhttps://hungovercoders.github.io/apic/cli/\n")
+	b.WriteString(".PP\nhttps://apic.sh/cli/\n")
 	return b.String()
 }
 

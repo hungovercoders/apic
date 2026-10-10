@@ -10,6 +10,15 @@ updates:
     commit-message:
       prefix: "chore"
 
+  # The docs site (apic.sh): Astro, Starlight and wrangler.
+  - package-ecosystem: npm
+    directory: /website
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore"
+
   # The workflows pin actions by major tag, so this is what keeps them current.
   - package-ecosystem: github-actions
     directory: /

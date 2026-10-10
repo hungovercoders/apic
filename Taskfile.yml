@@ -66,7 +66,7 @@ tasks:
   clean:
     desc: Remove build, docs and coverage output
     cmds:
-      - rm -rf bin dist site man completions coverage.out THIRD_PARTY_NOTICES.md
+      - rm -rf bin dist man completions coverage.out THIRD_PARTY_NOTICES.md website/dist website/legacy website/.astro
 
   check:
     desc: Everything CI runs
@@ -124,27 +124,27 @@ tasks:
         "
 
   shots:
-    desc: Regenerate the terminal screenshots in docs/assets from real apic output
+    desc: Regenerate the terminal screenshots in website/public/assets from real apic output
     cmds:
       - go run ./scripts/shot
 
   schemas:
-    desc: Regenerate the JSON schemas in docs/schemas from the config types (a test fails when they are stale)
+    desc: Regenerate the JSON schemas in website/public/schemas from the config types (a test fails when they are stale)
     cmds:
       - go run ./scripts/schemas
 
   docs:cli:
-    desc: Regenerate the "Commands and flags" section of docs/cli.md from the command tree (a test fails when it is stale)
+    desc: Regenerate the "Commands and flags" section of the site's cli.md from the command tree (a test fails when it is stale)
     cmds:
       - go run ./scripts/clidocs
 
   skill:
-    desc: Regenerate skills/apic/references/cheatsheet.md from docs/cheatsheet.md (a test fails when it is stale)
+    desc: Regenerate skills/apic/references/cheatsheet.md from the site's cheatsheet.md (a test fails when it is stale)
     cmds:
       - go run ./scripts/skilldocs
 
   docs:errors:
-    desc: Regenerate docs/errors.md from the error catalogue in internal/runner/errors.go (a test fails when it is stale)
+    desc: Regenerate the site's errors.md from the error catalogue in internal/runner/errors.go (a test fails when it is stale)
     cmds:
       - go run ./scripts/errdocs
 
@@ -159,27 +159,32 @@ tasks:
       - go run ./scripts/agenteval
 
   learn:check:
-    desc: Run every marked command block in the course (docs/learn) and the migration guides (docs/migrate) against apic demo
+    desc: Run every marked command block in the course (website/src/content/docs/learn) and the migration guides (…/migrate) against apic demo
     cmds:
       - go run ./scripts/learncheck
 
-  docs:
-    desc: Serve the documentation site locally (needs `pip install "mkdocs<2" "mkdocs-material<10"`)
+  docs:install:
+    desc: Install the site's npm packages (Node 22 or newer)
     cmds:
-      - mkdocs serve
+      - npm --prefix website ci
+
+  docs:
+    desc: Serve apic.sh locally with live reload (task docs:install first)
+    cmds:
+      - npm --prefix website run dev
 
   docs:build:
-    desc: Build the documentation site with strict link checking
+    desc: Build apic.sh into website/dist; every internal link and anchor is checked and a broken one fails the build
     cmds:
-      - mkdocs build --strict
+      - npm --prefix website run build
 
   docs:check:
     desc: Spelling (codespell), prose style (vale) and external links (lychee), as the docs workflow runs them; needs the three tools on PATH
     cmds:
       - codespell
       - vale sync
-      - vale docs skills README.md CONTRIBUTING.md AGENTS.md SECURITY.md
-      - lychee --config .lychee.toml --no-progress 'docs/**/*.md' 'skills/**/*.md' README.md CONTRIBUTING.md SECURITY.md
+      - vale website/src/content/docs docs skills README.md CONTRIBUTING.md AGENTS.md SECURITY.md
+      - lychee --config .lychee.toml --no-progress 'website/src/content/docs/**/*.md' 'website/src/content/docs/**/*.mdx' 'docs/**/*.md' 'skills/**/*.md' README.md CONTRIBUTING.md SECURITY.md
 
   notices:
     desc: Generate THIRD_PARTY_NOTICES.md from the modules compiled into apic

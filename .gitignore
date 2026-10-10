@@ -6,7 +6,6 @@ http-client.private.env.json
 coverage.out
 /apic
 /apic.exe
-/site/
 /THIRD_PARTY_NOTICES.md
 /man/
 /completions/

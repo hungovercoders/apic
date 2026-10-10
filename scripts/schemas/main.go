@@ -28,7 +28,7 @@ import (
 
 const (
 	draft   = "https://json-schema.org/draft/2020-12/schema"
-	baseURL = "https://hungovercoders.github.io/apic/schemas/"
+	baseURL = "https://apic.sh/schemas/"
 )
 
 // descriptions documents every key of apic.yaml by its dotted path. The
@@ -80,7 +80,7 @@ var examples = map[string][]any{
 // Dirs are where the schemas live: the docs site publishes them at the
 // URLs the schema ids name, and the VS Code extension bundles a copy so
 // they validate offline.
-var Dirs = []string{"docs/schemas", "editors/vscode/schemas"}
+var Dirs = []string{"website/public/schemas", "editors/vscode/schemas"}
 
 func main() {
 	out := flag.String("out", "", "one directory to write the schemas into (default: every directory in Dirs)")

@@ -189,7 +189,7 @@ func Import(collectionPath string, opts Options) (*Result, error) {
 
 	if defaultAuth != "" || len(envNames) > 0 {
 		var y strings.Builder
-		y.WriteString("# yaml-language-server: $schema=https://hungovercoders.github.io/apic/schemas/apic.schema.json\n")
+		y.WriteString("# yaml-language-server: $schema=https://apic.sh/schemas/apic.schema.json\n")
 		if len(envNames) > 0 {
 			fmt.Fprintf(&y, "env: %s\n", envNames[0])
 		}

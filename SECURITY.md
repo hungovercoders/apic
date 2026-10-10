@@ -56,7 +56,7 @@ Out of scope:
 
 Every release is signed, and each archive ships an SBOM. Checking a download
 before you trust it is documented in
-[docs/verifying.md](docs/verifying.md).
+[verifying a release](https://apic.sh/verifying/).
 
 ## What apic does to protect credentials
 

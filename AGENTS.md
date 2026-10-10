@@ -18,8 +18,8 @@ is the offline API and project behind `apic demo`; `examples/` are the
 static sample projects CI validates and format-checks; `editors/vscode/`
 is the extension, released on its own `vscode-v*` tags; `setup-apic/` the
 GitHub Action; `skills/apic/` the Agent Skill users install into their own
-projects (`SKILL.md` is hand-written, `references/cheatsheet.md` generated), embedded by `skills/embed.go` for `apic skill` and `apic init`; `docs/` the site, with the course under `docs/learn/` (and the migration guides under `docs/migrate/`, whose runnable blocks `task learn:check` runs too) and
-the generators under `scripts/`.
+projects (`SKILL.md` is hand-written, `references/cheatsheet.md` generated), embedded by `skills/embed.go` for `apic skill` and `apic init`; `website/` is [apic.sh](https://apic.sh/), the user docs (see Docs site below), with the course under `src/content/docs/learn/` (and the migration guides under `migrate/`, whose runnable blocks `task learn:check` runs too); `docs/` is reference for working on apic rather than using it (the architecture page, the lesson templates, the VHS tapes, the Vale styles); and
+the generators are under `scripts/`.
 
 Two things worth knowing that the page also says: the OpenAPI and Postman
 readers are hand-written walkers, not libraries, and the VS Code extension
@@ -39,24 +39,32 @@ never parses `.http` files itself (it reads `--json`).
 - `task check`: what CI runs — lint, test, race, licences and validate-examples
 - `task clean`: remove `bin/`, `dist/`, `site/`, `coverage.out`, notices
 - `task notices`: regenerate THIRD_PARTY_NOTICES.md (goreleaser runs this before packaging)
-- `task shots`: regenerate `docs/assets/apic-ui.svg` and `apic-run.svg` from real output (needs port 8089 free)
-- `task docs` / `task docs:build`: preview or strictly build the docs site (`pip install "mkdocs<2" "mkdocs-material<10"`)
+- `task shots`: regenerate `website/public/assets/apic-ui.svg`, `apic-run.svg` and `apic-demo.svg` from real output (needs port 8089 free)
+- `task docs:install`, then `task docs` / `task docs:build`: install the site's npm packages (Node 22+), serve apic.sh locally, or build it into `website/dist`; the build fails on a broken internal link or anchor
 - `task docs:check`: codespell, Vale and lychee, as the docs workflow runs them (needs the three on PATH). Prose is British English: Vale's `Apic.British` rule fails on `color` or `behavior` outside code spans. A deliberate typo in an example goes in `.codespellrc`'s `ignore-words-list`; a name Vale should hold to one spelling goes in `docs/.vale/styles/config/vocabularies/Apic/accept.txt`
-- `task docs:cli`: regenerate the "Commands and flags" section at the end of `docs/cli.md` from the command tree (`scripts/clidocs`; a test fails when it is stale); `task man` writes the man pages goreleaser ships
-- `task skill`: regenerate `skills/apic/references/cheatsheet.md` from `docs/cheatsheet.md` with absolute links (`scripts/skilldocs`; a test fails when it is stale). `SKILL.md` is the briefing an agent reads on demand: keep it under 200 lines, point at the reference for detail, and know that its test fails on an `apic <word>` that is not a command. `skills/apic/evals/evals.json` holds the tasks that judge the skill, and `task agent:eval` (`scripts/agenteval`) runs them through the Claude Code CLI against fresh `apic demo` projects, with and without the skill, scoring the transcript (task outcome by a `verify` command, files changed, secret files read, requests sent, selector errors hit); it makes real model calls (about 40 cents a full run), so it is a monthly workflow with a manual trigger (`agent-eval.yml`, needs the `ANTHROPIC_API_KEY` secret) rather than part of `task check`. Run it when the briefing or an agent-facing output changes; the schedule is the backstop
-- `task docs:errors`: regenerate `docs/errors.md` from `runner.Catalogue` (`scripts/errdocs`; a test fails when it is stale). A new error gets a code from the catalogue: `runner.Usage(runner.CodeX, msg)` or `usagef(CodeX, …)`, never a bare message; a new code needs an entry in `Catalogue` and a case in `internal/cli/errors_test.go`, which runs a real command for every code
-- New commands need a row in the README table, a section in `docs/cli.md` and a line in `docs/cheatsheet.md`; a new or changed flag needs `task docs:cli`. A flag's usage text must not contain backticks: cobra reads the first backticked word as the value's name (a test checks)
+- `task docs:cli`: regenerate the "Commands and flags" section at the end of the site's `cli.md` from the command tree (`scripts/clidocs`; a test fails when it is stale); `task man` writes the man pages goreleaser ships
+- `task skill`: regenerate `skills/apic/references/cheatsheet.md` from the site's `cheatsheet.md` with absolute links (`scripts/skilldocs`; a test fails when it is stale). `SKILL.md` is the briefing an agent reads on demand: keep it under 200 lines, point at the reference for detail, and know that its test fails on an `apic <word>` that is not a command. `skills/apic/evals/evals.json` holds the tasks that judge the skill, and `task agent:eval` (`scripts/agenteval`) runs them through the Claude Code CLI against fresh `apic demo` projects, with and without the skill, scoring the transcript (task outcome by a `verify` command, files changed, secret files read, requests sent, selector errors hit); it makes real model calls (about 40 cents a full run), so it is a monthly workflow with a manual trigger (`agent-eval.yml`, needs the `ANTHROPIC_API_KEY` secret) rather than part of `task check`. Run it when the briefing or an agent-facing output changes; the schedule is the backstop
+- `task docs:errors`: regenerate the site's `errors.md` from `runner.Catalogue` (`scripts/errdocs`; a test fails when it is stale). A new error gets a code from the catalogue: `runner.Usage(runner.CodeX, msg)` or `usagef(CodeX, …)`, never a bare message; a new code needs an entry in `Catalogue` and a case in `internal/cli/errors_test.go`, which runs a real command for every code
+- New commands need a row in the README table, a section in the site's `cli.md` and a line in its `cheatsheet.md`; a new or changed flag needs `task docs:cli`. A flag's usage text must not contain backticks: cobra reads the first backticked word as the value's name (a test checks)
+
+## Docs site
+
+- `website/` is apic.sh: Astro with Starlight, pages in `src/content/docs/` (Markdown; `getting-started.mdx` and `index.mdx` are MDX for the tab components), the sidebar in `astro.config.mjs`, apic's colours in `src/styles/custom.css`. Every page needs a `title:` in its front matter, not an H1. Asides are `:::tip[Title]` … `:::`; collapsible blocks are `<details>` with a `<summary>`. A lesson stays Markdown (`<!-- learn -->` is an HTML comment, which MDX rejects and `scripts/learncheck` needs).
+- Pages link to each other as `format.md#anchor`, the way GitHub renders them, and to files under `public/` by their path from the content root (`assets/apic-ui.svg`); `plugins/remark-doc-links.mjs` turns both into the URLs the site serves. `scripts/skilldocs` relies on the `.md` form, so keep writing links that way.
+- The page paths and heading anchors are a public contract: the binary (`runner.DocsURL`, the SARIF `helpUri`, the LSP code description, the `apic init` schema modeline), the VS Code extension, the schema `$id`s and the Homebrew cask link to them. Renaming a page or a heading needs the same care as renaming a flag. `starlight-links-validator` fails the build on a broken internal link or anchor.
+- The schemas under `public/schemas/` are generated (`task schemas`); `public/assets/` holds the generated screenshots (`task shots`); `src/assets/logo.svg` is the logo the README and the site share.
+- Deploys: Cloudflare Workers Builds watches the repository and runs `npm run build` then `npx wrangler deploy` in `website/` (`wrangler.jsonc`, a static-assets Worker); `main` is apic.sh and every pull request gets a preview URL. `docs.yml` builds the site on each change to prove it, and keeps GitHub Pages (`hungovercoders.github.io/apic/`, where the docs lived before apic.sh) serving the schemas as real files and a redirect page per route, because the 0.1.x binaries and the `apic.yaml` files they wrote link there (`website/scripts/legacy.mjs`).
 
 ## Conventions
 
-- Keep the `.http` dialect compatible with VS Code REST Client and JetBrains: new features go in `# @directive` comments before the request line, never new syntax in the request itself. Document any addition in `docs/format.md`.
+- Keep the `.http` dialect compatible with VS Code REST Client and JetBrains: new features go in `# @directive` comments before the request line, never new syntax in the request itself. Document any addition in the site's `format.md`.
 - The `--json` output shape and exit codes are a public contract; change them only with a note in the README.
 - Every command must work non-interactively (no prompts) and respect `--json`. `apic ui` is the single, deliberate exception: it is interactive, has no `--json`, and exits 2 when stdout is not a terminal. `apic mcp` and `apic lsp` are servers that speak their own JSON protocol on stdout, so `--json` has nothing to change for them.
 - The UI is tested through `Update` and `View`, and driven headlessly by `Press`/`Resize` in `internal/ui/headless.go`; the screenshot generator uses the same entry points, so a screenshot cannot drift from what the UI draws.
 - The UI has its own terminal layer rather than a TUI framework. Bubble Tea was tried and removed: its package `init` queries the terminal for its background colour with a five-second timeout, which every apic command would pay on terminals that do not answer. Keep anything with an init-time terminal query out of the binary.
 - Keep the dependency list small: prefer a few hundred lines of code over a large SDK (the AWS signer and the OpenAPI reader are the precedents). Check the stripped binary size with `task build && ls -la bin/apic` when adding a dependency.
 - Add a test next to any parser or runner change; parser cases go in `internal/httpfile/testdata/sample.http`.
-- A new step in the vocabulary needs: its regex and shapes in `internal/phrase/builtin.go` (`Builtin`), a handler bound by name in `internal/bdd/steps.go`, a row in `bdd.Vocabulary`, a scenario in `bdd_test.go`, and the table in `docs/testing.md`.
+- A new step in the vocabulary needs: its regex and shapes in `internal/phrase/builtin.go` (`Builtin`), a handler bound by name in `internal/bdd/steps.go`, a row in `bdd.Vocabulary`, a scenario in `bdd_test.go`, and the table in the site's `testing.md`.
 
 ## CI and linting
 
@@ -94,7 +102,7 @@ never parses `.http` files itself (it reads `--json`).
 ## Releasing
 
 - Releases are signed with cosign, keyless: the certificate is bound to the release workflow's OIDC identity, so `release.yml` needs `id-token: write` on the job. There is no private key.
-- Only `checksums.txt` is signed. It names every archive with its SHA-256, so one signature covers the release; verifying is a two-step chain, documented in `docs/verifying.md`.
+- Only `checksums.txt` is signed. It names every archive with its SHA-256, so one signature covers the release; verifying is a two-step chain, documented on the site's `verifying.md`.
 - Each archive gets an SPDX 2.3 SBOM from syft, per archive rather than per release because the module set differs by platform (cobra pulls in `mousetrap` on Windows only).
 - `cosign` and `syft` are installed by `release.yml`; neither ships with the runner or with goreleaser-action. goreleaser tries to sign even on a snapshot and fails hard without cosign, so `task snapshot` passes `--skip=sign,sbom` — a local snapshot is a build sanity check, not a release.
 - Before a tag: `task check`, then `task snapshot` to prove archive names, contents and version injection. `apic version` from an extracted archive must report the version, not `dev` — a typo in the ldflags path fails silently.

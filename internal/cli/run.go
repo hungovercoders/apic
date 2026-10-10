@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,7 +23,7 @@ import (
 func (a *App) runCmd() *cobra.Command {
 	var verbose, bodyOnly, keepGoing, noRetry, dryRun bool
 	var adHocAsserts, adHocCaptures []string
-	var retry, reportPath, outputPath, dataPath string
+	var retry, reportPath, outputPath, dataPath, bodyLimit string
 	var shareSession bool
 	cmd := &cobra.Command{
 		Use:   "run <request|file.http|file.http#name>...",
@@ -61,6 +62,10 @@ sending it: no dependency runs, no auth is applied and nothing is captured.`,
 			extraAsserts, extraCaptures, err := adHoc(adHocAsserts, adHocCaptures)
 			if err != nil {
 				return err
+			}
+			limit, err := parseSize(bodyLimit)
+			if err != nil {
+				return runner.Usage(runner.CodeFlag, fmt.Sprintf("--body-limit %q: %v", bodyLimit, err))
 			}
 			p, err := a.loadProject()
 			if err != nil {
@@ -133,6 +138,9 @@ sending it: no dependency runs, no auth is applied and nothing is captured.`,
 				defer func() { printed++ }()
 				if iteration != nil {
 					tagIteration(res, iteration)
+				}
+				if limit > 0 {
+					limitBodies(res, limit)
 				}
 				switch {
 				case a.g.json:
@@ -242,6 +250,7 @@ sending it: no dependency runs, no auth is applied and nothing is captured.`,
 	cmd.Flags().StringArrayVar(&adHocAsserts, "assert", nil, "check the response with an expression, as # @assert would, for this run only (repeatable)")
 	cmd.Flags().StringArrayVar(&adHocCaptures, "capture", nil, "capture a value, name=selector, as # @capture would, for this run only (repeatable)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "resolve the targets and print the requests that would be sent, without sending them")
+	cmd.Flags().StringVar(&bodyLimit, "body-limit", "", "show at most this much of each response body, e.g. 4k or 64k; the result says body_truncated and the history keeps it all")
 	return cmd
 }
 
@@ -395,6 +404,38 @@ func (a *App) runRows(cmd *cobra.Command, r *runner.Runner, rows []datafile.Row,
 		}
 	}
 	return all, firstErr
+}
+
+// limitBodies bounds the body shown for a result and for what it ran
+// first; the history, written before this, keeps the whole body.
+func limitBodies(res *runner.Result, limit int) {
+	res.BodyLimit = limit
+	for _, d := range res.Deps {
+		limitBodies(d, limit)
+	}
+}
+
+// parseSize reads a byte count with an optional k or m suffix (1024
+// based, as `4k` on a command line means); empty means none.
+func parseSize(s string) (int, error) {
+	s = strings.TrimSpace(strings.ToLower(s))
+	if s == "" {
+		return 0, nil
+	}
+	mult := 1
+	switch {
+	case strings.HasSuffix(s, "kb"), strings.HasSuffix(s, "k"):
+		mult = 1024
+		s = strings.TrimSuffix(strings.TrimSuffix(s, "b"), "k")
+	case strings.HasSuffix(s, "mb"), strings.HasSuffix(s, "m"):
+		mult = 1024 * 1024
+		s = strings.TrimSuffix(strings.TrimSuffix(s, "b"), "m")
+	}
+	n, err := strconv.Atoi(s)
+	if err != nil || n <= 0 {
+		return 0, fmt.Errorf("expected a positive size such as 4k, 64k or 1m")
+	}
+	return n * mult, nil
 }
 
 // tagIteration marks a result, and the results of what it ran first, as

@@ -366,8 +366,12 @@ type Response struct {
 	// in which case Body is the base64 of the bytes; empty otherwise.
 	// Renderers read it to show a size instead of the bytes.
 	BodyEncoding string `json:"body_encoding,omitempty"`
-	DurationMs   int64  `json:"duration_ms"`
-	Size         int    `json:"size"`
+	// BodyTruncated says Body is the first Result.BodyLimit bytes of the
+	// response, as text, because the caller asked for a bounded body
+	// (`apic run --body-limit`); Size is still the whole body's.
+	BodyTruncated bool  `json:"body_truncated,omitempty"`
+	DurationMs    int64 `json:"duration_ms"`
+	Size          int   `json:"size"`
 	// Proto is the protocol the response came over: "HTTP/1.1", "HTTP/2.0".
 	Proto string `json:"proto,omitempty"`
 	// Timings is where the round trip went, from net/http/httptrace.
@@ -478,6 +482,12 @@ type Result struct {
 	// DryRun marks a result from DryRun: the request as it would be sent,
 	// with no response because nothing was.
 	DryRun bool `json:"dry_run,omitempty"`
+	// BodyLimit, when set, bounds the body the displays show (the JSON,
+	// --body-only and the report) to that many bytes, marking the
+	// response BodyTruncated. It is for a caller whose context the body
+	// goes into, an agent above all; the response history keeps the
+	// whole body, which `apic select` reads.
+	BodyLimit int `json:"-"`
 	// Attempts is how many times the request was sent under a `# @retry`
 	// policy (or --retry, or retry in apic.yaml); zero when none applied.
 	Attempts int `json:"attempts,omitempty"`

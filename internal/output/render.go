@@ -192,6 +192,9 @@ func Result(t Theme, res *runner.Result, o Options) string {
 	}
 	if body := res.DisplayRawBody(); len(body) > 0 {
 		b.WriteString("\n" + BodyOrSummary(t, res, body) + "\n")
+		if shown := res.DisplayResponse(); shown.BodyTruncated {
+			b.WriteString(t.Dim.Render(fmt.Sprintf("… %s of %s shown (--body-limit); apic select %s body.$.<path> reads the rest", Size(len(body)), Size(res.Response.Size), resultName(res))) + "\n")
+		}
 	}
 	if checks := Checks(t, res, o.Width, false); checks != "" {
 		b.WriteString("\n" + checks)

@@ -1,0 +1,47 @@
+name: agent-eval
+# Runs the skill's evals (skills/apic/evals/evals.json) through the Claude
+# Code CLI against fresh `apic demo` projects, with and without the skill,
+# and scores what the agent did: task outcome, files changed, secret files
+# read, requests sent, selector errors hit. It makes real model calls, so
+# it runs weekly and on demand rather than on every push, and does nothing
+# without the ANTHROPIC_API_KEY secret. `task agent:eval` is the same run
+# locally; scripts/agenteval explains the scoring.
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm install -g @anthropic-ai/claude-code
+      - name: Run the evals
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::notice::ANTHROPIC_API_KEY is not set; the agent evals did not run"
+            exit 0
+          fi
+          go run ./scripts/agenteval -out agent-eval | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: agent-eval
+          path: |
+            agent-eval/results.json
+            agent-eval/*/score.json
+            agent-eval/*/transcript.jsonl
+            agent-eval/*/claude.err
+          if-no-files-found: ignore

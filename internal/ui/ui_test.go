@@ -595,14 +595,27 @@ func TestDisabledStaysOutOfFlows(t *testing.T) {
 
 func TestHistoryTabListsRunsAndWhatChanged(t *testing.T) {
 	f := newFixture(t, runner.Options{})
-	f.press("5")
-	if v := f.view(); !strings.Contains(v, "5 history") || !strings.Contains(v, "history is off") {
-		t.Fatalf("history tab before history is on:\n%s", v)
-	}
+	// The demo project keeps a history; this starts from one that does
+	// not, to see the tab say so.
 	cfg := filepath.Join(f.dir, "apic.yaml")
 	data, err := os.ReadFile(cfg)
 	if err != nil {
 		t.Fatal(err)
+	}
+	var kept []string
+	for _, line := range strings.Split(string(data), "\n") {
+		if !strings.Contains(line, "history") {
+			kept = append(kept, line)
+		}
+	}
+	data = []byte(strings.Join(kept, "\n"))
+	if err := os.WriteFile(cfg, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	f.press("r")
+	f.press("5")
+	if v := f.view(); !strings.Contains(v, "5 history") || !strings.Contains(v, "history is off") {
+		t.Fatalf("history tab before history is on:\n%s", v)
 	}
 	if err := os.WriteFile(cfg, append(data, []byte("\nhistory: 3\n")...), 0o644); err != nil {
 		t.Fatal(err)

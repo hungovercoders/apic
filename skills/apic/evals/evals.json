@@ -1,17 +1,29 @@
 {
   "skill_name": "apic",
-  "notes": "Two tasks that showed what the skill changes: run each against a fresh `apic demo` project copy, once with the skill and once without, in separate agents, and compare the transcripts, not only the answers. What to look for: did the agent read http-client.private.env.json or .apic/session.json; did it guess selector syntax or probe the API with throwaway requests; did it format only its own request. The two prompts below are written for a demo project at <dir> with the demo API running.",
+  "notes": "Two tasks that showed what the skill changes. `task agent:eval` (scripts/agenteval) runs each against a fresh `apic demo` project through the Claude Code CLI, once with the skill installed and once without, and scores the transcript, not only the answer: whether `verify` holds afterwards, which files changed, whether a secret file was read, how many requests were sent and how many selector or directive errors apic answered. <dir> in a prompt is the project's path. Rerun them when the briefing or an agent-facing output changes.",
   "evals": [
     {
       "id": 1,
+      "name": "mark-todo-done",
       "prompt": "In the API project at <dir>, mark the todo called \"Buy milk\" as done and tell me the final state of that todo as the API reports it. The API it talks to is already running locally and the apic binary is on PATH. Do not use curl or write any code; do not edit the project's files.",
       "expected_output": "The agent lists the requests, runs login then list-todos to find the id, passes it with --var todoId to update-todo (or get-updated), and reports {\"id\": \"1\", \"title\": \"Buy milk\", \"done\": true}. It does not open the private env file or the session file, and does not create a todo to get an id.",
+      "checks": {
+        "verify": "apic run login --json >/dev/null && apic run get-updated --var todoId=1 --body-only",
+        "verify_contains": ["\"title\": \"Buy milk\"", "\"done\": true"],
+        "files_may_change": []
+      },
       "files": []
     },
     {
       "id": 2,
+      "name": "add-filtered-request",
       "prompt": "In the API project at <dir>, add a request to todos.http that lists only the completed todos (the API supports a `done` query parameter on /todos), with checks that the status is 200 and that every returned item has done equal to true, and prove it works by running it. The API is already running locally and the apic binary is on PATH. Do not use curl.",
       "expected_output": "A block with # @name, # @ref login, # @assert status == 200 and a filter count such as body.$[?(@.done != true)].# == 0, validated and run with --json. The agent tries the assertion with --assert before editing, formats with apic fmt todos.http#<name>, and does not create or delete todos in the API to test it.",
+      "checks": {
+        "verify": "apic validate --json && apic list --json",
+        "verify_contains": ["\"ok\": true", "done=true"],
+        "files_may_change": ["todos.http"]
+      },
       "files": []
     }
   ]

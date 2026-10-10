@@ -1,3 +1,6 @@
 # yaml-language-server: $schema=https://hungovercoders.github.io/apic/schemas/apic.schema.json
 # Default environment when --env is not given.
 env: local
+# Keep the last 10 responses of each request under .apic/history for
+# apic history, history diff and select. Set 0 to keep none.
+history: 10

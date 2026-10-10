@@ -1,2 +1,2 @@
-# yaml-language-server: $schema=https://hungovercoders.github.io/apic/schemas/apic.schema.json
+# yaml-language-server: $schema=https://apic.sh/schemas/apic.schema.json
 env: dev

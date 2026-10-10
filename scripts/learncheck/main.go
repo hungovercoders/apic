@@ -1,6 +1,6 @@
 // Command learncheck runs the commands in the course pages so a lesson
 // cannot rot: it builds apic, starts `apic demo` in a scratch directory,
-// then extracts every fenced block in docs/learn/*.md and docs/migrate/*.md
+// then extracts every fenced block in the site's learn/*.md and migrate/*.md
 // that is preceded by an `<!-- learn -->` comment and runs it there with
 // `sh -e`, in page order (the course first, then the migration guides).
 //
@@ -87,8 +87,15 @@ func closesFence(line, fence string) bool {
 	return strings.Trim(t, fence[:1]) == ""
 }
 
+// Learn and Migrate hold the course and the migration guides, relative to
+// the repository root.
+const (
+	Learn   = "website/src/content/docs/learn"
+	Migrate = "website/src/content/docs/migrate"
+)
+
 func main() {
-	docs := flag.String("docs", "docs/learn,docs/migrate", "comma-separated directories holding the pages, run in this order")
+	docs := flag.String("docs", Learn+","+Migrate, "comma-separated directories holding the pages, run in this order")
 	keep := flag.Bool("keep", false, "keep the scratch directory for inspection")
 	flag.Parse()
 	if err := run(strings.Split(*docs, ","), *keep); err != nil {

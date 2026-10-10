@@ -1,8 +1,13 @@
-# Writing a lesson
-
+---
+title: "Writing a lesson"
+---
 This page is the template every lesson in the course is copied from, and
-the rules a lesson follows. Copy it to `docs/learn/NN-slug.md`, replace
-each section, and add the page to the **Learn** tab in `mkdocs.yml`.
+the rules a lesson follows. Copy it to
+`website/src/content/docs/learn/NN-slug.md`, keep the `title:` front
+matter (a lesson has no H1), replace each section, and add the page to
+the **Learn** group of the sidebar in `website/astro.config.mjs`. Asides are
+`:::tip[Title]` … `:::` and collapsible blocks are `<details>` with a
+`<summary>`; the lessons already there show both.
 
 ## The rules
 
@@ -46,10 +51,11 @@ request from a `.http` file against a local API and read the result.
 apic demo --out apic-demo
 ```
 
-!!! note
-    This block is deliberately not marked for the harness: in CI the demo
-    is already running, in a scratch directory, on a free port. Every
-    block after it can be marked, since `apic-demo/` exists either way.
+:::note
+This block is deliberately not marked for the harness: in CI the demo
+is already running, in a scratch directory, on a free port. Every
+block after it can be marked, since `apic-demo/` exists either way.
+:::
 
 ## Steps
 
@@ -102,32 +108,40 @@ apic run whoami -C apic-demo --json | grep -o '"ok":true'
 One task that uses what the lesson taught with a small twist. No new
 concepts.
 
-??? example "Solution"
-    The solution, as a `.http` snippet or a command, with a line on why it
-    works.
+<details>
+<summary>Solution</summary>
+
+The solution, as a `.http` snippet or a command, with a line on why it
+works.
+
+</details>
 
 ## Going further
 
 - The guide page this lesson skimmed, for example [the `.http` format](../format.md)
 - The reference section, for example [`apic run`](../cli.md#apic-run)
 
-??? note "Episode script"
-    **Length.** 8 to 12 minutes.
+<details>
+<summary>Episode script</summary>
 
-    **Cold open (0:00).** The one-line problem this lesson solves, shown
-    not said: the error, the manual step, the thing that does not work yet.
+**Length.** 8 to 12 minutes.
 
-    **Talking points.**
+**Cold open (0:00).** The one-line problem this lesson solves, shown
+not said: the error, the manual step, the thing that does not work yet.
 
-    1. Step 1, in the words a viewer hears.
-    2. Step 2.
-    3. The checkpoint and what it proves.
+**Talking points.**
 
-    **Shot list.** One terminal, 100x30, font size 16, the docs theme.
-    `docs/learn/tapes/NN.tape` drives it for b-roll when a recording is
-    needed. Zoom on the line that changed after each step.
+1. Step 1, in the words a viewer hears.
+2. Step 2.
+3. The checkpoint and what it proves.
 
-    **Chapters.** `0:00 Why` · `0:45 Step 1` · `3:10 Step 2` ·
-    `6:00 Checkpoint` · `7:30 Exercise` · `8:40 Next lesson`.
+**Shot list.** One terminal, 100x30, font size 16, the docs theme.
+`docs/learn/tapes/NN.tape` drives it for b-roll when a recording is
+needed. Zoom on the line that changed after each step.
 
-    **Description.** From the [episode template](_episode-template.md).
+**Chapters.** `0:00 Why` · `0:45 Step 1` · `3:10 Step 2` ·
+`6:00 Checkpoint` · `7:30 Exercise` · `8:40 Next lesson`.
+
+**Description.** From the [episode template](_episode-template.md).
+
+</details>

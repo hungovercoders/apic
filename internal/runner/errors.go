@@ -67,7 +67,7 @@ type Entry struct {
 
 // DocsURL is where docs/errors.md is published; an entry's anchor is its
 // code in lower case.
-const DocsURL = "https://hungovercoders.github.io/apic/errors/"
+const DocsURL = "https://apic.sh/errors/"
 
 // URL is the entry's address on the documentation site.
 func (c Code) URL() string { return DocsURL + "#" + strings.ToLower(string(c)) }
@@ -85,7 +85,7 @@ var Catalogue = []Entry{
 		"Run apic validate to see every problem with its line and column.",
 		"The `.http` file failed to parse where the request is: a malformed directive, a multipart body without a boundary, a GraphQL request without a query. apic refuses to send from a file with errors rather than guess; `apic validate` lists them all."},
 	{CodeDirective, ExitUsage, "bad directive value",
-		"Fix the directive's value; docs/format.md lists what each takes.",
+		"Fix the directive's value; https://apic.sh/format/ lists what each takes.",
 		"A directive is well formed but its value cannot be used: `# @timeout soon`, `# @retry 0`, `# @sleep -1s`, an `# @assert` that does not parse, an HTTP version other than HTTP/1.1 or HTTP/2 on the request line, or `HTTP/2` over plain `http://`."},
 	{CodeAuth, ExitUsage, "authentication failed",
 		"Check the # @auth spec (or auth.default), its credentials, and the token endpoint.",

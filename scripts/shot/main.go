@@ -39,7 +39,7 @@ const (
 )
 
 func main() {
-	out := flag.String("out", "docs/assets", "directory to write the SVGs into")
+	out := flag.String("out", "website/public/assets", "directory to write the SVGs into")
 	flag.Parse()
 	if err := generate(*out); err != nil {
 		log.Fatalf("shot: %v", err)

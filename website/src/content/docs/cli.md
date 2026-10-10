@@ -1,0 +1,1448 @@
+---
+title: "CLI reference"
+---
+```
+apic [command] [flags]
+```
+
+Each command's section below explains what it does, its JSON and its
+exit codes; [Commands and flags](#commands-and-flags) at the end is every
+flag of every command, generated from the binary's own command tree.
+
+All commands are non-interactive: apic never prompts. The one exception is
+`apic ui`, the terminal UI, which refuses to start unless it has a terminal
+to draw on. Colour is off when stdout is not a terminal, when `NO_COLOR` is
+set, when `--no-color` is given, or when `--json` is used.
+
+## Global flags
+
+| Flag | Meaning |
+|---|---|
+| `-C, --dir <path>` | Project root holding the `.http` files and env files. Default `.`. Relative `.http` paths on the command line are resolved against it. |
+| `-e, --env <name>` | Environment from `http-client.env.json`. Defaults to `env:` in `apic.yaml`, else none (only `$shared` values apply). An unknown name is an error listing the known ones. |
+| `--var name=value` | Override a variable. Repeatable. Highest precedence. |
+| `--json` | Machine-readable output. See each command for the shape. |
+| `--no-color` | Disable colour. |
+| `--no-session` | Do not read or write `.apic/session.json`; with cookies on, the jar stays in memory for the one command. |
+| `--cookies` | Keep a cookie jar: cookies a response sets are sent with later requests to the same site and stored per environment in `.apic/cookies.json`. Same as `cookies: true` in `apic.yaml`. See [format.md](format.md#cookies). |
+| `--timeout <duration>` | Request timeout, e.g. `10s`. Default 30s or `timeout:` in `apic.yaml`. `# @timeout` on a request wins. |
+| `--insecure` | Skip TLS certificate verification. Reported as `tls.insecure` in `--json` and by `describe`. |
+| `--cacert <pem>` | Trust the certificates in this PEM file in addition to the system roots, for an API behind a private CA. |
+| `--proxy <url>` | Send every request through this proxy: an `http`, `https`, `socks5` or `socks5h` URL, or a bare `host:port` for HTTP. Beats `proxy:` in `apic.yaml` and `HTTP_PROXY`/`HTTPS_PROXY`. Credentials go in the URL's userinfo and are shown as `***` wherever the proxy is reported. |
+| `--no-proxy` | Send every request directly, ignoring `--proxy`, `apic.yaml` and the environment. |
+| `--cert <pem>`, `--key <pem>` | Present a client certificate (mTLS); the key defaults to the `--cert` file. These override `tls:` in `apic.yaml` and the env files' `SSLConfiguration`. See [auth.md](auth.md#tls-and-client-certificates). |
+| `--redact` | Mask values on both sides of the exchange in `run` output: every request header value, the request body, query-string values, captured values, the response body, every response header value, and the `actual`/`expected` of every assertion. Status, timing, size and pass/fail survive, so a stored CI log still says what failed. Sensitive request headers (`Authorization`, `Cookie`, API-key headers, and any header whose value came from a secret source) and sensitive response headers (`Set-Cookie`, `WWW-Authenticate`) are masked even without it. |
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| 0 | Success. For `run`, every assertion and capture passed. For `validate`, no errors. |
+| 1 | `run`: at least one assertion or capture failed. |
+| 2 | Usage error: unknown command or request, parse error in a `.http` file, unknown environment, missing variable, bad `--var`. `validate` with errors. |
+| 3 | Transport error: DNS, connection refused, TLS failure, timeout. |
+
+Errors are printed to stderr prefixed with `error:`; stdout stays clean for
+piping. Every error has a stable code, and on a terminal a second line gives
+it and where the [error catalogue](errors.md) explains it:
+
+```text
+error: me.http:1: missing variable
+  {{token}}: pass --var token=... or add it to http-client.env.json
+  E101 missing variable · see https://apic.sh/errors/#e101
+```
+
+Under `--json` the error is instead one JSON object on stderr, so a script
+branches on `error.code` rather than the wording:
+
+```json
+{"error":{"code":"E101","title":"missing variable","message":"me.http:1: missing variable\n  {{token}}: …","hint":"Pass it with --var name=value, …","exit":2,"url":"https://apic.sh/errors/#e101"}}
+```
+
+A `run` result for a request that could not be sent carries the same object
+as `error`, beside the `errors` list of messages. The exit status follows
+from the code: E1xx and E2xx exit 2, E3xx exit 3.
+
+## Request targets
+
+Several commands take a target:
+
+| Target | Meaning |
+|---|---|
+| `get-user` | The request with `# @name get-user`. An error if the name is used in more than one file. |
+| `users.http` | Every request in the file, in order. |
+| `users.http#get-user` | A named request in a specific file. |
+| `users.http#3` | The third request in the file. Unnamed requests are listed with this id. |
+
+Files are found by walking the project root for `*.http` and `*.rest`,
+skipping hidden directories, `node_modules` and `vendor`. `apic.yaml` can
+narrow this with `dir: api`.
+
+## apic run
+
+```
+apic run <target>... [-v] [--body-only] [--keep-going] [--retry "<n> [interval]"] [--no-retry] [--output <file>] [--report <file.html>] [--data rows.csv|rows.json|- [--data-share-session]] [--assert <expr>]... [--capture <name=selector>]... [--dry-run]
+```
+
+Sends requests and reports status, timing, body, captures and assertions.
+Several targets run in the order given. More than one request is a flow:
+it stops at the first failed assertion, failed capture or transport error
+unless `--keep-going` is set, and prints a pass/fail summary.
+
+Captured values are available to later requests in the same run, and are
+saved to `.apic/session.json` for the current environment (unless
+`--no-session` or the request has `# @no-session`). A request with
+`# @ref login` runs `login` first when a value it needs is missing, and one
+with `# @forceRef login` runs it first every time; see
+[format.md](format.md#dependencies). The terminal output shows the
+dependency's report first, under `↳ ran login first (# @ref)`.
+
+A request with `# @retry 10 2s` is sent again until its assertions pass,
+up to ten times, two seconds apart; see [format.md](format.md#retries).
+Each failed attempt prints `attempt 1/10 · <first failed assertion>` as it
+happens, and the report of the attempt that counted ends its status line
+with `· 3 attempts`. Results print as each request finishes, so a flow
+shows progress.
+
+| Flag | Meaning |
+|---|---|
+| `-v, --verbose` | Show request headers and body, response headers, and where the time went: `dns 12 ms · connect 18 ms · tls 41 ms · ttfb 60 ms · total 87 ms · new connection`. |
+| `--body-only` | Print only the response body, pretty-printed when JSON. For piping. |
+| `--keep-going` | In a flow, continue after a failure. |
+| `--retry "<n> [interval]"` | Retry policy for requests without `# @retry`: attempts and the wait between them (default `1s`). Overrides `retry:` in `apic.yaml`. |
+| `--report <file.html>` | Also write a self-contained HTML report of the run: summary, every request with its status, timing, assertions (actual against expected), captures and the request and response headers and bodies, collapsed. Honours `--redact` like the text output and shows a "redacted" badge; sensitive headers are masked either way. Refused when the path is a project file. |
+| `--no-retry` | Send every request once, ignoring `# @retry`, `--retry` and `apic.yaml`. |
+| `--output <file>` | Save the response body to this file, relative to the working directory, overwriting: what a `>>! file` line in the request does (see [format.md](format.md#saving-a-response)). One request only; a flow is refused, and so is a project input as the target. The text output says `↳ saved to <file>` and `--json` carries `saved_to`. |
+| `--data <file>` | Run the targets once per row: a CSV file whose header row names the variables, or a JSON array of objects; `-` reads stdin. See [Data-driven runs](#data-driven-runs). |
+| `--data-share-session` | With `--data`, let one iteration's captures reach the next and the session file. |
+| `--assert <expr>` | Check the response with an expression, as `# @assert` would, for this run only; repeatable. The result lists it after the request's own assertions, and a failure exits 1 like any other. A bad expression is a flag error before anything is sent. Try a check here before writing it into the file. |
+| `--capture <name=selector>` | Capture a value, as `# @capture` would, for this run only; repeatable. It goes into the result and the session like a directive's capture. |
+| `--body-limit <size>` | Show at most this much of each response body (`4k`, `64k`, `1m`, or bytes) in the JSON, `--body-only` and the text output, with `"body_truncated": true` beside it; `size` is still the whole body's, and a cut JSON body comes as a string. The response history records the whole body first, so `apic select <id> body.$.<path>` reads any part of it afterwards. For a caller whose context the body goes into. |
+| `--dry-run` | Resolve each target and print the request that would be sent (method, URL, headers and body, with `-v`'s detail) without sending it: no dependency runs, no auth is applied, nothing is captured. A variable a `# @ref` dependency would capture is left as its `{{placeholder}}` with a warning saying which request the run would send first; any other missing variable is the error a run gives. `--json` prints the run object with `"dry_run": true`, the warnings and no `response`; `--body-only` prints the request body. Refused with `--data`, `--output` and `--report`. |
+
+Examples:
+
+```sh
+apic run login
+apic run get-user --env staging --var userId=42
+apic run auth.http users.http --json
+apic run get-user --body-only | jq .email
+```
+
+`--json` prints one object per request (NDJSON for flows):
+
+```json
+{
+  "ok": true,
+  "request": {
+    "name": "get-user", "file": "users.http", "line": 10,
+    "method": "GET", "url": "https://dev.example.com/users/42",
+    "headers": {"Accept": "application/json", "Authorization": "Bearer eyJ..."},
+    "body": "",
+    "auth": "aws"
+  },
+  "response": {
+    "status": 200, "status_text": "OK",
+    "headers": {"content-type": "application/json"},
+    "body": {"id": 42, "email": "alice@example.com"},
+    "duration_ms": 87, "size": 412, "proto": "HTTP/2.0",
+    "timings": {"dns_ms": 12, "connect_ms": 18, "tls_ms": 41, "ttfb_ms": 60, "total_ms": 87, "reused": false}
+  },
+  "captures": {"email": "alice@example.com"},
+  "asserts": [
+    {"expr": "status == 200", "pass": true, "actual": "200", "expected": "200"},
+    {"expr": "body.$.id == 42", "pass": true, "actual": "42", "expected": "42"}
+  ]
+}
+```
+
+- `request.auth` names the auth type applied, when any; credentials apic adds are never included.
+- `request.headers` are the headers written in the file, with sensitive values shown as `***` (see `--redact` above). URL, body and captures are shown in full unless `--redact` is set.
+- `request.body` of a [multipart upload](format.md#multipart-uploads) is the summary `<multipart: 2 parts, 1 file>` rather than the assembled bytes.
+- `response.body` is parsed JSON when the body is JSON, otherwise a string. A body that is not text (not valid UTF-8) is its base64 with `"body_encoding": "base64"` beside it, so a download survives `--json` intact. Under `--redact` it is the string `"***"`.
+- `response.proto` is the protocol the response came over, `HTTP/1.1` or
+  `HTTP/2.0`. `request.http_version` (omitted otherwise) is the version the
+  request line pins, `HTTP/1.1` or `HTTP/2`; see
+  [HTTP version](format.md#http-version).
+- `saved_to` (omitted otherwise) is where a `>> file` line or `--output` wrote the body, relative to the project root when inside it.
+- `response.headers` keys are lower-case; multiple values are joined with `, `. `set-cookie` and `www-authenticate` are always `***`; under `--redact` every value is.
+- `asserts[].actual` and `asserts[].expected` are `***` under `--redact`, and `expr` keeps only its selector and operator. `pass` and `error` are unaffected.
+- `errors` (omitted when empty) lists failed captures and other problems.
+- `warnings` (omitted when empty) lists problems that did not fail the
+  request, such as a [response history](#apic-history) that could not be
+  written.
+- `ok` is false when any assertion or capture failed, and when a request a
+  `# @ref` ran first failed; `errors` then names it (`@ref login failed`).
+- `response.timings` breaks `duration_ms` down: name resolution, the TCP
+  connection, the TLS handshake, the wait for the first byte of the
+  response, and the total including the body, with `reused` true when
+  the connection came from an earlier request of the same invocation (a
+  flow's requests share their connections). A reused connection has no
+  DNS, connect or TLS time; redirects and a digest challenge add their
+  hops together. `duration_ms` is unchanged.
+- `attempts` (omitted when no retry policy applied) is how many times the
+  request was sent; the object describes the last attempt. Attempt lines
+  are not printed under `--json`.
+- `iteration` (only under [`--data`](#data-driven-runs)) is
+  `{"index": 3, "total": 50, "row": {"id": "7"}}`: which row the object
+  belongs to and the variables it supplied, values `***` under `--redact`.
+- `skipped` (omitted otherwise) is `"disabled"` for a
+  [`# @disabled`](format.md#pauses-and-disabled-requests) request that a
+  file's flow did not send: `ok` is true and there is no `response`.
+  Naming the request sends it.
+- Requests a `# @ref` or `# @forceRef` ran first are printed as objects of
+  their own, before the request that needed them, so there is still exactly
+  one object per request sent. The `ran_first` key is only present in the
+  MCP `run_request` result, where the dependency's result nests under the
+  request's.
+- When a request could not be sent at all (missing variable, network), the
+  error goes to stderr and the exit code is 2 or 3; in a flow, the earlier
+  results are still printed.
+
+### Data-driven runs
+
+```sh
+apic run get-user --data users.csv
+apic run checkout.http --data orders.json --keep-going --report orders.html
+jq -c '[.[] | {id}]' ids.json | apic run get-user --data -
+```
+
+`--data` runs the targets once per row. In a CSV file the header row names
+the variables (a spreadsheet's byte order mark is ignored); in JSON each
+object is a row, numbers written without an exponent. The row's values
+sit at `--var` precedence, over the same names from `--var`, for that
+iteration only.
+
+Each iteration starts from the session as it was when the run began and
+writes nothing back, so what one iteration captures does not reach the
+next: fifty users each get their own `{{id}}`, not the last one's.
+`--data-share-session` runs every iteration on one session instead, which
+also saves captures to `.apic/session.json` as a plain run does. A token a
+`# @ref login` fetched is fetched once per iteration without it and once
+with it.
+
+The text output heads each iteration `iteration 3/50 · id=7 name=alice`
+(the values left out under `--redact`) and ends with
+`50 of 50 iterations: 49 passed`; each `--json` object carries
+`iteration`. A failed iteration stops the run unless `--keep-going`, which
+then runs every row and, as in a flow, every request; the exit code is 1
+if any iteration failed. `--output` is refused with `--data`, since it
+would be overwritten each time; `--report` covers every iteration.
+
+## apic test
+
+```
+apic test [path|file.feature]... [--format f] [--output file] [--tags expr] [--stop-on-failure] [--use-session] [--steps]
+```
+
+Runs Gherkin feature files against the project's requests with a built-in
+step vocabulary and the `# @step` phrases declared on requests. Default
+path is `features/` under the project root, or `test.paths` in `apic.yaml`.
+Each scenario gets an isolated in-memory session. See [testing.md](testing.md)
+for the vocabulary.
+
+| Flag | Meaning |
+|---|---|
+| `-f, --format` | `pretty` (default), `progress`, `cucumber`, `junit`. `--json` selects `cucumber`. |
+| `-o, --output <file>` | Write the report to a file. |
+| `-t, --tags <expr>` | Tag expression, e.g. `"@smoke && ~@slow"`. |
+| `--stop-on-failure` | Stop after the first failed scenario; the remaining scenarios are reported as skipped. |
+| `--use-session` | Share `.apic/session.json` instead of isolating each scenario. |
+| `--steps` | Print the vocabulary and this project's phrases (`--json` for machine form) and exit. |
+
+Exit codes: `0` all passed · `1` failures or undefined steps · `2` no
+features, a feature path outside the project, unknown environment, unknown
+request, missing variable, bad phrase or bad flag · `3` a server could not
+be reached. Feature paths must lie inside the project root.
+
+## apic ui
+
+```
+apic ui [--demo]
+```
+
+Opens the [terminal UI](tui.md): requests on the left, each row carrying its
+status and round trip once it has run, and preview, response, checks and
+session tabs on the right. <kbd>enter</kbd> runs the selected request,
+<kbd>f</kbd> runs its file as a flow, <kbd>e</kbd> switches environment,
+<kbd>J</kbd>/<kbd>K</kbd> scroll the right pane, <kbd>?</kbd> lists every key.
+
+| Flag | Meaning |
+|---|---|
+| `--demo` | Serve the bundled fake API in-process and open the UI on its example project. Needs no project and no network. |
+
+It is the only interactive command, and the only one without `--json`: with
+`--json`, or when stdout is not a terminal, it exits 2 and points at
+`apic run` and `apic list` instead. All the other global flags (`-C`,
+`--env`, `--var`, `--redact`, `--timeout`, `--insecure`, `--no-session`)
+work as usual.
+
+## apic list
+
+```
+apic list [pattern]
+```
+
+Every request in the project in file order: id, method, URL template,
+`file:line` and description, grouped by file. A pattern keeps only the
+requests whose id, URL, file or description contains it, case-insensitively.
+
+`--json`:
+
+```json
+{
+  "root": "/abs/path/api",
+  "requests": [
+    {"id": "login", "name": "login", "method": "POST", "url": "{{baseUrl}}/auth/login",
+     "file": "auth.http", "line": 6, "description": "Log in and keep the token",
+     "captures": ["token"], "asserts": 1}
+  ]
+}
+```
+
+`name` is omitted for unnamed requests; `id` is then `file.http#N`. `steps`
+lists the request's `# @step` phrases and `refs` its `# @ref` and
+`# @forceRef` targets, when it has any. `disabled` is true for a request
+marked [`# @disabled`](format.md#pauses-and-disabled-requests), which a
+flow skips. A pattern filters the `requests` array; the shape does not
+change.
+
+## apic describe
+
+```
+apic describe <target>
+```
+
+Shows one request's method, URL template, headers, body, every variable it
+references with the source it resolved from, its captures and asserts, and
+whether it is ready to run. Missing variables come first, with the request
+that captures them if there is one. A missing variable that a `# @ref` of
+the request supplies does not make it unready: the line says the request
+runs first.
+
+`--json`:
+
+```json
+{
+  "name": "whoami", "id": "whoami", "file": "auth.http", "line": 16,
+  "description": "Uses the token captured by login",
+  "method": "GET", "url_template": "{{baseUrl}}/bearer", "url": "https://httpbin.org/bearer",
+  "headers": {"Authorization": "Bearer {{token}}"},
+  "variables": [
+    {"name": "token", "source": "missing", "missing": true, "captured_by": "login", "ref_runs": true},
+    {"name": "baseUrl", "value": "https://httpbin.org", "source": "http-client.env.json [dev]"}
+  ],
+  "captures": ["email = body.$.email"],
+  "asserts": ["status == 200", "body.$.authenticated == true"],
+  "refs": ["login"],
+  "auth": "bearer {{token}}",
+  "auth_source": "apic.yaml",
+  "ready": true
+}
+```
+
+`auth` and `auth_source` are present when a `# @auth` directive or
+`auth.default` applies; see [auth.md](auth.md). `proxy` is present when a
+proxy is configured by flag, `apic.yaml` or the environment:
+`{"url": "http://***@proxy.internal:3128", "source": "apic.yaml"}`, or
+`{"off": true, "source": "noProxy"}` for a host that bypasses it (the
+source is `--no-proxy`, `--proxy`, `apic.yaml`, the environment variable's
+name, or `noProxy`). The same object appears as `request.proxy` in
+`run --json` and as `proxy` in `env --json`, and `run -v` prints it under
+the request headers. `refs` lists the request's
+`# @ref` and `# @forceRef` targets, and a missing variable has
+`"ref_runs": true` when one of them captures it, so `ready` stays true.
+
+Sources are one of `--var`, `shell APIC_VAR_<name>`, `captured this run`,
+`session`, `http-client.private.env.json [env]`, `http-client.env.json [env]`,
+`.env`, `<file>:<line> @<name>`, `built-in`, `response reference (flow only)`
+or `missing`. Values with `"secret": true` (private env file, `.env`,
+session) are shown as `***`.
+
+## apic env
+
+```
+apic env
+```
+
+Environments found, which env files exist, the current environment,
+every variable in effect with its source, and the JetBrains
+[`Security.Auth`](auth.md#jetbrains-projects) configurations with the
+oauth2 spec each maps to. Secrets are masked.
+
+`--json`:
+
+```json
+{
+  "root": "/abs/path/api",
+  "environments": ["dev", "staging"],
+  "current": "dev",
+  "files": ["http-client.env.json", "http-client.private.env.json", ".env"],
+  "variables": [
+    {"name": "baseUrl", "value": "https://dev.example.com", "source": "http-client.env.json [dev]"},
+    {"name": "password", "value": "***", "source": "http-client.private.env.json [dev]", "secret": true}
+  ],
+  "auth": [
+    {"name": "my-api", "spec": "oauth2 clientId={{clientId}} clientSecret=*** grant=client_credentials tokenUrl=https://login.example.com/oauth2/token",
+     "files": ["http-client.env.json", "http-client.private.env.json"]}
+  ]
+}
+```
+
+`auth` is omitted when the env files declare no configurations. An entry
+apic cannot use has `error` instead of `spec`; `ignored` lists fields it
+does not act on.
+
+## apic session
+
+```
+apic session
+apic session clear [--all]
+```
+
+`session` prints captured values per environment from `.apic/session.json`
+(in clear text, since this is the one place you may need to see them).
+Tokens cached by `# @auth oauth2` and `# @auth exec ttl=` appear as
+`$oauth2:<hash>` and `$exec:<hash>` entries with their remaining lifetime.
+Cookies kept by the [cookie jar](format.md#cookies) are listed under the
+same environment with their name, scope and expiry, values masked.
+`clear` forgets the current environment's values and cookies, or every
+environment's with `--all`.
+
+`--json` on `session` prints the raw map `{"<env>": {"<name>": "<value>"}}`;
+cookies are not in it. `session cookies` lists the jar on its own, and with
+`--json` prints `{"<env>": [{"name", "domain", "path", "expires", "secure",
+"http_only"}]}`, never the values.
+
+## apic history
+
+```
+apic history [request] [--show N] [-v]
+apic history diff <request> [from] [to]
+apic history clear <request> | --all [--every-env]
+```
+
+Response history is off until `apic.yaml` sets `history: N` (`apic init`
+and `apic demo` write `history: 10`). Then every
+`apic run`, the UI and MCP's `run_request` and `run_file` keep the last
+`N` responses of each named request, per environment, in
+`.apic/history/<env>/<request>/`. Unnamed requests, `--no-session` runs,
+`apic run --data` and `apic test` record nothing. A request that `# @ref`
+ran first gets its own entry. A name two files both use is kept apart as
+`file.http#name`, the target that picks either one. Each entry is the
+result as `apic run --json` prints it, `saved_to` from `--output`
+included, so sensitive headers are masked and a `--redact` run stores the
+redacted form. A history that cannot be written (a read-only checkout, a
+full disk) does not fail the run: the result carries a `warnings` entry
+instead. See [Security](https://github.com/hungovercoders/apic/blob/main/SECURITY.md)
+for what that leaves on disk.
+
+`history <request>` lists the entries newest first, numbered from 1, with
+the time, status, duration and size. With no request it lists the
+requests that have history in the environment. `--show N` prints entry N
+as `apic run` printed it (`-v` adds the headers). A request that has
+since been renamed or deleted keeps its history and can still be read and
+cleared by its old name. A request named `diff` or `clear` is reached as
+`apic history file.http#diff`, since the bare word is the subcommand.
+
+`history diff` compares two entries, by default `2` (the one before) with
+`1` (the latest): first the status, then the body. A JSON body is compared
+by structure, with keys in sorted order and arrays index by index, and
+each change is a JSONPath of the kind `# @assert` reads. A text body is
+compared line by line. Headers are left out, since a `Date` or a request
+id differs every time:
+
+```text
+$ apic history diff list-todos
+list-todos #2 (2026-10-06 10:00:01, 200) → #1 (2026-10-06 10:05:03, 200)
+~ $[0].done: false → true
++ $[2]: {"done":false,"id":"3","title":"Write docs"}
+2 changes
+```
+
+`history clear <request>` forgets one request's history in the current
+environment, `history clear --all` every request's in the environment,
+and `--every-env` every request's in every environment. A bare `history
+clear` is refused rather than taken to mean the whole environment.
+
+With `--json`:
+
+| Command | Prints |
+|---|---|
+| `history` | `{"env", "keep", "requests": [{"request", "entries"}]}` |
+| `history <request>` | `{"env", "request", "keep", "entries": [{"index", "time", "ok", "status", "status_text", "duration_ms", "size", "file"}]}` |
+| `history <request> --show N` | the entry's fields and `"result"`, the stored `apic run --json` object |
+| `history diff` | `{"env", "request", "from", "to", "changes": [{"path", "op", "from", "to"}]}`; `op` is `added`, `removed` or `changed`, and `from` and `to` are JSON values |
+| `history clear` | `{"cleared": "<env>" or "*", "request", "entries"}` |
+
+## apic select
+
+```
+apic select <request> <selector> [--entry N]
+```
+
+Evaluates a selector, the kind `# @assert` and `# @capture` take, against
+the newest response recorded for the request in the current environment
+(or entry `N` with `--entry`, 1 being the newest) and prints the value:
+`body.$.items[0].id`, `body.$.items.#`, `header.etag`, `status`. An object
+or array is pretty-printed. Nothing is sent. It is for looking at a
+response again, or at the rest of a body that `apic run --body-limit` cut,
+without repeating a call that may have changed something, which is what an
+agent otherwise does.
+
+It reads the [response history](#apic-history), so `apic.yaml` needs
+`history: N`; with history off and nothing recorded the error says so.
+An entry keeps one value per header, joined with commas as `apic run
+--json` prints them, so `header.<name>.#` and `header.<name>[n]` are
+refused; sensitive response headers are stored masked, so
+`header.set-cookie` and `cookie.<name>` read as `***`, and an entry a
+`--redact` run recorded is refused outright, its body being masked too.
+Nothing at the selector exits 1, like a capture that finds nothing; a
+selector apic does not know, an entry past the history, or a redacted
+entry is E203.
+
+`--json` prints `{"request", "env", "entry", "time", "selector", "found",
+"value"}`, the value as JSON (a number, boolean, null, array or object as
+itself, text as a string).
+
+## apic curl
+
+```
+apic curl <target>
+```
+
+Prints a POSIX-shell `curl` command with every variable resolved, one flag
+per line. Auth is mapped onto curl's `--user` and `--aws-sigv4` flags where
+possible (see [auth.md](auth.md)). Fails with exit code 2 and the usual hint if a variable is
+missing. Useful for a machine without apic, for a bug report, or for
+pasting into a Taskfile.
+
+```sh
+apic curl create-user --env staging
+apic curl get-user | sh
+```
+
+`--json` wraps it as `{"id": "get-user", "command": "curl -sS ..."}`.
+
+With `--redact` the command is safe to paste into a stored log but no longer
+runnable as printed: header values, the body and query-string values are
+masked, and `bearer`/`basic` credentials become `$TOKEN` and
+`$APIC_USER`/`$APIC_PASSWORD` — the same shell placeholders the `aws`,
+`oauth2` and `exec` exports already use. Without it, the command runs as
+printed, credentials included.
+
+`apic curl` is [`apic snippet --lang curl`](#apic-snippet), kept for its
+own `--json` shape.
+
+## apic snippet
+
+```
+apic snippet <target> [--lang curl|httpie|powershell|python|js|go]
+```
+
+The request as code in another language, every variable resolved, for a
+machine without apic, a service's README or a colleague on Windows:
+
+| `--lang` | What it prints |
+|---|---|
+| `curl` (default) | The `apic curl` command |
+| `httpie` | An [HTTPie](https://httpie.io/cli) command, `http --ignore-stdin …` |
+| `powershell` | `Invoke-RestMethod` for PowerShell 7, with `-Headers`, `-Body` or `-Form`, `-HttpVersion`, `-SkipCertificateCheck` and `-Proxy` where they apply |
+| `python` | A script using [requests](https://requests.readthedocs.io/): `requests.request(...)` with `headers`, `params`, `auth`, `data`/`files`, `verify`, `cert` and `proxies` |
+| `js` | `fetch` for Node 18+ (an ES module) or a browser, with `FormData` for a multipart body |
+| `go` | A `package main` program using `net/http`, formatted by gofmt |
+
+Auth follows the [curl export](auth.md#curl-export): bearer, basic,
+apikey and digest become what each language uses for them. The rules for
+secrets are curl's too: without `--redact` the snippet runs as printed,
+credentials included; with it the values are masked and the credentials
+come from the environment (`TOKEN`, `APIC_USER`, `APIC_PASSWORD`,
+`APIC_API_KEY`, read as `$env:TOKEN`, `os.environ["TOKEN"]`,
+`process.env.TOKEN`, `os.Getenv("TOKEN")`). What a language cannot do on
+its own is said in a comment at the top: AWS SigV4 signing, digest auth in
+`fetch` and Go, a CA file or client certificate where the snippet cannot
+point at one, a proxy for `fetch`, a required HTTP/2. A missing variable
+fails with exit code 2, as for `apic curl`.
+
+```sh
+apic snippet get-user --lang python
+apic snippet create-order --lang powershell --redact
+apic snippet login --lang go > login.go
+```
+
+`--json` wraps it as `{"id": "get-user", "lang": "python", "code": "..."}`.
+In [the UI](tui.md), <kbd>c</kbd> shows the selected request as curl and
+each press moves to the next language.
+
+## apic fmt
+
+```
+apic fmt [path|file.http#name...] [--check] [--diff]
+apic fmt - < file.http
+```
+
+Rewrites request files in their canonical form, so files written by
+several people (or agents) stop drifting:
+
+- one blank line between blocks, `### Title` on its own line;
+- directives in a fixed order: `name`, `description`, `disabled`, `step`,
+  `auth`, `ref`, `forceRef`, `sleep`, `retry`, `timeout`, `no-redirect`, `no-session`,
+  `no-cookies`, `assert`, `capture`, then unknown ones as written; comments
+  keep their place among them;
+- `@name = value` file variables, the request line and header names
+  (`Content-Type`) with single spaces and canonical case, query
+  continuations indented four spaces;
+- a JSON body pretty-printed with two spaces when it parses and holds no
+  `{{placeholders}}`; every other body, file bodies and editor script
+  blocks kept byte for byte, only the blank lines around them dropped;
+- comments travel with the directive below them when directives are
+  reordered;
+- trailing whitespace removed outside bodies, one final newline.
+
+Formatting twice changes nothing. Without paths every request file of the
+project is formatted; a path may be a file or a directory. `file.http#name`
+(or `file.http#3`, counting requests as `apic run file.http#3` does)
+formats that one request and leaves the rest of the file byte for byte,
+so an agent that added a request to a file it does not own can format its
+own change and nothing else; a name that is not in the file is E201. `-` reads stdin and writes the result
+to stdout, which is what the VS Code extension's **Format Document** uses.
+
+| Flag | Meaning |
+|---|---|
+| `--check` | Write nothing; list the files that would change and exit 1 if there are any (a CI gate). |
+| `--diff` | Write nothing; print a unified diff of what would change and exit 1 if there is any. |
+
+`--json` prints only `{"files": N, "changed": [...], "formatted": bool}`
+(plus `"diff": {file: text}` under `--diff`); nothing else goes to
+stdout, so the output stays one parseable object.
+
+## apic validate
+
+```
+apic validate [--format text|json|github|sarif]
+```
+
+Parses every `.http` file and reports errors (bad directive syntax, header
+lines that are not headers, unknown selectors, missing body files,
+unparsable assertions) and warnings (unknown `# @` directives, duplicate
+request names). Exit code 2 when there are errors. Meant for CI and
+pre-commit.
+
+Every diagnostic points at the offending text, not just its line, and
+carries a stable code:
+
+```
+users.http:12:11: error: assert "bogus == 1": unknown selector "bogus" (unknown-selector)
+  # @assert bogus == 1
+            ^^^^^
+```
+
+The source line and caret appear when stdout is a terminal.
+
+| Flag | Meaning |
+|---|---|
+| `-f, --format text` | The default above. |
+| `-f, --format json` | Same as `--json`. |
+| `-f, --format github` | GitHub Actions workflow commands (`::error file=…,line=…,col=…::…`), so a `validate` step annotates the pull request at the right place. |
+| `-f, --format sarif` | SARIF 2.1.0, with one rule per code, for `github/codeql-action/upload-sarif` or any SARIF viewer. |
+
+`--json`:
+
+```json
+{
+  "ok": false, "files": 2, "requests": 5,
+  "diagnostics": [
+    {"path": "users.http", "line": 12, "column": 11, "end_line": 12, "end_column": 16,
+     "severity": "error", "code": "unknown-selector",
+     "message": "assert \"bogus == 1\": unknown selector \"bogus\""}
+  ]
+}
+```
+
+`line` and `column` are 1-based; `column` counts bytes from the start of
+the line, and `end_column` is exclusive. The span fields and `code` are
+omitted when a diagnostic has no useful span (a problem in `apic.yaml`).
+They were added in 0.2; the earlier keys are unchanged.
+
+Codes:
+
+| Code | Meaning |
+|---|---|
+| `orphan-directives` | Directives that are not followed by a request line. |
+| `bad-name` | `# @name` without a value. |
+| `bad-capture` | `# @capture` that is not `name = selector`. |
+| `bad-assert` | `# @assert` that is not `selector op value`. |
+| `bad-header` | A line in the header section that is not `Name: value`. |
+| `unknown-directive` | A `# @directive` apic does not know; ignored (warning). |
+| `editor-script` | An editor-only script or redirect block; skipped, not sent (warning). |
+| `duplicate-name` | A request name used more than once in the project (warning). |
+| `bad-auth` | An `# @auth` spec that does not parse. |
+| `exec-disabled` | `# @auth exec` without `auth.allowExec` in `apic.yaml` (warning). |
+| `bad-config-auth` | `auth.default` in `apic.yaml` does not parse. |
+| `bad-step` | A `# @step` phrase that does not parse. |
+| `ambiguous-step` | A `# @step` phrase that matches the same text as another step. |
+| `bad-ref` | A `# @ref` or `# @forceRef` whose target is not exactly one request in the project. |
+| `ref-cycle` | A `# @ref` chain that leads back to the request it started from. |
+| `bad-retry` | A `# @retry` directive, or `retry` in `apic.yaml`, that is not `<attempts> [interval]`. |
+| `bad-sleep` | A `# @sleep` whose value is not a duration such as `500ms` or `2s`. |
+| `bad-http-version` | A request line whose HTTP version is not `HTTP/1.1` or `HTTP/2`. |
+| `bad-auth-config` | A JetBrains `Security.Auth` configuration apic cannot use: not OAuth2, the Implicit grant, a missing Token URL or Client ID. |
+| `unknown-auth-key` | A warning: a `Security.Auth` field apic does not act on. |
+| `unknown-selector` | A selector that is not `status`, `statusText`, `duration`, `header.*`, `body` or `body.$*`. |
+| `missing-body-file` | A `< file` body, or a `< file` part of a multipart body, whose file does not exist. |
+| `bad-multipart` | A `multipart/form-data` body without a boundary, or whose parts are not laid out between `--boundary` delimiters. |
+| `bad-graphql` | A GraphQL request (`GRAPHQL` method or `X-REQUEST-TYPE: GraphQL`) without a query, or whose variables block is not a JSON object. |
+| `bad-save-path` | A `>> file` line with no path, a path outside the project, or a second one on the same request. |
+| `missing-schema-file` | A `# @assert … matchesSchema <file>` whose schema file does not exist or lies outside the project. |
+
+In a GitHub Actions workflow:
+
+```yaml
+- run: apic validate -C api --format github
+```
+
+## apic import
+
+```
+apic import <openapi.yaml|openapi.json> [-o <dir>] [--env-name <name>] [--force]
+apic import <collection.postman.json> [-o <dir>] [--postman-env <file>]... [--force]
+apic import --curl '<command>' [--into <file.http>] [--name <name>]
+```
+
+The format is detected from the file. From an OpenAPI 3 document it
+scaffolds `.http` files:
+
+- one file per tag (`pets.http`), operations without tags go to `api.http`;
+- one request per operation named from `operationId` in kebab-case, else
+  from method and path;
+- `# @assert status == <first 2xx code>` (a `2XX` key becomes a range check;
+  an operation that declares no 2xx response gets no status assertion);
+- path parameters as `{{param}}`; required query and header parameters as
+  `{{vars}}`, optional ones as commented lines;
+- a JSON body built from the request schema, using examples, defaults and
+  enums when present, `{{$uuid}}` and `{{$isoTimestamp}}` for uuid and
+  date-time strings;
+- `http-client.env.json` with `baseUrl` from the first non-empty server, with server variables replaced by their defaults.
+
+Accepts OpenAPI 3.0 and 3.1 in YAML or JSON. Local `$ref` pointers
+(`#/components/...`) are resolved for parameters, request bodies and
+schemas; references to other files are not. Path-level parameters are
+merged into each operation. Swagger 2.0 documents are rejected with a
+message. Existing files are kept unless `--force` is given.
+
+From a Postman collection (v2.1, or v2.0 where the shapes coincide; v1
+exports are refused with a message):
+
+- folders become files (`todos.http`; nested folders join with `-`,
+  `todos-archive.http`), requests outside any folder go to a file named
+  after the collection;
+- each request becomes a named request (kebab-case of its name,
+  de-duplicated with a numeric suffix) with its description;
+- URL, method, headers and query map as written: Postman's `{{var}}` is
+  apic's, `:id` path variables become `{{id}}` with their value as a file
+  variable, `{{$guid}}` becomes `{{$uuid}}`, disabled headers and query
+  parameters become comments;
+- bodies: raw (with a `Content-Type` from the language when no header sets
+  one), urlencoded, form-data (as a [multipart body](format.md#multipart-uploads),
+  file parts pointing at a file of the same name beside the `.http` file),
+  a whole-body file, and GraphQL as a JSON `{"query", "variables"}` POST;
+- auth: bearer, basic, digest, awsv4 and oauth2 (client credentials and
+  password grants) become `# @auth`; an API key becomes the header or
+  query value; the collection's own auth becomes `auth.default` in
+  `apic.yaml`; a request with "no auth" under it gets `# @auth none`;
+  NTLM, Hawk and the browser OAuth2 flows are reported;
+- variables: the collection's become `$shared` in `http-client.env.json`,
+  and each `--postman-env` file becomes an environment named after it,
+  its `secret` values going to `http-client.private.env.json` (written
+  `0600`); the first environment becomes `env:` in `apic.yaml`;
+- `pm.test` scripts: `pm.response.to.have.status(200)`,
+  `pm.expect(jsonData.x).to.eql(...)` (also `include`, `exist`, `be.true`),
+  header equality and `include`, `pm.response.to.have.header(...)`,
+  `responseTime` bounds and `pm.expect(pm.response.text()).to.include(...)`
+  become `# @assert`; `pm.environment.set("token", jsonData.token)` (and
+  the `collectionVariables`, `globals` and header forms) become
+  `# @capture`. Every other line, pre-request scripts included, is listed
+  under `unsupported` with the request and a reason, and printed as a
+  `note` line.
+
+From a curl command (`--curl`, the reverse of `apic curl`): one `###`
+block with `# @name` (from `--name`, else the method and path, so
+`POST /todos` becomes `post-todos`), `# @assert status == 200`, the
+headers, and the body. It reads `-X`, `-H`, `-d`/`--data`/`--data-raw`/
+`--data-binary`/`--data-urlencode` (`@file` becomes `< ./file`), `-F` and
+`--form-string` (a multipart body), `-u` (`# @auth basic`), `--url`,
+`-G`, `-I`, `-b` (a `Cookie` header), `-A`, `-e`, `-k` (a comment: run
+with `--insecure`), `-L` and `--compressed`, in both quote styles, with
+`$'…'` escapes and backslash line continuations. Flags about curl's own
+output or transport are ignored with a note; an unknown flag is a note,
+not an error. When the project's environment has a `baseUrl` that prefixes
+the URL, the host becomes `{{baseUrl}}`. Without `--into` the block is
+printed; with it the block is appended to that file, relative to the
+project root, created if needed, with a numeric suffix on a name the file
+already has. `--curl -` reads the command from stdin.
+
+| Flag | Meaning |
+|---|---|
+| `-o, --out <dir>` | Output directory. Default `.`. |
+| `--env-name <name>` | Environment name in the generated env file (OpenAPI). Default `dev`. |
+| `--postman-env <file>` | A Postman environment export to import as an environment. Repeatable. |
+| `--force` | Overwrite existing files. |
+| `--curl <command>` | A curl command to turn into a request block; `-` reads stdin. |
+| `--into <file.http>` | Append the block to this file instead of printing it. |
+| `--name <name>` | The request's `# @name`. |
+
+`--json` prints `{"files": [...], "requests": N, "base_url": "...", "env_file": "...", "skipped": [...]}`;
+for a collection it adds `private_env_file` and
+`unsupported: [{"request", "what", "reason"}]`. For `--curl` it prints
+`{"file", "name", "request", "warnings": [...]}`.
+
+## apic mcp
+
+```
+apic mcp [--dir <path>] [--env <name>] [--http <host:port> [--token <bearer>]]
+```
+
+Serves the project over the Model Context Protocol on stdin/stdout until
+the client disconnects. Tools: `list_requests`, `describe_request`,
+`run_request`, `run_file`, `run_features`, `list_environments`,
+`clear_session`, `validate_project`, `curl_request`. Each `.http` file is
+a resource. `--env` sets the default environment for calls that do not
+pass one. See [agents.md](agents.md).
+
+| Flag | Meaning |
+|---|---|
+| `--http <host:port>` | Serve the streamable HTTP transport on this address instead of stdio. |
+| `--token <bearer>` | The bearer token clients must send. Default `$APIC_MCP_TOKEN`. Required when `--http` binds anything but the loopback interface; the server refuses to start otherwise. |
+
+```sh
+claude mcp add api -- apic mcp --dir ./api --env dev
+```
+
+## apic lsp
+
+```
+apic lsp [--dir <path>] [--env <name>]
+```
+
+A Language Server Protocol server on stdin/stdout, for Neovim, Helix,
+JetBrains IDEs, Emacs or any editor with an LSP client; the set-up for
+each is in [editors.md](editors.md#any-editor-with-an-lsp-client). It
+publishes `apic validate`'s diagnostics for open buffers as they change
+(and for `apic.yaml` and the env files when they change on disk),
+completes directives, variables, selectors, operators, auth types and
+`# @ref` targets, shows a variable's value and source on hover with
+secrets masked, formats with `apic fmt`, and offers Run, Describe and
+curl code lenses that it executes itself (`apic.lsp.run`,
+`apic.lsp.describe`, `apic.lsp.curl` through `workspace/executeCommand`,
+answering with what `run --json`, `describe --json` and
+`curl --redact` print; the curl command lands in a notification and the
+editor's log, so its credentials are shell placeholders).
+
+The project root is found per file: inside a workspace folder, the
+nearest directory holding `apic.yaml` or an `http-client` env file,
+without leaving the folder, else the folder itself; outside every
+folder, the file's own directory. `--dir` stands in for a client that
+names no workspace. A project nested in another keeps its own
+diagnostics, so two projects that each have a `login` are no clash. An
+edit is checked once typing pauses (150 ms); a completion, hover or
+lens for the file checks it first.
+
+The initialisation options:
+
+| Option | Meaning |
+|---|---|
+| `env` | The environment for hover, completion and runs; else `--env`, else `apic.yaml`'s `env:`. |
+| `envs` | The environment per project root, `{"/path/to/api": "staging"}`, for a client that picks one per project. |
+| `projectRoots` | Fixes the project root of every file in a workspace folder, `{"/path/to/folder": "/path/to/folder/api"}`, as the VS Code extension's `apic.projectDir` does. |
+| `codeLens`, `formatting` | `false` leaves that feature to a client with its own, as the VS Code extension does. |
+
+`workspace/didChangeConfiguration` with `{"apic": {"env": "staging"}}`
+or `{"apic": {"envs": {"/path/to/api": "staging"}}}` changes them (an
+empty value goes back to the default). The workspace is checked when the
+client is ready, so problems in files that are not open show too, and
+`apic.lsp.validate` (no arguments) checks it again and answers once the
+diagnostics are out. A run through a code lens writes the session and
+the [response history](#apic-history) as `apic run` does.
+
+The server speaks JSON-RPC on stdout, so `--json` changes nothing for it.
+It exits 0 after a `shutdown` request and an `exit` notification, and 1
+when the client exits or closes the stream without one, as the protocol
+asks.
+
+## apic demo
+
+```
+apic demo [--out <dir>] [--port <port>] [--force]
+```
+
+Writes a local example project (`apic.yaml`, `http-client.env.json`,
+`http-client.private.env.json`, `auth.http`, `explore.http`, `jobs.http`,
+`todos.http` and `features/todos.feature`) into `--out`, then starts the
+bundled fake API and serves until you stop the process. The API has login,
+basic, OAuth2 client-credentials and API-key routes, a todos resource with
+filtering, pagination and validation errors, jobs that finish after two
+polls, a multipart upload, a GraphQL endpoint, a CSV report, a slow route
+and a health check; `apic list -C apic-demo` shows the requests that use
+them.
+
+| Flag | Meaning |
+|---|---|
+| `-o, --out <dir>` | Output directory for the scaffolded example project. Default `apic-demo`. |
+| `--port <port>` | Localhost port to serve on and to write into `http-client.env.json`. Must be `1-65535`. Default `8089`. |
+| `--force` | Overwrite existing scaffold files in `--out`. |
+
+`--json` prints one startup object and then keeps serving:
+
+```json
+{
+  "out": "apic-demo",
+  "url": "http://localhost:8089",
+  "written": ["apic-demo/apic.yaml"],
+  "skipped": [],
+  "listening": true
+}
+```
+
+## apic init
+
+```
+apic init [dir] [--base-url URL] [--env NAME] [--force] [--no-skill]
+```
+
+Writes a working starting point into `dir` (default: the current
+directory): `apic.yaml` (with `history: 10`, so `apic history` and `apic
+select` work from the first run), `http-client.env.json`, a `http-client.private.env.json`
+with mode 0600, `api.http` with two annotated requests, a
+`features/smoke.feature`, `.gitignore` lines for the private env file
+and `.apic/`, and the [Agent Skill](agents.md#3-a-skill-claude-code-codex-cursor-any-agent-that-loads-skills)
+under `.claude/skills/apic` and `.agents/skills/apic`, so an AI agent
+working in the project knows how to use apic from the first session.
+Existing files are kept unless `--force` is given, the skill's included
+(`apic skill install` refreshes it), and the `.gitignore` is appended to
+rather than replaced.
+
+| Flag | Default | Meaning |
+|---|---|---|
+| `--base-url` | `https://api.example.com` | `baseUrl` for the environment. |
+| `--env` | `dev` | Name of the first environment, also written as `env:` in `apic.yaml`. |
+| `--force` | off | Overwrite files that already exist. |
+| `--no-skill` | off | Do not write the Agent Skill. |
+
+`--json` prints `{"out", "env", "written", "skipped"}`.
+
+## apic skill
+
+```
+apic skill
+apic skill install [dir] [--to <dir>]...
+```
+
+`skill` prints `SKILL.md`, the briefing an AI agent reads before working
+with a project's `.http` files: the validate, list, describe, run
+workflow, the `--json` shape and exit codes, the error codes to branch
+on, how to write a request and where secrets belong. It is
+[`skills/apic`](https://github.com/hungovercoders/apic/tree/main/skills/apic)
+from the repository, compiled into the binary, so an agent that can run
+commands gets the whole briefing from `apic skill` with no repository or
+network. `--json` prints `{"name": "apic", "files": {"SKILL.md": …,
+"references/cheatsheet.md": …}}`.
+
+`skill install` writes the skill into `<dir>/.claude/skills/apic` (what
+Claude Code reads) and `<dir>/.agents/skills/apic` (what Codex, Cursor
+and the other agents that share that directory read), `dir` being the
+project (`-C`) unless given; it must exist, so a mistyped directory is
+E210 rather than a new tree. A file already holding the same text is
+reported as `unchanged`; any other is overwritten, since the text is
+apic's rather than the project's. Commit the result so every clone briefs
+its agents. `apic init` writes the same files, keeping existing ones
+unless `--force`.
+
+| Flag | Meaning |
+|---|---|
+| `--to <dir>` | Install into this directory under the project instead of the two defaults; repeatable. `--to .claude/skills` is Claude Code only. |
+
+`--json` prints `{"written": [...], "unchanged": [...]}`.
+
+## apic version, apic completion
+
+`version` prints the version, commit, Go version and platform. With
+`--json`:
+
+```json
+{"version": "v1.2.3", "commit": "abc1234", "date": "2026-02-01T10:00:00Z",
+ "go": "go1.25.7", "os": "linux", "arch": "amd64"}
+```
+
+`completion bash|zsh|fish|powershell` prints a shell completion script:
+
+```sh
+source <(apic completion bash)
+apic completion zsh > "${fpath[1]}/_apic"
+```
+
+Completion knows the project: `run`, `describe` and `curl` complete request
+ids and `.http` file names, and `--env` completes the environments in
+`http-client.env.json`.
+
+## Configuration file
+
+`apic.yaml` in the project root, all keys optional:
+
+```yaml
+# yaml-language-server: $schema=https://apic.sh/schemas/apic.schema.json
+env: dev        # default --env
+dir: requests   # subdirectory to scan for .http files
+timeout: 30s    # default request timeout
+retry: 10 2s    # default retry policy for requests without # @retry; see format.md
+maxBodyBytes: 67108864  # cap on the response body read into memory (default 64 MiB)
+cookies: true           # keep a cookie jar per environment in .apic/cookies.json (default off)
+history: 20             # keep the last 20 responses of each request in .apic/history (default off)
+proxy: http://proxy.internal:3128   # every request goes through it; --proxy beats it, --no-proxy skips it
+noProxy: [localhost, .internal]     # hosts that bypass proxy: name, host:port, .suffix, IP, CIDR or *
+tls:                    # a private CA and a client certificate; see auth.md
+  caFile: certs/internal-ca.pem
+  certFile: certs/client.pem
+  keyFile: certs/client-key.pem
+  hosts:
+    api.internal.example.com: {certFile: certs/internal.pem, keyFile: certs/internal-key.pem}
+auth:
+  default: aws region=eu-west-2   # applied to requests without # @auth; see auth.md
+  allowExec: false                # permit # @auth exec
+test:
+  paths: [features, smoke.feature] # what `apic test` runs by default
+```
+
+The first line is optional. It points the YAML language server (VS Code
+with the YAML extension, JetBrains, Neovim) at the published schema, which
+gives completion, descriptions and validation for every key; `apic init`
+writes it for you. The schemas are generated from apic's own types, so
+they cannot drift from what the binary reads:
+
+| File | Schema |
+|---|---|
+| `apic.yaml` | [`schemas/apic.schema.json`](schemas/apic.schema.json) |
+| `http-client.env.json`, `http-client.private.env.json` | [`schemas/http-client.env.schema.json`](schemas/http-client.env.schema.json) |
+| `.apic/session.json` | [`schemas/session.schema.json`](schemas/session.schema.json) |
+
+For the JSON files, add `"$schema"` is not part of the format the other
+`.http` tools read, so associate the schema in the editor instead: in VS
+Code, `json.schemas` in settings with `fileMatch: ["http-client*.env.json"]`
+and the URL above.
+
+## Files apic reads and writes
+
+| File | Purpose |
+|---|---|
+| `*.http`, `*.rest` | Request definitions. |
+| `*.feature` | Gherkin specs for `apic test`. |
+| `apic.yaml` | Defaults. |
+| `http-client.env.json` | Public per-environment variables. |
+| `http-client.private.env.json` | Secret per-environment variables. Gitignore it. |
+| `.env` | `KEY=value` lines; lowest precedence after file `@vars`. |
+| `.apic/session.json` | Captured values per environment. Written by `run`, cleared by `session clear`. `.apic/.gitignore` is created alongside so it is never committed. |
+| `.apic/cookies.json` | The cookie jar per environment, when cookies are on. Written `0600` by `run`, cleared by `session clear`, listed by `session cookies`. |
+| `.apic/history/` | The last responses of each named request per environment, when `history:` is set. One `0600` file per response, written by `run`, read by `history`, cleared by `history clear`. |
+| `>> file` targets | Response bodies a request saves (`>> ./out.json`, `>>! ./out.json`) or `run --output` writes. Inside the project for `>>`; `0600` when a secret went into the request. |
+
+<!-- BEGIN GENERATED: go run ./scripts/clidocs (task docs:cli) rewrites this section; edit the flags in internal/cli instead -->
+
+## Commands and flags
+
+Generated from apic's own command tree, so it lists exactly what the
+binary accepts. The sections above explain each command; this is every
+flag in one place. `man apic` and `man apic-run` show the same, where
+the release archive's `man/` pages are installed.
+
+### Global flags
+
+These work with every command.
+
+| Flag | Meaning |
+|---|---|
+| `--cacert <string>` | PEM file with certificates to trust in addition to the system roots |
+| `--cert <string>` | PEM client certificate to present (mTLS) |
+| `--cookies` | keep a cookie jar per environment in .apic/cookies.json (or set cookies: true in apic.yaml) |
+| `-C, --dir <string>` | project root holding .http files and env files (default `.`) |
+| `-e, --env <string>` | environment from http-client.env.json (default from apic.yaml) |
+| `--insecure` | skip TLS certificate verification |
+| `--json` | machine-readable JSON output |
+| `--key <string>` | PEM private key for --cert (default: the --cert file) |
+| `--no-color` | disable colour (also honours NO_COLOR) |
+| `--no-proxy` | send requests directly, ignoring --proxy, apic.yaml and the environment |
+| `--no-session` | do not read or write captured values in .apic/session.json |
+| `--proxy <string>` | send requests through this proxy (http, https or socks5 URL); beats proxy: in apic.yaml and HTTP(S)_PROXY |
+| `--redact` | mask all request headers, bodies, query values and captures in output (for CI logs) |
+| `--timeout <duration>` | request timeout (default 30s or apic.yaml) |
+| `--var <string>` | override a variable, name=value (repeatable) |
+
+### apic completion
+
+Generate the autocompletion script for the specified shell.
+
+```
+apic completion
+```
+
+No flags of its own.
+
+### apic completion bash
+
+Generate the autocompletion script for bash.
+
+```
+apic completion bash
+```
+
+| Flag | Meaning |
+|---|---|
+| `--no-descriptions` | disable completion descriptions |
+
+### apic completion fish
+
+Generate the autocompletion script for fish.
+
+```
+apic completion fish [flags]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--no-descriptions` | disable completion descriptions |
+
+### apic completion powershell
+
+Generate the autocompletion script for powershell.
+
+```
+apic completion powershell [flags]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--no-descriptions` | disable completion descriptions |
+
+### apic completion zsh
+
+Generate the autocompletion script for zsh.
+
+```
+apic completion zsh [flags]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--no-descriptions` | disable completion descriptions |
+
+### apic curl
+
+Print the equivalent curl command (with variables resolved).
+
+```
+apic curl <request>
+```
+
+No flags of its own.
+
+### apic demo
+
+Scaffold and serve a fake API, so apic can be tried with no setup.
+
+```
+apic demo [flags]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--force` | overwrite existing files |
+| `-o, --out <string>` | directory to write the example project into (default `apic-demo`) |
+| `--port <int>` | port to serve the demo API on (default `8089`) |
+
+### apic describe
+
+Show a request's variables, where each comes from, captures and asserts.
+
+```
+apic describe <request>
+```
+
+No flags of its own.
+
+### apic env
+
+Show environments and the variables in effect.
+
+```
+apic env
+```
+
+No flags of its own.
+
+### apic fmt
+
+Rewrite .http files in their canonical form.
+
+```
+apic fmt [path...] [flags]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--check` | do not write; list the files that would change and exit 1 if any |
+| `--diff` | do not write; print a unified diff of what would change and exit 1 if any |
+
+### apic history
+
+List the responses a request returned before (needs history: N in apic.yaml).
+
+```
+apic history [request] [flags]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--show <int>` | print entry N (1 is the newest) as apic run printed it |
+| `-v, --verbose` | with --show, include the request and response headers |
+
+### apic history clear
+
+Forget the history of a request, or of every request with --all.
+
+```
+apic history clear [request] [flags]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--all` | clear every request's history in the environment |
+| `--every-env` | clear every request's history in every environment (implies --all) |
+
+### apic history diff
+
+Show what changed between two responses (default: the last two).
+
+```
+apic history diff <request> [from] [to]
+```
+
+No flags of its own.
+
+### apic import
+
+Scaffold .http files from an OpenAPI 3 document, a Postman collection or a curl command.
+
+```
+apic import <openapi.yaml|openapi.json|collection.postman.json> | --curl <command> [flags]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--curl <string>` | a curl command to turn into a request (- reads stdin) |
+| `--env-name <string>` | environment name for the generated http-client.env.json (OpenAPI) (default `dev`) |
+| `--force` | overwrite existing files |
+| `--into <string>` | append the request to this .http file (relative to the project root), creating it if needed |
+| `--name <string>` | request name (default: from the method and path) |
+| `-o, --out <string>` | directory to write .http files into (default `.`) |
+| `--postman-env <string>` | Postman environment export to turn into an environment (repeatable) |
+
+### apic init
+
+Scaffold a new apic project: config, env files and a first request.
+
+```
+apic init [dir] [flags]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--base-url <string>` | baseUrl for the environment (default `https://api.example.com`) |
+| `--env <string>` | name of the first environment (default `dev`) |
+| `--force` | overwrite existing files |
+| `--no-skill` | do not write the Agent Skill into .claude/skills and .agents/skills |
+
+### apic list
+
+List every request in the project.
+
+```
+apic list [pattern]
+```
+
+No flags of its own.
+
+### apic lsp
+
+Serve diagnostics, completion, hover, code lenses and formatting to an editor over LSP (stdio).
+
+```
+apic lsp
+```
+
+No flags of its own.
+
+### apic mcp
+
+Serve the project's requests to AI agents over MCP (stdio, or HTTP).
+
+```
+apic mcp [--http <host:port> [--token <bearer>]] [flags]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--http <string>` | serve the streamable HTTP transport on this host:port instead of stdio |
+| `--token <string>` | bearer token clients must send (default $APIC_MCP_TOKEN); required off the loopback interface |
+
+### apic run
+
+Send one request, or every request in a file as a flow.
+
+```
+apic run <request|file.http|file.http#name>... [flags]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--assert <string>` | check the response with an expression, as # @assert would, for this run only (repeatable) |
+| `--body-limit <string>` | show at most this much of each response body, e.g. 4k or 64k; the result says body_truncated and the history keeps it all |
+| `--body-only` | print only the response body (for piping) |
+| `--capture <string>` | capture a value, name=selector, as # @capture would, for this run only (repeatable) |
+| `--data <string>` | run the targets once per row of a CSV file (header row names the variables) or JSON array of objects; - reads stdin |
+| `--data-share-session` | with --data, let captures from one iteration reach the next and the session file |
+| `--dry-run` | resolve the targets and print the requests that would be sent, without sending them |
+| `--keep-going` | in a flow, continue after a failure |
+| `--no-retry` | send every request once, ignoring # @retry, --retry and apic.yaml |
+| `--output <string>` | save the response body to this file (one request only; like a "&gt;&gt;! file" line in the request) |
+| `--report <string>` | also write a self-contained HTML report of the run to this file |
+| `--retry <string>` | re-send until the assertions pass: "&lt;attempts&gt; [interval]", e.g. "10 2s" (requests with # @retry keep their own) |
+| `-v, --verbose` | show request and response headers |
+
+### apic select
+
+Read a value from a request's last recorded response, without sending it again.
+
+```
+apic select <request> <selector> [flags]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--entry <int>` | which recorded response, 1 being the newest (default `1`) |
+
+### apic session
+
+Show captured values stored for later runs.
+
+```
+apic session
+```
+
+No flags of its own.
+
+### apic session clear
+
+Forget captured values for the current environment (or --all).
+
+```
+apic session clear [flags]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--all` | clear every environment |
+
+### apic session cookies
+
+List the cookies stored per environment (values masked).
+
+```
+apic session cookies
+```
+
+No flags of its own.
+
+### apic skill
+
+Print the Agent Skill that briefs an AI agent on apic.
+
+```
+apic skill
+```
+
+No flags of its own.
+
+### apic skill install
+
+Write the skill into a project for the agents that load skills.
+
+```
+apic skill install [dir] [flags]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--to <string>` | directory under the project to install into, instead of .claude/skills and .agents/skills (repeatable) |
+
+### apic snippet
+
+Print the request as code: curl, HTTPie, PowerShell, Python, JavaScript or Go.
+
+```
+apic snippet <request> [flags]
+```
+
+| Flag | Meaning |
+|---|---|
+| `-l, --lang <string>` | language: curl, httpie, powershell, python, js, go (default `curl`) |
+
+### apic test
+
+Run Gherkin feature files against the project's requests.
+
+```
+apic test [path|file.feature]... [flags]
+```
+
+| Flag | Meaning |
+|---|---|
+| `-f, --format <string>` | report format: pretty, progress, cucumber, junit, html (default `pretty`) |
+| `-o, --output <string>` | write the report to a file instead of stdout |
+| `--steps` | print the built-in step vocabulary and declared phrases, then exit |
+| `--stop-on-failure` | stop after the first failed scenario |
+| `-t, --tags <string>` | tag expression, e.g. "@smoke &amp;&amp; ~@slow" |
+| `--use-session` | read and write .apic/session.json instead of an isolated session per scenario |
+
+### apic ui
+
+Browse and run the project's requests in a terminal UI.
+
+```
+apic ui [flags]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--demo` | serve the built-in demo API in-process and open the UI on its example project |
+
+### apic validate
+
+Parse every .http file and report problems (for CI).
+
+```
+apic validate [flags]
+```
+
+| Flag | Meaning |
+|---|---|
+| `-f, --format <string>` | output format: text, json, github or sarif (default `text`) |
+
+### apic version
+
+Print the apic version.
+
+```
+apic version
+```
+
+No flags of its own.
+
+<!-- END GENERATED -->

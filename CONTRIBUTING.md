@@ -41,15 +41,16 @@ publishing), `task docs` (preview the documentation site).
 - **A test next to it.** Parser and runner changes especially. A good test is
   one that fails without the fix — worth actually checking by reverting the fix
   and watching it go red.
-- **Docs updated in the same change.** A new command needs a row in the README
-  table, a section in `docs/cli.md` and a line in `docs/cheatsheet.md`; a new
-  or changed flag needs `task docs:cli`, which regenerates the reference at
-  the end of `docs/cli.md` (a test fails when it is stale); a new `.http`
-  feature needs `docs/format.md`.
+- **Docs updated in the same change.** The user docs are the site,
+  [apic.sh](https://apic.sh/), under `website/src/content/docs/`. A new
+  command needs a row in the README table, a section in `cli.md` and a line
+  in `cheatsheet.md`; a new or changed flag needs `task docs:cli`, which
+  regenerates the reference at the end of `cli.md` (a test fails when it is
+  stale); a new `.http` feature needs `format.md`.
 - **The comparison kept honest.** A change that closes a gap another tool
   covers (a parity issue) updates its row in the table in
-  [docs/comparison.md](docs/comparison.md), and the "does not do yet" list
-  under it, in the same pull request.
+  [comparison.md](website/src/content/docs/comparison.md), and the "does not
+  do yet" list under it, in the same pull request.
 - **Example request files in canonical form.** `apic fmt --check` runs in CI
   over the example projects; `apic fmt -C examples/<name>` rewrites one.
 - **A commit message that says why.** What changed is in the diff; the reason is
@@ -70,15 +71,16 @@ The docs workflow runs three checks before it builds the site, and
   shows write-good's advice on passive voice and wordiness, to read rather
   than obey.
 - **lychee** for external links, on pull requests, failing on 404 and 410.
-  Links to this repository and the docs site are left to `mkdocs build
-  --strict`, since a page added in the same pull request is not published
-  yet.
+  Links to this repository and the docs site are left to the site build
+  (`task docs:build` fails on a broken internal link or anchor), since a
+  page added in the same pull request is not published yet.
 
 ## Writing a course lesson
 
-The **Learn** tab of the docs is the "From zero to apic" course, one page
-per lesson under `docs/learn/`. [Writing a lesson](docs/learn/_template.md)
-is the template and the rules; the short version:
+The **Learn** group of the docs is the "From zero to apic" course, one page
+per lesson under `website/src/content/docs/learn/`.
+[Writing a lesson](docs/learn/_template.md) is the template and the rules;
+the short version:
 
 - Second person, one concept per lesson, every command copy-pasteable with
   its output shown, every step against `apic demo`.

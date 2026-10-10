@@ -84,7 +84,7 @@ given.`,
 // schemaModeline is the first line of a scaffolded apic.yaml: the YAML
 // language server (and so VS Code, JetBrains and Neovim with it) picks up
 // the published schema for completion and validation.
-const schemaModeline = "# yaml-language-server: $schema=https://hungovercoders.github.io/apic/schemas/apic.schema.json"
+const schemaModeline = "# yaml-language-server: $schema=https://apic.sh/schemas/apic.schema.json"
 
 // historyStanza switches the response history on in a scaffolded
 // apic.yaml: apic history, apic history diff and apic select read it,

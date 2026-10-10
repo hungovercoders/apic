@@ -3,7 +3,7 @@
 [![Visual Studio Marketplace](https://img.shields.io/visual-studio-marketplace/v/dataGriff.apic?label=Marketplace)](https://marketplace.visualstudio.com/items?itemName=dataGriff.apic)
 [![Open VSX](https://img.shields.io/open-vsx/v/dataGriff/apic?label=Open%20VSX)](https://open-vsx.org/extension/dataGriff/apic)
 
-Run the `.http` files you already have with [apic](https://hungovercoders.github.io/apic/):
+Run the `.http` files you already have with [apic](https://apic.sh/):
 environments, captured variables that persist, assertions, AWS and OAuth2
 auth, Gherkin tests and an MCP server, from one static binary. This
 extension drives that binary from the editor, so what you see here is what
@@ -95,7 +95,7 @@ tagged `vscode-v*` carries one; `code --install-extension apic-<version>.vsix`.
 ## Requirements
 
 apic 0.1.2 or newer on your `PATH`, or its location in the `apic.path`
-setting. Install: [getting started](https://hungovercoders.github.io/apic/getting-started/#1-install).
+setting. Install: [getting started](https://apic.sh/getting-started/#1-install).
 Spans in the Problems panel, `# @ref`, the Session view's cookies and
 **Format Document** need the release that carries them (0.2).
 

@@ -1,0 +1,43 @@
+/* apic's purple-to-pink identity on Starlight's palette. */
+:root {
+	--sl-color-accent-low: #2b1f5c;
+	--sl-color-accent: #7c5cff;
+	--sl-color-accent-high: #c9bbff;
+	--apic-gradient: linear-gradient(100deg, #7c5cff, #ff5ca8);
+}
+
+:root[data-theme='light'] {
+	--sl-color-accent-low: #e6dfff;
+	--sl-color-accent: #5c3dff;
+	--sl-color-accent-high: #2b1f5c;
+}
+
+/* The landing page tagline. */
+.hero h1 {
+	background: var(--apic-gradient);
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+}
+
+/* The terminal recordings are SVGs with their own width; keep them whole. */
+.sl-markdown-content img[src$='.svg'] {
+	max-width: 100%;
+	border-radius: 10px;
+}
+
+/* Collapsible blocks (lesson solutions and episode scripts). */
+.sl-markdown-content details {
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 0.5rem;
+	padding: 0.75rem 1rem;
+}
+
+.sl-markdown-content details > summary {
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.sl-markdown-content details[open] > summary {
+	margin-bottom: 0.75rem;
+}

@@ -10,7 +10,7 @@
     "url": "https://github.com/hungovercoders/apic.git",
     "directory": "editors/vscode"
   },
-  "homepage": "https://hungovercoders.github.io/apic/editors/",
+  "homepage": "https://apic.sh/editors/",
   "bugs": {
     "url": "https://github.com/hungovercoders/apic/issues"
   },
@@ -387,7 +387,7 @@
     "viewsWelcome": [
       {
         "view": "apic.requests",
-        "contents": "No request files yet. Open a folder with `.http` files, or scaffold one:\n[Run apic init in a terminal](command:workbench.action.terminal.new)\n\n[Learn the format](https://hungovercoders.github.io/apic/format/)"
+        "contents": "No request files yet. Open a folder with `.http` files, or scaffold one:\n[Run apic init in a terminal](command:workbench.action.terminal.new)\n\n[Learn the format](https://apic.sh/format/)"
       }
     ],
     "jsonValidation": [

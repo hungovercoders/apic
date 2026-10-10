@@ -284,7 +284,7 @@ func (p *parser) parseBlock(b *block) *Request {
 		bodyLines, handlers, saves := splitHandlerBlocks(b.lines[i:], b.nums[i:])
 		for _, h := range handlers {
 			col, end := Span(p.rawLine(b, h.line), h.text, 0)
-			p.warn("editor-script", h.line, col, end, "ignoring %s (apic has no scripting; see docs/comparison.md)", h.what)
+			p.warn("editor-script", h.line, col, end, "ignoring %s (apic has no scripting; see https://apic.sh/comparison/)", h.what)
 		}
 		for _, sv := range saves {
 			raw := p.rawLine(b, sv.line)

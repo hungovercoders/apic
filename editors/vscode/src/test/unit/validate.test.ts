@@ -78,14 +78,14 @@ suite("validate output", () => {
   });
 
   test("reads the --json error object apic writes on stderr", () => {
-    const obj = JSON.stringify({ error: { code: "E205", title: "project configuration problem", message: "apic.yaml: yaml: line 1: bad", hint: "Fix apic.yaml", exit: 2, url: "https://hungovercoders.github.io/apic/errors/#e205" } });
+    const obj = JSON.stringify({ error: { code: "E205", title: "project configuration problem", message: "apic.yaml: yaml: line 1: bad", hint: "Fix apic.yaml", exit: 2, url: "https://apic.sh/errors/#e205" } });
     assert.deepStrictEqual(parseUsageError(obj + "\n"), { path: "apic.yaml", line: 0, message: "yaml: line 1: bad" });
     assert.deepStrictEqual(parseStderrError("apic mcp listening\n" + obj), {
       message: "apic.yaml: yaml: line 1: bad",
       code: "E205",
       title: "project configuration problem",
       hint: "Fix apic.yaml",
-      url: "https://hungovercoders.github.io/apic/errors/#e205",
+      url: "https://apic.sh/errors/#e205",
     });
     assert.deepStrictEqual(parseStderrError("error: a.http:1: missing variable\n  {{token}}: pass --var token=...\n"), {
       message: "a.http:1: missing variable\n{{token}}: pass --var token=...",

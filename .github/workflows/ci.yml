@@ -86,8 +86,8 @@ jobs:
         env:
           GOTOOLCHAIN: auto
 
-  # The course pages under docs/learn and the migration guides under
-  # docs/migrate carry runnable blocks marked with
+  # The course pages and the migration guides on the site (under
+  # website/src/content/docs) carry runnable blocks marked with
   # <!-- learn -->; this builds apic, serves the demo API and runs them, so
   # a lesson cannot quietly stop working.
   learn:

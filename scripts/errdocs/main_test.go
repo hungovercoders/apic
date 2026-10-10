@@ -12,7 +12,7 @@ import (
 // TestErrorsPageIsCurrent fails when the catalogue changed without
 // `task docs:errors`, which is how CI catches a stale docs/errors.md.
 func TestErrorsPageIsCurrent(t *testing.T) {
-	current, err := os.ReadFile(filepath.Join("..", "..", "docs", "errors.md"))
+	current, err := os.ReadFile(filepath.Join("..", "..", Page))
 	if err != nil {
 		t.Fatal(err)
 	}

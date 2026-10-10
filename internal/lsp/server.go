@@ -677,7 +677,7 @@ func (s *server) toDiagnostic(ls []string, d httpfile.Diagnostic) diagnostic {
 		out.Severity = severityWarning
 	}
 	if d.Code != "" {
-		out.CodeDescription = &codeDescription{Href: "https://hungovercoders.github.io/apic/cli/#apic-validate"}
+		out.CodeDescription = &codeDescription{Href: "https://apic.sh/cli/#apic-validate"}
 	}
 	if d.Line <= 0 {
 		return out

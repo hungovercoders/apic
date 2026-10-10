@@ -176,14 +176,15 @@ Set `env: dev` in `api/apic.yaml` to drop the `--env` flag.
 
 | Command | What it does |
 |---|---|
-| `apic run <id \| file.http \| file.http#id>...` | Send a request, or a file in order as a flow. `--json`, `--body-only`, `-v` headers, `--var k=v`, `--env`, `--keep-going`, `--no-session`, `--redact`; `--assert` and `--capture` try a check or a selector for one run, `--dry-run` shows the request without sending it. |
+| `apic run <id \| file.http \| file.http#id>...` | Send a request, or a file in order as a flow. `--json`, `--body-only`, `-v` headers, `--var k=v`, `--env`, `--keep-going`, `--no-session`, `--redact`; `--assert` and `--capture` try a check or a selector for one run, `--dry-run` shows the request without sending it, `--body-limit 4k` bounds the body in the output. |
 | `apic ui` | Terminal UI: browse, run, inspect, switch environment. `--demo` needs no project. |
 | `apic test [paths...]` | Run Gherkin features with the built-in vocabulary and `# @step` phrases. `--format pretty\|progress\|junit\|cucumber`, `--tags`, `--steps`. |
 | `apic list [pattern]` | Every request: id, method, URL template, file:line, description. |
 | `apic describe <id>` | Variables the request needs and where each comes from, captures, asserts, and whether it is ready. |
 | `apic env` | Environments found and the variables in effect (secrets masked). |
 | `apic session [clear]` | Captured values stored in `.apic/session.json`. |
-| `apic history <request>` | The responses a request returned before, and `apic history diff` for what changed. Off until `history: N` is set in `apic.yaml`. |
+| `apic history <request>` | The responses a request returned before, and `apic history diff` for what changed. Needs `history: N` in `apic.yaml` (`apic init` sets 10). |
+| `apic select <id> <selector>` | A value from the last recorded response, `body.$.items[0].id` or `header.etag`, without sending the request again. |
 | `apic curl <id>` | Equivalent curl command with variables resolved. |
 | `apic snippet <id> --lang python` | The same request as HTTPie, PowerShell, Python, JavaScript or Go code. |
 | `apic init [dir]` | Scaffold a project: config, env files, a first request, a feature and the Agent Skill. |

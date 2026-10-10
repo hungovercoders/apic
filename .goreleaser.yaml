@@ -127,6 +127,7 @@ homebrew_casks:
       - man/apic-lsp.1
       - man/apic-mcp.1
       - man/apic-run.1
+      - man/apic-select.1
       - man/apic-session-clear.1
       - man/apic-session-cookies.1
       - man/apic-session.1

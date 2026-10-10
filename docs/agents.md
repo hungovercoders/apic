@@ -25,6 +25,7 @@ Requests live in `api/*.http` and are run with `apic` (install: see README).
 - `apic run <id> --dry-run --json`: the request as it would be sent, resolved, without sending it; look before a call that changes something
 - `apic run <id> --assert '<expr>' --capture name=selector`: try a check or a selector for one run before writing it into the file
 - `apic fmt <file>.http#<id>`: format the one request you added and nothing else
+- `apic run <id> --json --body-limit 8k`: a bounded body, marked `body_truncated`; `apic select <id> body.$.<path>` reads any part of the whole response afterwards without sending again
 
 Exit codes: 0 ok, 1 assertion failed, 2 usage/parse/missing variable, 3 network.
 On exit 2 or 3 with --json, stderr holds one object `{"error": {"code", "message", "hint", ...}}`:

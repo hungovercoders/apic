@@ -38,6 +38,7 @@ Content-Type: application/json
 | `apic run <target> --data rows.csv` | Run once per row of a CSV file or JSON array; each row's columns are variables |
 | `apic run <target> --assert <expr> --capture <name=selector>` | A check or a capture for this run only, before writing it into the file |
 | `apic run <target> --dry-run` | The request as it would be sent, resolved; nothing sent, nothing captured |
+| `apic run <target> --body-limit 4k` | At most that much body in the output, marked `body_truncated`; the history keeps it all |
 | `apic ui` | [Terminal UI](https://hungovercoders.github.io/apic/tui/); `--demo` needs no project |
 | `apic test [paths]` | Run [Gherkin features](https://hungovercoders.github.io/apic/testing/) |
 | `apic list [pattern]` | Every request, filtered by id, URL, file or description |
@@ -45,6 +46,7 @@ Content-Type: application/json
 | `apic env` | Environments and the variables in effect |
 | `apic session [clear]` | Captured values; `clear --all` for every environment |
 | `apic history <id>` | Past responses (needs `history: 20` in `apic.yaml`); `--show 2`, `diff`, `clear <id>` or `clear --all` |
+| `apic select <id> <selector>` | A value from the last recorded response, without sending again; `--entry 2` for the one before |
 | `apic curl <id>` | The equivalent curl command |
 | `apic snippet <id> --lang python` | The request as httpie, powershell, python, js or go code |
 | `apic init [dir]` | Scaffold a project, Agent Skill included (`--no-skill`) |

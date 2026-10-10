@@ -153,6 +153,11 @@ tasks:
     cmds:
       - go run ./scripts/clidocs -man man
 
+  agent:eval:
+    desc: Run the skill's evals through the Claude Code CLI against fresh apic demo projects, with and without the skill (needs `claude` on PATH and credentials; makes real model calls); results in bin/agent-eval
+    cmds:
+      - go run ./scripts/agenteval
+
   learn:check:
     desc: Run every marked command block in the course (docs/learn) and the migration guides (docs/migrate) against apic demo
     cmds:

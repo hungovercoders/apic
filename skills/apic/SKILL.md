@@ -25,7 +25,14 @@ apic run <id> --json                 # one JSON object; exit 0 ok, 1 an assertio
 apic run <id> --body-only            # just the response body, for piping to jq
 apic run <file>.http --json          # the file in order as a flow, one object per line
 apic run <id> --dry-run --json       # the resolved request, sent nowhere: look before a PUT or DELETE
+apic run <id> --json --body-limit 8k # a bounded body (body_truncated: true); the whole response is kept
+apic select <id> body.$.items[3].id  # any part of the last response, without sending it again
 ```
+
+Add `--body-limit` when a response may be large: the result stays small
+and `apic select` reads the rest from the recorded response, so one
+request serves as many looks as you need (it needs `history: N` in
+`apic.yaml`, which `apic init` sets; the error says so when it is off).
 
 `describe` says which request captures a missing variable (`captured_by`),
 so run that one rather than inventing a value. Captures persist in

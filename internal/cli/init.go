@@ -86,6 +86,16 @@ given.`,
 // the published schema for completion and validation.
 const schemaModeline = "# yaml-language-server: $schema=https://hungovercoders.github.io/apic/schemas/apic.schema.json"
 
+// historyStanza switches the response history on in a scaffolded
+// apic.yaml: apic history, apic history diff and apic select read it,
+// and an agent uses select to look at a response again (or at the rest
+// of a body that --body-limit cut) without sending the request again.
+const historyStanza = `# Keep the last 10 responses of each request under .apic/history
+# (gitignored, mode 0600) for apic history, history diff and select.
+# A response body can hold personal data or a token: set 0 to keep none.
+history: 10
+`
+
 // writeInitProject writes the starter files, skipping ones that exist unless
 // force is set. The .gitignore is appended to rather than replaced.
 func writeInitProject(dir, baseURL, envName string, force bool) (written, skipped []string, err error) {
@@ -110,7 +120,7 @@ func writeInitProject(dir, baseURL, envName string, force bool) (written, skippe
 		name, content string
 		mode          fs.FileMode
 	}{
-		{"apic.yaml", fmt.Sprintf("%s\n# Default environment when --env is not given.\nenv: %s\n", schemaModeline, envName), 0o644},
+		{"apic.yaml", fmt.Sprintf("%s\n# Default environment when --env is not given.\nenv: %s\n%s", schemaModeline, envName, historyStanza), 0o644},
 		{"http-client.env.json", fmt.Sprintf("{\n  \"$shared\": {},\n  %q: {\n    \"baseUrl\": %q\n  }\n}\n", envName, baseURL), 0o644},
 		{"http-client.private.env.json", fmt.Sprintf("{\n  %q: {\n    \"apiKey\": \"change-me\"\n  }\n}\n", envName), 0o600},
 		{"api.http", initHTTP, 0o644},

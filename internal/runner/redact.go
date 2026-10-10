@@ -1,7 +1,9 @@
 package runner
 
 import (
+	"encoding/base64"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/hungovercoders/apic/internal/assert"
 )
@@ -48,11 +50,45 @@ func (r Result) DisplayResponse() *Response {
 	}
 	out := *r.Response
 	out.Headers = r.Response.DisplayHeaders(r.Redact)
-	if r.Redact && out.Body != nil {
+	switch {
+	case r.Redact && out.Body != nil:
 		out.Body = Masked
 		out.BodyEncoding = "" // the mask is text, whatever the body was
+	case r.limited():
+		// The first BodyLimit bytes, as text: a cut JSON document is no
+		// longer one, so it is a string, and a cut binary body is the
+		// base64 of its first bytes.
+		head := r.raw.Body[:r.BodyLimit]
+		if out.BodyEncoding == Base64 {
+			out.Body = base64.StdEncoding.EncodeToString(head)
+		} else {
+			out.Body = string(textPrefix(head))
+		}
+		out.BodyTruncated = true
 	}
 	return &out
+}
+
+// limited reports whether BodyLimit cuts this result's body.
+func (r Result) limited() bool {
+	return r.BodyLimit > 0 && r.raw != nil && len(r.raw.Body) > r.BodyLimit
+}
+
+// textPrefix drops a multi-byte character the cut fell inside, so the
+// text stays valid UTF-8. Only the last character can be cut, so only
+// the last few bytes are looked at: a stray invalid byte earlier in the
+// body is the body's own and stays.
+func textPrefix(b []byte) []byte {
+	for i := len(b) - 1; i >= 0 && i >= len(b)-utf8.UTFMax; i-- {
+		if !utf8.RuneStart(b[i]) {
+			continue
+		}
+		if !utf8.FullRune(b[i:]) {
+			return b[:i]
+		}
+		break
+	}
+	return b
 }
 
 // DisplayRawBody returns the raw response body for renderers, masked when
@@ -63,6 +99,13 @@ func (r *Result) DisplayRawBody() []byte {
 	}
 	if r.Redact && len(r.raw.Body) > 0 {
 		return []byte(Masked)
+	}
+	if r.limited() {
+		head := r.raw.Body[:r.BodyLimit]
+		if r.Response != nil && r.Response.BodyEncoding == Base64 {
+			return head // bytes, not text: the cut is on no character
+		}
+		return textPrefix(head)
 	}
 	return r.raw.Body
 }

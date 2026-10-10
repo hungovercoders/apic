@@ -366,8 +366,12 @@ type Response struct {
 	// in which case Body is the base64 of the bytes; empty otherwise.
 	// Renderers read it to show a size instead of the bytes.
 	BodyEncoding string `json:"body_encoding,omitempty"`
-	DurationMs   int64  `json:"duration_ms"`
-	Size         int    `json:"size"`
+	// BodyTruncated says Body is the first Result.BodyLimit bytes of the
+	// response, as text, because the caller asked for a bounded body
+	// (`apic run --body-limit`); Size is still the whole body's.
+	BodyTruncated bool  `json:"body_truncated,omitempty"`
+	DurationMs    int64 `json:"duration_ms"`
+	Size          int   `json:"size"`
 	// Proto is the protocol the response came over: "HTTP/1.1", "HTTP/2.0".
 	Proto string `json:"proto,omitempty"`
 	// Timings is where the round trip went, from net/http/httptrace.
@@ -478,6 +482,18 @@ type Result struct {
 	// DryRun marks a result from DryRun: the request as it would be sent,
 	// with no response because nothing was.
 	DryRun bool `json:"dry_run,omitempty"`
+	// Recorded says the response history took this response, under
+	// RecordKey (see HistoryKey), so `apic select` can read it; otherwise
+	// Unrecorded says why not. Set by record, read by the renderers.
+	Recorded   bool   `json:"-"`
+	RecordKey  string `json:"-"`
+	Unrecorded string `json:"-"`
+	// BodyLimit, when set, bounds the body the displays show (the JSON,
+	// --body-only and the report) to that many bytes, marking the
+	// response BodyTruncated. It is for a caller whose context the body
+	// goes into, an agent above all; the response history keeps the
+	// whole body, which `apic select` reads.
+	BodyLimit int `json:"-"`
 	// Attempts is how many times the request was sent under a `# @retry`
 	// policy (or --retry, or retry in apic.yaml); zero when none applied.
 	Attempts int `json:"attempts,omitempty"`
@@ -1214,7 +1230,21 @@ func (r *Runner) run(ctx context.Context, req *httpfile.Request, chain []*httpfi
 // History is a convenience: a write that fails (a read-only checkout, a
 // full disk) is a warning on the result, never a failed request.
 func (r *Runner) record(req *httpfile.Request, result *Result) {
-	if r.History == nil || req.Name == "" || result.Response == nil {
+	if result.Response == nil {
+		return
+	}
+	switch {
+	case req.Name == "":
+		result.Unrecorded = "the request has no # @name, and the history keeps named requests only"
+		return
+	case r.History == nil && r.Opts.NoHistory:
+		result.Unrecorded = "a data run keeps no history"
+		return
+	case r.History == nil && r.Opts.NoSession:
+		result.Unrecorded = "--no-session keeps no history"
+		return
+	case r.History == nil:
+		result.Unrecorded = "set history: N in apic.yaml before the run for apic select to read it"
 		return
 	}
 	entry := *result
@@ -1225,7 +1255,10 @@ func (r *Runner) record(req *httpfile.Request, result *Result) {
 	}
 	if err != nil {
 		result.Warnings = append(result.Warnings, "history: "+err.Error())
+		result.Unrecorded = "the history could not be written"
+		return
 	}
+	result.Recorded, result.RecordKey = true, HistoryKey(r.Project, req)
 }
 
 // HistoryKey is what a request's history is kept under: its name, or

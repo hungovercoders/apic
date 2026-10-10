@@ -116,6 +116,7 @@ shows progress.
 | `--data-share-session` | With `--data`, let one iteration's captures reach the next and the session file. |
 | `--assert <expr>` | Check the response with an expression, as `# @assert` would, for this run only; repeatable. The result lists it after the request's own assertions, and a failure exits 1 like any other. A bad expression is a flag error before anything is sent. Try a check here before writing it into the file. |
 | `--capture <name=selector>` | Capture a value, as `# @capture` would, for this run only; repeatable. It goes into the result and the session like a directive's capture. |
+| `--body-limit <size>` | Show at most this much of each response body (`4k`, `64k`, `1m`, or bytes) in the JSON, `--body-only` and the text output, with `"body_truncated": true` beside it; `size` is still the whole body's, and a cut JSON body comes as a string. The response history records the whole body first, so `apic select <id> body.$.<path>` reads any part of it afterwards. For a caller whose context the body goes into. |
 | `--dry-run` | Resolve each target and print the request that would be sent (method, URL, headers and body, with `-v`'s detail) without sending it: no dependency runs, no auth is applied, nothing is captured. A variable a `# @ref` dependency would capture is left as its `{{placeholder}}` with a warning saying which request the run would send first; any other missing variable is the error a run gives. `--json` prints the run object with `"dry_run": true`, the warnings and no `response`; `--body-only` prints the request body. Refused with `--data`, `--output` and `--report`. |
 
 Examples:
@@ -420,7 +421,8 @@ apic history diff <request> [from] [to]
 apic history clear <request> | --all [--every-env]
 ```
 
-Response history is off until `apic.yaml` sets `history: N`. Then every
+Response history is off until `apic.yaml` sets `history: N` (`apic init`
+and `apic demo` write `history: 10`). Then every
 `apic run`, the UI and MCP's `run_request` and `run_file` keep the last
 `N` responses of each named request, per environment, in
 `.apic/history/<env>/<request>/`. Unnamed requests, `--no-session` runs,
@@ -471,6 +473,36 @@ With `--json`:
 | `history <request> --show N` | the entry's fields and `"result"`, the stored `apic run --json` object |
 | `history diff` | `{"env", "request", "from", "to", "changes": [{"path", "op", "from", "to"}]}`; `op` is `added`, `removed` or `changed`, and `from` and `to` are JSON values |
 | `history clear` | `{"cleared": "<env>" or "*", "request", "entries"}` |
+
+## apic select
+
+```
+apic select <request> <selector> [--entry N]
+```
+
+Evaluates a selector, the kind `# @assert` and `# @capture` take, against
+the newest response recorded for the request in the current environment
+(or entry `N` with `--entry`, 1 being the newest) and prints the value:
+`body.$.items[0].id`, `body.$.items.#`, `header.etag`, `status`. An object
+or array is pretty-printed. Nothing is sent. It is for looking at a
+response again, or at the rest of a body that `apic run --body-limit` cut,
+without repeating a call that may have changed something, which is what an
+agent otherwise does.
+
+It reads the [response history](#apic-history), so `apic.yaml` needs
+`history: N`; with history off and nothing recorded the error says so.
+An entry keeps one value per header, joined with commas as `apic run
+--json` prints them, so `header.<name>.#` and `header.<name>[n]` are
+refused; sensitive response headers are stored masked, so
+`header.set-cookie` and `cookie.<name>` read as `***`, and an entry a
+`--redact` run recorded is refused outright, its body being masked too.
+Nothing at the selector exits 1, like a capture that finds nothing; a
+selector apic does not know, an entry past the history, or a redacted
+entry is E203.
+
+`--json` prints `{"request", "env", "entry", "time", "selector", "found",
+"value"}`, the value as JSON (a number, boolean, null, array or object as
+itself, text as a string).
 
 ## apic curl
 
@@ -877,7 +909,8 @@ apic init [dir] [--base-url URL] [--env NAME] [--force] [--no-skill]
 ```
 
 Writes a working starting point into `dir` (default: the current
-directory): `apic.yaml`, `http-client.env.json`, a `http-client.private.env.json`
+directory): `apic.yaml` (with `history: 10`, so `apic history` and `apic
+select` work from the first run), `http-client.env.json`, a `http-client.private.env.json`
 with mode 0600, `api.http` with two annotated requests, a
 `features/smoke.feature`, `.gitignore` lines for the private env file
 and `.apic/`, and the [Agent Skill](agents.md#3-a-skill-claude-code-codex-cursor-any-agent-that-loads-skills)
@@ -1269,6 +1302,7 @@ apic run <request|file.http|file.http#name>... [flags]
 | Flag | Meaning |
 |---|---|
 | `--assert <string>` | check the response with an expression, as # @assert would, for this run only (repeatable) |
+| `--body-limit <string>` | show at most this much of each response body, e.g. 4k or 64k; the result says body_truncated and the history keeps it all |
 | `--body-only` | print only the response body (for piping) |
 | `--capture <string>` | capture a value, name=selector, as # @capture would, for this run only (repeatable) |
 | `--data <string>` | run the targets once per row of a CSV file (header row names the variables) or JSON array of objects; - reads stdin |
@@ -1280,6 +1314,18 @@ apic run <request|file.http|file.http#name>... [flags]
 | `--report <string>` | also write a self-contained HTML report of the run to this file |
 | `--retry <string>` | re-send until the assertions pass: "&lt;attempts&gt; [interval]", e.g. "10 2s" (requests with # @retry keep their own) |
 | `-v, --verbose` | show request and response headers |
+
+### apic select
+
+Read a value from a request's last recorded response, without sending it again.
+
+```
+apic select <request> <selector> [flags]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--entry <int>` | which recorded response, 1 being the newest (default `1`) |
 
 ### apic session
 

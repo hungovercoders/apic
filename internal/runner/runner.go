@@ -482,9 +482,12 @@ type Result struct {
 	// DryRun marks a result from DryRun: the request as it would be sent,
 	// with no response because nothing was.
 	DryRun bool `json:"dry_run,omitempty"`
-	// Recorded says the response history took this response, so `apic
-	// select` can read it; set by record, read by the renderers.
-	Recorded bool `json:"-"`
+	// Recorded says the response history took this response, under
+	// RecordKey (see HistoryKey), so `apic select` can read it; otherwise
+	// Unrecorded says why not. Set by record, read by the renderers.
+	Recorded   bool   `json:"-"`
+	RecordKey  string `json:"-"`
+	Unrecorded string `json:"-"`
 	// BodyLimit, when set, bounds the body the displays show (the JSON,
 	// --body-only and the report) to that many bytes, marking the
 	// response BodyTruncated. It is for a caller whose context the body
@@ -1227,7 +1230,21 @@ func (r *Runner) run(ctx context.Context, req *httpfile.Request, chain []*httpfi
 // History is a convenience: a write that fails (a read-only checkout, a
 // full disk) is a warning on the result, never a failed request.
 func (r *Runner) record(req *httpfile.Request, result *Result) {
-	if r.History == nil || req.Name == "" || result.Response == nil {
+	if result.Response == nil {
+		return
+	}
+	switch {
+	case req.Name == "":
+		result.Unrecorded = "the request has no # @name, and the history keeps named requests only"
+		return
+	case r.History == nil && r.Opts.NoHistory:
+		result.Unrecorded = "a data run keeps no history"
+		return
+	case r.History == nil && r.Opts.NoSession:
+		result.Unrecorded = "--no-session keeps no history"
+		return
+	case r.History == nil:
+		result.Unrecorded = "set history: N in apic.yaml before the run for apic select to read it"
 		return
 	}
 	entry := *result
@@ -1238,9 +1255,10 @@ func (r *Runner) record(req *httpfile.Request, result *Result) {
 	}
 	if err != nil {
 		result.Warnings = append(result.Warnings, "history: "+err.Error())
+		result.Unrecorded = "the history could not be written"
 		return
 	}
-	result.Recorded = true
+	result.Recorded, result.RecordKey = true, HistoryKey(r.Project, req)
 }
 
 // HistoryKey is what a request's history is kept under: its name, or

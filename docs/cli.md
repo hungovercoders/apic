@@ -490,11 +490,15 @@ without repeating a call that may have changed something, which is what an
 agent otherwise does.
 
 It reads the [response history](#apic-history), so `apic.yaml` needs
-`history: N`; with history off the error says so. Sensitive response
-headers are stored masked, so `header.set-cookie` and `cookie.<name>` read
-as `***`. Nothing at the selector exits 1, like a capture that finds
-nothing; a selector apic does not know, or an entry past the history, is
-E203.
+`history: N`; with history off and nothing recorded the error says so.
+An entry keeps one value per header, joined with commas as `apic run
+--json` prints them, so `header.<name>.#` and `header.<name>[n]` are
+refused; sensitive response headers are stored masked, so
+`header.set-cookie` and `cookie.<name>` read as `***`, and an entry a
+`--redact` run recorded is refused outright, its body being masked too.
+Nothing at the selector exits 1, like a capture that finds nothing; a
+selector apic does not know, an entry past the history, or a redacted
+entry is E203.
 
 `--json` prints `{"request", "env", "entry", "time", "selector", "found",
 "value"}`, the value as JSON (a number, boolean, null, array or object as

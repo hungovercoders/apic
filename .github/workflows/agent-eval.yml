@@ -29,6 +29,9 @@ jobs:
           node-version: 22
       - run: npm install -g @anthropic-ai/claude-code
       - name: Run the evals
+        # bash here means -eo pipefail: the eval's exit status must survive
+        # the tee into the summary, or a regression shows green.
+        shell: bash
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |

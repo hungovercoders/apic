@@ -195,9 +195,9 @@ func Result(t Theme, res *runner.Result, o Options) string {
 		if shown := res.DisplayResponse(); shown.BodyTruncated {
 			note := fmt.Sprintf("… %s of %s shown (--body-limit)", Size(len(body)), Size(res.Response.Size))
 			if res.Recorded {
-				note += fmt.Sprintf("; apic select %s body.$.<path> reads the rest", resultName(res))
-			} else {
-				note += "; the rest is not kept: set history: N in apic.yaml before the run for apic select to read it"
+				note += fmt.Sprintf("; apic select %s body.$.<path> reads the rest", res.RecordKey)
+			} else if res.Unrecorded != "" {
+				note += "; the rest is not kept: " + res.Unrecorded
 			}
 			b.WriteString(t.Dim.Render(note) + "\n")
 		}

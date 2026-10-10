@@ -5,10 +5,9 @@ package cli
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"net/http"
 	"regexp"
 	"strings"
 	"time"
@@ -58,14 +57,27 @@ masked, so header.set-cookie and cookie.<name> read as ***.`,
 			}
 			e, err := t.store.Get(t.env, t.name, entry)
 			if err != nil {
-				if hint := historyOff(t.project); hint != "" {
-					return runner.Usage(runner.CodeSession, fmt.Sprintf("%s has no recorded response in %s: %s, then run it once", t.name, t.env, hint))
+				// Nothing recorded at all, with history off, is the one
+				// case the hint helps; an entry past a history that has
+				// some is a bad argument like any other.
+				var re *history.RangeError
+				if errors.As(err, &re) && re.Have == 0 {
+					if hint := historyOff(t.project); hint != "" {
+						return runner.Usage(runner.CodeSession, fmt.Sprintf("%s has no recorded response in %s: %s, then run it once", t.name, t.env, hint))
+					}
 				}
 				return historyErr(err)
 			}
-			resp, err := responseOf(e)
+			res, err := runner.ParseResult(e.Result)
 			if err != nil {
 				return runner.Usage(runner.CodeSession, fmt.Sprintf("history entry %d of %s: %v", entry, t.name, err))
+			}
+			resp := res.Raw()
+			if resp == nil {
+				return runner.Usage(runner.CodeSession, fmt.Sprintf("history entry %d of %s: the request got no response", entry, t.name))
+			}
+			if string(resp.Body) == runner.Masked {
+				return runner.Usage(runner.CodeFlag, fmt.Sprintf("history entry %d of %s was recorded by a --redact run: its body and header values are masked", entry, t.name))
 			}
 			value, found, err := selector.SelectValue(resp, sel)
 			if err != nil {
@@ -114,53 +126,17 @@ masked, so header.set-cookie and cookie.<name> read as ***.`,
 		},
 	}
 	cmd.Flags().IntVar(&entry, "entry", 1, "which recorded response, 1 being the newest")
-	cmd.ValidArgsFunction = a.completeRequests
+	cmd.ValidArgsFunction = func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		if len(args) > 0 {
+			return nil, cobra.ShellCompDirectiveNoFileComp // the selector is typed, not picked
+		}
+		return a.completeRequests(cmd, args, toComplete)
+	}
 	return cmd
 }
 
 // reHeaderMulti matches the header selectors that need a header's
-// separate values, which a history entry does not keep.
+// separate values, which a history entry does not keep: it holds one
+// value per header, joined with commas as `apic run --json` prints them,
+// and that is what header.<name> reads.
 var reHeaderMulti = regexp.MustCompile(`^headers?\.[^.\[\]]+(\.#|\[-?\d+\])$`)
-
-// responseOf rebuilds the response a history entry recorded, from the
-// `apic run --json` object it holds, for selectors to read. The entry
-// holds one value per header, joined with commas as `apic run --json`
-// prints them, so that is what header.<name> reads.
-func responseOf(e history.Entry) (*selector.Response, error) {
-	var stored struct {
-		Response *struct {
-			Status       int               `json:"status"`
-			StatusText   string            `json:"status_text"`
-			Headers      map[string]string `json:"headers"`
-			Body         json.RawMessage   `json:"body"`
-			BodyEncoding string            `json:"body_encoding"`
-			DurationMs   int64             `json:"duration_ms"`
-		} `json:"response"`
-	}
-	if err := json.Unmarshal(e.Result, &stored); err != nil {
-		return nil, err
-	}
-	if stored.Response == nil {
-		return nil, fmt.Errorf("the request got no response")
-	}
-	r := stored.Response
-	headers := http.Header{}
-	for k, v := range r.Headers {
-		headers.Set(k, v)
-	}
-	// The body was stored as parsed JSON, as a string, or as base64 for
-	// bytes that are not text.
-	body := []byte(r.Body)
-	var text string
-	switch {
-	case r.BodyEncoding == runner.Base64 && json.Unmarshal(r.Body, &text) == nil:
-		decoded, err := base64.StdEncoding.DecodeString(text)
-		if err != nil {
-			return nil, err
-		}
-		body = decoded
-	case len(r.Body) > 0 && r.Body[0] == '"' && json.Unmarshal(r.Body, &text) == nil:
-		body = []byte(text)
-	}
-	return &selector.Response{Status: r.Status, StatusText: r.StatusText, Headers: headers, Body: body, Duration: time.Duration(r.DurationMs) * time.Millisecond}, nil
-}

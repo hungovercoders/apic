@@ -75,10 +75,18 @@ func (r Result) limited() bool {
 }
 
 // textPrefix drops a multi-byte character the cut fell inside, so the
-// text stays valid UTF-8.
+// text stays valid UTF-8. Only the last character can be cut, so only
+// the last few bytes are looked at: a stray invalid byte earlier in the
+// body is the body's own and stays.
 func textPrefix(b []byte) []byte {
-	for len(b) > 0 && !utf8.Valid(b) {
-		b = b[:len(b)-1]
+	for i := len(b) - 1; i >= 0 && i >= len(b)-utf8.UTFMax; i-- {
+		if !utf8.RuneStart(b[i]) {
+			continue
+		}
+		if !utf8.FullRune(b[i:]) {
+			return b[:i]
+		}
+		break
 	}
 	return b
 }

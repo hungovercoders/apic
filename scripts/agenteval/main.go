@@ -102,6 +102,15 @@ func run(evalsPath, out string, runs int, model, claude string, timeout time.Dur
 	if err != nil {
 		return err
 	}
+	if only != 0 {
+		found := false
+		for _, e := range evals {
+			found = found || e.ID == only
+		}
+		if !found {
+			return fmt.Errorf("-only %d: no such eval in %s", only, evalsPath)
+		}
+	}
 	if err := os.MkdirAll(out, 0o750); err != nil {
 		return err
 	}
@@ -286,7 +295,11 @@ func runOne(e Eval, variant string, n int, out, apic, model, claude string, time
 		_ = os.WriteFile(filepath.Join(dir, "verify.out"), outb, 0o600)
 	}
 	Grade(&s, t, Changed(before, after), verified, verifyErr, e.Checks)
-	s.DurationS = time.Since(started).Seconds()
+	if s.DurationS == 0 {
+		// The transcript's own duration when the run finished; the wall
+		// clock when it did not get that far.
+		s.DurationS = time.Since(started).Seconds()
+	}
 	if data, err := json.MarshalIndent(s, "", "  "); err == nil {
 		_ = os.WriteFile(filepath.Join(keep, "score.json"), data, 0o600)
 	}
@@ -324,13 +337,12 @@ func Parse(r io.Reader) Transcript {
 			Message struct {
 				Content []json.RawMessage `json:"content"`
 			} `json:"message"`
-			Result      string  `json:"result"`
-			IsError     bool    `json:"is_error"`
-			NumTurns    int     `json:"num_turns"`
-			CostUSD     float64 `json:"total_cost_usd"`
-			DurationMS  int64   `json:"duration_ms"`
-			Subtype     string  `json:"subtype"`
-			ContentText string  `json:"-"`
+			Result     string  `json:"result"`
+			IsError    bool    `json:"is_error"`
+			NumTurns   int     `json:"num_turns"`
+			CostUSD    float64 `json:"total_cost_usd"`
+			DurationMS int64   `json:"duration_ms"`
+			Subtype    string  `json:"subtype"`
 		}
 		if err := json.Unmarshal(sc.Bytes(), &ev); err != nil {
 			continue

@@ -95,3 +95,10 @@ func TestLoadEvalsHasChecks(t *testing.T) {
 		}
 	}
 }
+
+func TestOnlyMustNameAnEval(t *testing.T) {
+	err := run(filepath.Join("..", "..", "skills", "apic", "evals", "evals.json"), t.TempDir(), 1, "", "claude", 0, 1, false, 99)
+	if err == nil || !strings.Contains(err.Error(), "-only 99") {
+		t.Fatalf("err = %v", err)
+	}
+}

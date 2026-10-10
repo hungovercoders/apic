@@ -199,3 +199,35 @@ func TestBodyLimitNoteAndBinaryPrefix(t *testing.T) {
 		t.Errorf("binary json: code=%d %s", code, out)
 	}
 }
+
+// An entry past a history that has some is a bad argument, not "history
+// is off"; a redacted entry is refused with its reason; a data run says
+// why nothing was kept.
+func TestSelectErrorsSayWhy(t *testing.T) {
+	dir, _ := selectProject(t, "history: 3\n")
+	for range 2 {
+		if code, _, errb := execute(t, "-C", dir, "run", "thing"); code != 0 {
+			t.Fatalf("run: code=%d err=%s", code, errb)
+		}
+	}
+	// History switched off afterwards: the two entries stay readable, and
+	// a third is out of range, not missing history.
+	mustWrite(t, filepath.Join(dir, "apic.yaml"), "env: dev\n")
+	if code, out, _ := execute(t, "-C", dir, "select", "thing", "status", "--entry", "2"); code != 0 || out != "200\n" {
+		t.Errorf("entry 2 with history off: code=%d out=%q", code, out)
+	}
+	if code, _, errb := execute(t, "-C", dir, "select", "thing", "status", "--entry", "3"); code != 2 || strings.Contains(errb, "history is off") || !strings.Contains(errb, "no #3") {
+		t.Errorf("entry 3: code=%d err=%s", code, errb)
+	}
+	mustWrite(t, filepath.Join(dir, "apic.yaml"), "env: dev\nhistory: 3\n")
+	if code, _, errb := execute(t, "-C", dir, "run", "thing", "--redact"); code != 0 {
+		t.Fatalf("redacted run: code=%d err=%s", code, errb)
+	}
+	if code, _, errb := execute(t, "-C", dir, "select", "thing", "body.$.call"); code != 2 || !strings.Contains(errb, "--redact run") {
+		t.Errorf("redacted entry: code=%d err=%s", code, errb)
+	}
+	mustWrite(t, filepath.Join(dir, "rows.csv"), "n\n1\n")
+	if code, out, errb := execute(t, "-C", dir, "run", "thing", "--data", filepath.Join(dir, "rows.csv"), "--body-limit", "100", "--no-color"); code != 0 || !strings.Contains(out, "a data run keeps no history") {
+		t.Errorf("data run note: code=%d err=%s\n%s", code, errb, out)
+	}
+}

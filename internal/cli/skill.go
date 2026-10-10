@@ -59,8 +59,9 @@ func (a *App) skillInstallCmd() *cobra.Command {
 		Short: "Write the skill into a project for the agents that load skills",
 		Long: `install writes the skill's files into <dir>/.claude/skills/apic (Claude
 Code) and <dir>/.agents/skills/apic (Codex, Cursor and the other agents
-that share that directory), dir being the project (-C) unless given.
-Files that already hold the same text are left alone; others are
+that share that directory), dir being the project (-C) unless given; it
+must exist (apic init creates a project, and installs the skill as it
+does). Files that already hold the same text are left alone; others are
 overwritten, since the skill is apic's text rather than the project's.
 Commit the result so every clone briefs its agents.`,
 		Example: `  apic skill install
@@ -76,7 +77,7 @@ Commit the result so every clone briefs its agents.`,
 			if len(into) > 0 {
 				dirs = into
 			}
-			written, unchanged, err := writeSkill(dir, dirs)
+			written, unchanged, _, err := writeSkill(dir, dirs, false, true)
 			if err != nil {
 				return err
 			}
@@ -101,12 +102,20 @@ Commit the result so every clone briefs its agents.`,
 
 // writeSkill writes the skill into each of dirs under root, as
 // <dir>/apic/<file>. A file already holding the same text is reported as
-// unchanged rather than rewritten, so a second install is a no-op. Every
-// path is confined to root, symlinks followed, so neither `--to ../x` nor
-// a link under .claude/skills can put the files outside the project.
-func writeSkill(root string, dirs []string) (written, unchanged []string, err error) {
-	if err := os.MkdirAll(root, 0o755); err != nil { //nolint:gosec // the project directory the user named, which they browse and commit
-		return nil, nil, runner.Usage(runner.CodeFile, err.Error())
+// unchanged rather than rewritten, so a second install is a no-op; one
+// holding other text is overwritten, or with overwrite false kept and
+// reported as skipped, which is what `apic init` does to every existing
+// file. create says whether a missing root is made (init) or an error
+// (install, where it is a mistyped project). Every path is confined to
+// root, symlinks followed, so neither `--to ../x` nor a link under
+// .claude/skills can put the files outside the project.
+func writeSkill(root string, dirs []string, create, overwrite bool) (written, unchanged, skipped []string, err error) {
+	if create {
+		if err := os.MkdirAll(root, 0o755); err != nil { //nolint:gosec // the project directory the user named, which they browse and commit
+			return nil, nil, nil, runner.Usage(runner.CodeFile, err.Error())
+		}
+	} else if info, err := os.Stat(root); err != nil || !info.IsDir() {
+		return nil, nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s is not a directory; the skill is installed into an existing project (apic init creates one)", root))
 	}
 	// Confine compares real, absolute paths: `apic init my-api` names the
 	// root relative to the working directory, and on macOS a temporary
@@ -114,7 +123,7 @@ func writeSkill(root string, dirs []string) (written, unchanged []string, err er
 	// named, joined as the scaffold's are, not the resolved ones.
 	absRoot, err := filepath.Abs(root)
 	if err != nil {
-		return nil, nil, runner.Usage(runner.CodeFile, err.Error())
+		return nil, nil, nil, runner.Usage(runner.CodeFile, err.Error())
 	}
 	files := skills.Files()
 	for _, dir := range dirs {
@@ -123,26 +132,32 @@ func writeSkill(root string, dirs []string) (written, unchanged []string, err er
 			shown := filepath.Join(root, rel)
 			target, err := project.Confine(absRoot, absRoot, rel)
 			if errors.Is(err, project.ErrOutsideRoot) {
-				return nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s resolves outside %s; the skill is installed under the project", shown, root))
+				return nil, nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s resolves outside %s; the skill is installed under the project", shown, root))
 			}
 			if err != nil {
-				return nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s: %v", shown, err))
+				return nil, nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s: %v", shown, err))
 			}
 			content := []byte(files[name])
-			if existing, err := os.ReadFile(target); err == nil && bytes.Equal(existing, content) { //nolint:gosec // the skill file this command wrote before, confined to the project above
-				unchanged = append(unchanged, shown)
-				continue
+			if existing, err := os.ReadFile(target); err == nil { //nolint:gosec // the skill file this command wrote before, confined to the project above
+				if bytes.Equal(existing, content) {
+					unchanged = append(unchanged, shown)
+					continue
+				}
+				if !overwrite {
+					skipped = append(skipped, shown)
+					continue
+				}
 			}
 			if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil { //nolint:gosec // a skill directory the user's agents read and the user commits
-				return nil, nil, runner.Usage(runner.CodeFile, err.Error())
+				return nil, nil, nil, runner.Usage(runner.CodeFile, err.Error())
 			}
 			if err := os.WriteFile(target, content, 0o644); err != nil { //nolint:gosec // public text the user commits, confined to the project above
-				return nil, nil, runner.Usage(runner.CodeFile, err.Error())
+				return nil, nil, nil, runner.Usage(runner.CodeFile, err.Error())
 			}
 			written = append(written, shown)
 		}
 	}
-	return written, unchanged, nil
+	return written, unchanged, skipped, nil
 }
 
 func orEmpty(s []string) []string {

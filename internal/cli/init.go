@@ -23,8 +23,9 @@ directory): apic.yaml, http-client.env.json, a gitignored
 http-client.private.env.json, api.http with one annotated request, a
 features/smoke.feature to run with apic test, and the Agent Skill under
 .claude/skills and .agents/skills so an AI agent working in the project
-knows how to use apic (see apic skill; --no-skill leaves it out). Existing
-files are left alone unless --force is given.`,
+knows how to use apic (see apic skill; --no-skill leaves it out, apic skill
+install refreshes it). Existing files are left alone unless --force is
+given.`,
 		Example: `  apic init
   apic init api --base-url https://dev.example.com --env dev
   apic init --json`,
@@ -42,14 +43,14 @@ files are left alone unless --force is given.`,
 				return err
 			}
 			if !noSkill {
-				// The skill is apic's own text, so it is refreshed rather than
-				// kept: an older copy is the one thing --force should not be
-				// needed for.
-				wrote, _, err := writeSkill(dir, SkillDirs)
+				// Kept unless --force, like every other file: a team may
+				// have tailored it. `apic skill install` is the refresh.
+				wrote, _, kept, err := writeSkill(dir, SkillDirs, true, force)
 				if err != nil {
 					return err
 				}
 				written = append(written, wrote...)
+				skipped = append(skipped, kept...)
 			}
 			if a.g.json {
 				return a.writeJSON(struct {

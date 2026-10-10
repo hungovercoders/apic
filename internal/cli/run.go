@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
-	"slices"
 	"strings"
 	"time"
 
@@ -60,6 +58,10 @@ sending it: no dependency runs, no auth is applied and nothing is captured.`,
   apic run delete-todo --var todoId=3 --dry-run`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			extraAsserts, extraCaptures, err := adHoc(adHocAsserts, adHocCaptures)
+			if err != nil {
+				return err
+			}
 			p, err := a.loadProject()
 			if err != nil {
 				return err
@@ -89,6 +91,7 @@ sending it: no dependency runs, no auth is applied and nothing is captured.`,
 			configure := func(r *runner.Runner) {
 				r.Opts.KeepGoing = keepGoing
 				r.Opts.Retry, r.Opts.NoRetry = retry, noRetry
+				r.Opts.Asserts, r.Opts.Captures = extraAsserts, extraCaptures
 				if !a.g.json && !bodyOnly {
 					r.Progress = func(p runner.Progress) { fmt.Fprint(a.Stdout, output.Attempt(output.Default(), p)) }
 				}
@@ -98,12 +101,9 @@ sending it: no dependency runs, no auth is applied and nothing is captured.`,
 			if err != nil {
 				return err
 			}
-			if reqs, err = withAdHoc(reqs, adHocAsserts, adHocCaptures); err != nil {
-				return err
-			}
 			flow := len(reqs) > 1
 			if dryRun {
-				return a.dryRun(r, reqs, verbose)
+				return a.dryRun(r, reqs, verbose, bodyOnly)
 			}
 			if reportPath != "" {
 				if err := outputOverlapsSources(reportPath, r.Project, nil); err != nil {
@@ -165,7 +165,7 @@ sending it: no dependency runs, no auth is applied and nothing is captured.`,
 					output.Summary(a.Stdout, results)
 				}
 			} else {
-				results, runErr = a.runRows(cmd, r, rows, args, adHocAsserts, adHocCaptures, shareSession, keepGoing, func(it *runner.Iteration, ir *runner.Runner) {
+				results, runErr = a.runRows(cmd, r, rows, args, shareSession, keepGoing, func(it *runner.Iteration, ir *runner.Runner) {
 					iteration, printed = it, 0
 					configure(ir)
 					ir.OnResult = onResult
@@ -245,19 +245,12 @@ sending it: no dependency runs, no auth is applied and nothing is captured.`,
 	return cmd
 }
 
-// captureName is what `# @capture` accepts as a name (httpfile's reCapture).
-var captureName = regexp.MustCompile(`^[A-Za-z_][\w.-]*$`)
-
-// withAdHoc returns the targets with the --assert expressions and --capture
-// definitions added, on copies so the project's requests are untouched.
-// Both get the checks `apic validate` gives the directives (the expression
+// adHoc checks the --assert expressions and --capture definitions once,
+// with the checks `apic validate` gives the directives (the expression
 // parses, the selector is one apic knows, the name is one a directive
 // could have), so a typo is a flag error naming the flag before anything
 // is sent, not a failure after a request that may have changed something.
-func withAdHoc(reqs []*httpfile.Request, asserts, captures []string) ([]*httpfile.Request, error) {
-	if len(asserts) == 0 && len(captures) == 0 {
-		return reqs, nil
-	}
+func adHoc(asserts, captures []string) ([]httpfile.Assert, []httpfile.Capture, error) {
 	var extraAsserts []httpfile.Assert
 	for _, raw := range asserts {
 		expr, err := assert.Parse(raw)
@@ -265,7 +258,7 @@ func withAdHoc(reqs []*httpfile.Request, asserts, captures []string) ([]*httpfil
 			err = selector.Check(expr.Selector)
 		}
 		if err != nil {
-			return nil, runner.Usage(runner.CodeFlag, fmt.Sprintf("--assert %q: %v", raw, err))
+			return nil, nil, runner.Usage(runner.CodeFlag, fmt.Sprintf("--assert %q: %v", raw, err))
 		}
 		extraAsserts = append(extraAsserts, httpfile.Assert{Expr: raw})
 	}
@@ -273,41 +266,40 @@ func withAdHoc(reqs []*httpfile.Request, asserts, captures []string) ([]*httpfil
 	for _, def := range captures {
 		name, sel, ok := strings.Cut(def, "=")
 		name, sel = strings.TrimSpace(name), strings.TrimSpace(sel)
-		if !ok || !captureName.MatchString(name) || sel == "" {
-			return nil, runner.Usage(runner.CodeFlag, fmt.Sprintf("--capture %q: expected name=selector, e.g. token=body.$.access_token", def))
+		if !ok || !httpfile.ValidCaptureName(name) || sel == "" {
+			return nil, nil, runner.Usage(runner.CodeFlag, fmt.Sprintf("--capture %q: expected name=selector, e.g. token=body.$.access_token", def))
 		}
 		if err := selector.Check(sel); err != nil {
-			return nil, runner.Usage(runner.CodeFlag, fmt.Sprintf("--capture %q: %v", def, err))
+			return nil, nil, runner.Usage(runner.CodeFlag, fmt.Sprintf("--capture %q: %v", def, err))
 		}
 		extraCaptures = append(extraCaptures, httpfile.Capture{Name: name, Selector: sel})
 	}
-	out := make([]*httpfile.Request, 0, len(reqs))
-	for _, req := range reqs {
-		cp := *req
-		cp.Asserts = append(slices.Clone(req.Asserts), extraAsserts...)
-		cp.Captures = append(slices.Clone(req.Captures), extraCaptures...)
-		out = append(out, &cp)
-	}
-	return out, nil
+	return extraAsserts, extraCaptures, nil
 }
 
-// dryRun prints each target as it would be sent and sends nothing.
-func (a *App) dryRun(r *runner.Runner, reqs []*httpfile.Request, verbose bool) error {
+// dryRun prints each target as it would be sent and sends nothing. Under
+// --body-only it prints the request body, there being no response.
+func (a *App) dryRun(r *runner.Runner, reqs []*httpfile.Request, verbose, bodyOnly bool) error {
 	for i, req := range reqs {
 		res, err := r.DryRun(req)
 		if err != nil {
 			return err
 		}
-		if a.g.json {
+		switch {
+		case a.g.json:
 			if err := output.JSON(a.Stdout, res); err != nil {
 				return err
 			}
-			continue
+		case bodyOnly:
+			if body := res.Request.DisplayBody(res.Redact); body != "" {
+				fmt.Fprintln(a.Stdout, strings.TrimRight(body, "\n"))
+			}
+		default:
+			if i > 0 {
+				fmt.Fprintln(a.Stdout)
+			}
+			output.Human(a.Stdout, res, verbose)
 		}
-		if i > 0 {
-			fmt.Fprintln(a.Stdout)
-		}
-		output.Human(a.Stdout, res, verbose)
 	}
 	return nil
 }
@@ -354,7 +346,7 @@ func (a *App) readRows(path string) ([]datafile.Row, error) {
 // runner carries them through. start is called before each iteration,
 // done after it with its results. A failed iteration stops the run
 // unless keepGoing is set.
-func (a *App) runRows(cmd *cobra.Command, r *runner.Runner, rows []datafile.Row, args, asserts, captures []string, share, keepGoing bool, start func(*runner.Iteration, *runner.Runner), done func([]*runner.Result)) ([]*runner.Result, error) {
+func (a *App) runRows(cmd *cobra.Command, r *runner.Runner, rows []datafile.Row, args []string, share, keepGoing bool, start func(*runner.Iteration, *runner.Runner), done func([]*runner.Result)) ([]*runner.Result, error) {
 	base := r.Opts.Vars
 	session := r.Session
 	var all []*runner.Result
@@ -385,9 +377,6 @@ func (a *App) runRows(cmd *cobra.Command, r *runner.Runner, rows []datafile.Row,
 		}
 		reqs, err := targets(ir, args)
 		if err != nil {
-			return all, err
-		}
-		if reqs, err = withAdHoc(reqs, asserts, captures); err != nil {
 			return all, err
 		}
 		start(&runner.Iteration{Index: i + 1, Total: len(rows), Row: row.Values}, ir)

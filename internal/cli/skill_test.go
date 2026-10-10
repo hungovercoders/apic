@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -87,14 +88,27 @@ func TestInitWritesTheSkillUnlessAskedNotTo(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(dir, ".agents", "skills", "apic", "references", "cheatsheet.md")); err != nil {
 		t.Error(err)
 	}
-	// The skill is refreshed on a second init even without --force: the
-	// user's files are kept, apic's text is not the user's.
-	mustWrite(t, filepath.Join(dir, ".claude", "skills", "apic", "SKILL.md"), "old")
-	if code, out, _ := execute(t, "--json", "init", dir); code != 0 || !strings.Contains(out, `.claude`) || !strings.Contains(out, `"skipped"`) {
-		t.Fatalf("second init: code=%d out=%s", code, out)
+	// An edited copy is kept on a second init, like every other file, and
+	// reported as skipped; --force replaces it, as `apic skill install`
+	// always does.
+	edited := filepath.Join(dir, ".claude", "skills", "apic", "SKILL.md")
+	mustWrite(t, edited, "tailored")
+	code, out, _ := execute(t, "--json", "init", dir)
+	var got struct{ Written, Skipped []string }
+	if err := json.Unmarshal([]byte(out), &got); err != nil || code != 0 {
+		t.Fatalf("second init: code=%d %v: %s", code, err, out)
 	}
-	if got, _ := os.ReadFile(filepath.Join(dir, ".claude", "skills", "apic", "SKILL.md")); string(got) == "old" {
-		t.Error("an old skill copy should be refreshed")
+	if len(got.Written) != 0 || !slices.Contains(got.Skipped, edited) {
+		t.Errorf("second init: %+v", got)
+	}
+	if b, _ := os.ReadFile(edited); string(b) != "tailored" {
+		t.Error("init overwrote an edited skill file without --force")
+	}
+	if code, _, errb := execute(t, "init", dir, "--force"); code != 0 {
+		t.Fatalf("--force: code=%d err=%s", code, errb)
+	}
+	if b, _ := os.ReadFile(edited); string(b) == "tailored" {
+		t.Error("--force should replace the edited skill file")
 	}
 	bare := t.TempDir()
 	if code, _, errb := execute(t, "init", bare, "--no-skill"); code != 0 {
@@ -131,6 +145,14 @@ func TestSkillInstallStaysUnderTheProject(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(filepath.Dir(dir), "outside")); !os.IsNotExist(err) {
 		t.Error("something was written outside the project")
+	}
+	// A mistyped project is an error, not a new directory tree.
+	typo := filepath.Join(dir, "aip")
+	if code, _, errb = execute(t, "skill", "install", typo); code != 2 || !strings.Contains(errb, "not a directory") {
+		t.Errorf("missing project: code=%d err=%s", code, errb)
+	}
+	if _, err := os.Stat(typo); !os.IsNotExist(err) {
+		t.Error("a missing project directory was created")
 	}
 	elsewhere := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(dir, ".claude"), 0o755); err != nil {

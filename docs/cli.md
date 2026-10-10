@@ -116,7 +116,7 @@ shows progress.
 | `--data-share-session` | With `--data`, let one iteration's captures reach the next and the session file. |
 | `--assert <expr>` | Check the response with an expression, as `# @assert` would, for this run only; repeatable. The result lists it after the request's own assertions, and a failure exits 1 like any other. A bad expression is a flag error before anything is sent. Try a check here before writing it into the file. |
 | `--capture <name=selector>` | Capture a value, as `# @capture` would, for this run only; repeatable. It goes into the result and the session like a directive's capture. |
-| `--dry-run` | Resolve each target and print the request that would be sent (method, URL, headers and body, with `-v`'s detail) without sending it: no dependency runs, no auth is applied, nothing is captured. A missing variable is the same error a run gives. `--json` prints the run object with `"dry_run": true` and no `response`. Refused with `--data`, `--output` and `--report`. |
+| `--dry-run` | Resolve each target and print the request that would be sent (method, URL, headers and body, with `-v`'s detail) without sending it: no dependency runs, no auth is applied, nothing is captured. A variable a `# @ref` dependency would capture is left as its `{{placeholder}}` with a warning saying which request the run would send first; any other missing variable is the error a run gives. `--json` prints the run object with `"dry_run": true`, the warnings and no `response`; `--body-only` prints the request body. Refused with `--data`, `--output` and `--report`. |
 
 Examples:
 
@@ -568,10 +568,10 @@ several people (or agents) stop drifting:
 
 Formatting twice changes nothing. Without paths every request file of the
 project is formatted; a path may be a file or a directory. `file.http#name`
-(or `file.http#3`, counting `###` blocks) formats that one request and
-leaves the rest of the file byte for byte, so an agent that added a request
-to a file it does not own can format its own change and nothing else; a
-name that is not in the file is E201. `-` reads stdin and writes the result
+(or `file.http#3`, counting requests as `apic run file.http#3` does)
+formats that one request and leaves the rest of the file byte for byte,
+so an agent that added a request to a file it does not own can format its
+own change and nothing else; a name that is not in the file is E201. `-` reads stdin and writes the result
 to stdout, which is what the VS Code extension's **Format Document** uses.
 
 | Flag | Meaning |
@@ -883,9 +883,9 @@ with mode 0600, `api.http` with two annotated requests, a
 and `.apic/`, and the [Agent Skill](agents.md#3-a-skill-claude-code-codex-cursor-any-agent-that-loads-skills)
 under `.claude/skills/apic` and `.agents/skills/apic`, so an AI agent
 working in the project knows how to use apic from the first session.
-Existing files are kept unless `--force` is given, and the `.gitignore` is
-appended to rather than replaced; the skill is apic's own text, so an older
-copy is refreshed without `--force`.
+Existing files are kept unless `--force` is given, the skill's included
+(`apic skill install` refreshes it), and the `.gitignore` is appended to
+rather than replaced.
 
 | Flag | Default | Meaning |
 |---|---|---|
@@ -916,10 +916,12 @@ network. `--json` prints `{"name": "apic", "files": {"SKILL.md": …,
 `skill install` writes the skill into `<dir>/.claude/skills/apic` (what
 Claude Code reads) and `<dir>/.agents/skills/apic` (what Codex, Cursor
 and the other agents that share that directory read), `dir` being the
-project (`-C`) unless given. A file already holding the same text is
+project (`-C`) unless given; it must exist, so a mistyped directory is
+E210 rather than a new tree. A file already holding the same text is
 reported as `unchanged`; any other is overwritten, since the text is
 apic's rather than the project's. Commit the result so every clone briefs
-its agents. `apic init` runs the same install.
+its agents. `apic init` writes the same files, keeping existing ones
+unless `--force`.
 
 | Flag | Meaning |
 |---|---|

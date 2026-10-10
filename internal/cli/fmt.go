@@ -53,6 +53,7 @@ reads stdin and writes the result to stdout, which is what editors use.`,
 				return err
 			}
 			var changed []string
+			seen := map[string]bool{} // a file named for two of its requests is listed once
 			diffs := map[string]string{}
 			for _, target := range files {
 				file := target.path
@@ -61,17 +62,25 @@ reads stdin and writes the result to stdout, which is what editors use.`,
 					return runner.Usage(runner.CodeFile, err.Error())
 				}
 				shown := a.fmtRel(file)
-				formatted := httpfile.Format(string(data))
-				if target.request != "" {
+				var formatted string
+				if target.request == "" {
+					formatted = httpfile.Format(string(data))
+				} else {
 					var ok bool
 					if formatted, ok = httpfile.FormatRequest(string(data), target.request); !ok {
 						return runner.Usage(runner.CodeUnknownRequest, fmt.Sprintf("%s: no request named %q (apic list shows the names)", shown, target.request))
 					}
+					// Diffs are per request: the same file can appear twice.
+					shown += "#" + target.request
 				}
 				if formatted == string(data) {
 					continue
 				}
-				changed = append(changed, file)
+				first := !seen[file]
+				seen[file] = true
+				if first {
+					changed = append(changed, file)
+				}
 				if diff {
 					diffs[shown] = unifiedDiff(shown, string(data), formatted)
 				}
@@ -87,7 +96,9 @@ reads stdin and writes the result to stdout, which is what editors use.`,
 				case diff:
 					fmt.Fprint(a.Stdout, diffs[shown])
 				case check:
-					fmt.Fprintln(a.Stdout, shown)
+					if first {
+						fmt.Fprintln(a.Stdout, a.fmtRel(file))
+					}
 				default:
 					if err := writeFormatted(file, formatted); err != nil {
 						return err
@@ -100,8 +111,6 @@ reads stdin and writes the result to stdout, which is what editors use.`,
 				for _, c := range changed {
 					rel = append(rel, a.fmtRel(c))
 				}
-				// A file formatted for one request counts as changed only
-				// when that request changed, as above.
 				var diffOut map[string]string
 				if diff {
 					diffOut = diffs
@@ -168,19 +177,24 @@ func (a *App) fmtTargets(args []string) ([]fmtTarget, error) {
 		return targets, nil
 	}
 	var targets []fmtTarget
-	for _, arg := range args {
-		path := arg
-		if !filepath.IsAbs(path) {
-			path = filepath.Join(a.g.dir, arg)
+	abs := func(p string) string {
+		if filepath.IsAbs(p) {
+			return p
 		}
+		return filepath.Join(a.g.dir, p)
+	}
+	for _, arg := range args {
+		path := abs(arg)
 		info, err := os.Stat(path)
 		request := ""
 		if err != nil {
 			// A file named with a # in it wins over a request selector, so
 			// the selector is tried only when the path as given is not one.
-			if file, name, ok := strings.Cut(path, "#"); ok && name != "" {
-				if fi, ferr := os.Stat(file); ferr == nil && !fi.IsDir() {
-					path, request, info, err = file, name, fi, nil
+			// The cut is on the argument, at its last #, so a # in the
+			// project directory or an earlier path element is left alone.
+			if i := strings.LastIndex(arg, "#"); i > 0 && i < len(arg)-1 {
+				if fi, ferr := os.Stat(abs(arg[:i])); ferr == nil && !fi.IsDir() {
+					path, request, info, err = abs(arg[:i]), arg[i+1:], fi, nil
 				}
 			}
 		}

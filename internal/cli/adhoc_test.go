@@ -34,6 +34,23 @@ POST {{baseUrl}}/other
 Content-Type: application/json
 
 {"id": {{id}}}
+
+### login
+# @name login
+# @capture session = body.$.id
+GET {{baseUrl}}/login
+
+### secured
+# @name secured
+# @ref login
+DELETE {{baseUrl}}/secured
+X-Auth: Bearer {{session}}
+
+### cleanup
+# @name cleanup
+# @disabled
+# @assert status == 200
+DELETE {{baseUrl}}/cleanup
 `)
 	mustWrite(t, filepath.Join(dir, "http-client.env.json"), `{"dev":{"baseUrl":"`+srv.URL+`","token":"t"}}`)
 	return dir, &hits
@@ -124,6 +141,67 @@ func TestRunDryRun(t *testing.T) {
 	if code, _, errb = execute(t, "-C", dir, "--env", "dev", "run", "thing", "--dry-run", "--data", "-"); code != 2 || !strings.Contains(errb, "--dry-run") {
 		t.Errorf("with --data: code=%d err=%s", code, errb)
 	}
+	// --body-only prints the request body, there being no response.
+	if code, out, _ = execute(t, "-C", dir, "--env", "dev", "--no-session", "run", "other", "--var", "id=3", "--dry-run", "--body-only"); code != 0 || out != "{\"id\": 3}\n" {
+		t.Errorf("body-only: code=%d out=%q", code, out)
+	}
+	if hits.Load() != 0 {
+		t.Fatal("a dry run sent a request")
+	}
+}
+
+// A variable a `# @ref` dependency would capture does not fail a dry run:
+// the request is shown with the placeholder and a warning naming what a
+// run would send first, and still nothing is sent.
+func TestRunDryRunLeavesRefSuppliedPlaceholders(t *testing.T) {
+	dir, hits := adHocProject(t)
+	code, out, errb := execute(t, "-C", dir, "--env", "dev", "--no-session", "--json", "run", "secured", "--dry-run")
+	if code != 0 {
+		t.Fatalf("code=%d err=%s", code, errb)
+	}
+	var obj struct {
+		runObject
+		Warnings []string `json:"warnings"`
+	}
+	if err := json.Unmarshal([]byte(strings.TrimSpace(out)), &obj); err != nil {
+		t.Fatal(err)
+	}
+	headers, _ := obj.Request["headers"].(map[string]any)
+	if !obj.DryRun || !obj.OK || headers["X-Auth"] != "Bearer {{session}}" || len(obj.Warnings) != 1 || !strings.Contains(obj.Warnings[0], "send login first") {
+		t.Errorf("object: %s", out)
+	}
+	if hits.Load() != 0 {
+		t.Fatal("the dependency was sent")
+	}
+	if code, out, _ = execute(t, "-C", dir, "--env", "dev", "--no-session", "--no-color", "run", "secured", "--dry-run"); code != 0 || !strings.Contains(out, "! {{session}} is not set; a run would send login first") || !strings.Contains(out, "dry run · not sent") {
+		t.Errorf("text: code=%d\n%s", code, out)
+	}
+}
+
+// The ad hoc checks ride on the runner's options rather than on copies of
+// the requests, so a `# @disabled` request named on the command line is
+// still the one the runner knows it was asked for, and is sent.
+func TestRunAdHocFlagsKeepDisabledTargets(t *testing.T) {
+	dir, hits := adHocProject(t)
+	code, out, errb := execute(t, "-C", dir, "--env", "dev", "--no-session", "--json", "run", "cleanup", "--assert", "body.$.id == 7")
+	if code != 0 {
+		t.Fatalf("code=%d err=%s out=%s", code, errb, out)
+	}
+	obj := decodeRun(t, out)
+	if hits.Load() != 1 || obj.Response == nil || len(obj.Asserts) != 2 || !obj.Asserts[1].Pass {
+		t.Errorf("hits=%d %s", hits.Load(), out)
+	}
+	// And they do not reach a dependency: login, pulled in by secured's
+	// `# @ref`, keeps its own checks.
+	code, out, _ = execute(t, "-C", dir, "--env", "dev", "--no-session", "--json", "run", "secured", "--assert", "status == 200", "--capture", "n=body.$.id")
+	lines := strings.Split(strings.TrimSpace(out), "\n")
+	if code != 0 || len(lines) != 2 {
+		t.Fatalf("code=%d out=%s", code, out)
+	}
+	login, secured := decodeRun(t, lines[0]), decodeRun(t, lines[1])
+	if len(login.Asserts) != 0 || login.Captures["n"] != "" || len(secured.Asserts) != 1 || secured.Captures["n"] != "7" {
+		t.Errorf("login %+v / secured %+v", login, secured)
+	}
 }
 
 // fmt file.http#name formats the one request and keeps the rest byte for
@@ -150,6 +228,44 @@ func TestFmtOneRequest(t *testing.T) {
 	}
 	if code, _, errb = execute(t, "-C", dir, "fmt", "api.http#third"); code != 2 || !strings.Contains(errb, `no request named "third"`) {
 		t.Errorf("unknown: code=%d err=%s", code, errb)
+	}
+}
+
+// Requests are counted as `apic run file.http#N` counts them: the text
+// before the first `###` is one when it holds a request line, a `###`
+// block without one is not; and a request named there can be formatted.
+func TestFmtOneRequestCountsLikeRun(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "proj#2") // a # in the project directory is not a selector
+	src := "# @name   first\nGET   https://x/a\n\n### Users\n# a heading block, no request\n\n### second\n# @name   second\nGET   https://x/b\n"
+	mustWrite(t, filepath.Join(dir, "api.http"), src)
+	if code, _, errb := execute(t, "-C", dir, "fmt", "api.http#first"); code != 0 {
+		t.Fatalf("by name in the implicit block: code=%d err=%s", code, errb)
+	}
+	if got := mustReadFile(t, filepath.Join(dir, "api.http")); got != "# @name first\nGET https://x/a\n\n### Users\n# a heading block, no request\n\n### second\n# @name   second\nGET   https://x/b\n" {
+		t.Errorf("after #first:\n%s", got)
+	}
+	if code, _, errb := execute(t, "-C", dir, "fmt", "api.http#2"); code != 0 {
+		t.Fatalf("by number: code=%d err=%s", code, errb)
+	}
+	if got := mustReadFile(t, filepath.Join(dir, "api.http")); !strings.HasSuffix(got, "### second\n# @name second\nGET https://x/b\n") {
+		t.Errorf("after #2 (the second request, not the second ### block):\n%s", got)
+	}
+	if code, _, errb := execute(t, "-C", dir, "fmt", "api.http#3"); code != 2 || !strings.Contains(errb, `no request named "3"`) {
+		t.Errorf("#3 of two requests: code=%d err=%s", code, errb)
+	}
+	// Two requests of one file under --diff --json: one diff each, the
+	// file listed once.
+	mustWrite(t, filepath.Join(dir, "api.http"), src)
+	code, out, _ := execute(t, "-C", dir, "--json", "fmt", "api.http#first", "api.http#second", "--diff")
+	var got struct {
+		Changed []string          `json:"changed"`
+		Diff    map[string]string `json:"diff"`
+	}
+	if err := json.Unmarshal([]byte(out), &got); err != nil || code != 1 {
+		t.Fatalf("code=%d %v: %s", code, err, out)
+	}
+	if len(got.Changed) != 1 || len(got.Diff) != 2 || !strings.Contains(got.Diff["api.http#first"], "+# @name first") || !strings.Contains(got.Diff["api.http#second"], "+# @name second") {
+		t.Errorf("json: %+v", got)
 	}
 }
 

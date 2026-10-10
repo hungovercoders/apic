@@ -106,6 +106,23 @@ func TestFormatRequest(t *testing.T) {
 	if _, ok = FormatRequest(src, "3"); ok {
 		t.Error("a number past the last block should not match")
 	}
+	// The implicit block is request 1 when it holds a request line, a
+	// `###` block without one is not counted, and the number is what the
+	// parser gives the request.
+	implicit := "# @name  p\nGET   https://x/p\n\n### heading only\n\n### q\n# @name  q\nGET https://x/q\n"
+	f, _ := Parse("t.http", implicit)
+	if len(f.Requests) != 2 || f.Requests[1].Name != "q" || f.Requests[1].Index != 2 {
+		t.Fatalf("parser: %+v", f.Requests)
+	}
+	if got, ok := FormatRequest(implicit, "p"); !ok || !strings.HasPrefix(got, "# @name p\nGET https://x/p\n\n### heading only\n") {
+		t.Errorf("implicit by name: ok=%v\n%s", ok, got)
+	}
+	if got, ok := FormatRequest(implicit, "2"); !ok || !strings.HasSuffix(got, "### q\n# @name q\nGET https://x/q\n") || !strings.HasPrefix(got, "# @name  p\n") {
+		t.Errorf("second request, not second block: ok=%v\n%s", ok, got)
+	}
+	if _, ok := FormatRequest(implicit, "3"); ok {
+		t.Error("a heading block is not a request")
+	}
 	// Formatting every request one by one is the whole-file format.
 	both, _ := FormatRequest(src, "a")
 	both, _ = FormatRequest(both, "b")

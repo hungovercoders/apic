@@ -50,6 +50,11 @@ type Options struct {
 	Insecure  bool              // skip TLS verification
 	KeepGoing bool              // in a flow, continue after a failure
 	Redact    bool              // mask every request value and capture in output (for CI logs)
+	// Asserts and Captures are added to each request Run is called for,
+	// not to the dependencies it pulls in through `# @ref`: `apic run
+	// --assert` and `--capture`, which the caller has checked.
+	Asserts  []httpfile.Assert
+	Captures []httpfile.Capture
 	// Output saves the response body of the request Run is called for to
 	// this path (relative to the working directory, overwriting), as a
 	// `>>! file` in the request would; `apic run --output`. Dependencies
@@ -562,20 +567,44 @@ func (r Result) DisplayCaptures() map[string]string {
 // Raw returns the underlying response for renderers.
 func (r *Result) Raw() *selector.Response { return r.raw }
 
-// DryRun resolves a request as Run would and stops there: variables are
-// substituted and a missing one is the same error a run gives, but no
-// dependency runs, no auth is applied, nothing is sent and nothing is
-// captured. The result carries the request and DryRun set, for an agent
-// (or a person) to look at before a call that changes something.
+// DryRun resolves a request as Run would and stops there: no dependency
+// runs, no auth is applied, nothing is sent and nothing is captured. A
+// variable a `# @ref` dependency would capture is left as its placeholder
+// with a warning saying so, since the run would supply it; any other
+// missing variable is the error the run would give. The result carries
+// the request and DryRun set, for an agent (or a person) to look at
+// before a call that changes something.
 func (r *Runner) DryRun(req *httpfile.Request) (*Result, error) {
 	resolved, err := r.Resolve(req)
 	if err != nil {
 		return nil, err
 	}
-	if len(resolved.missing) > 0 {
-		return nil, r.MissingError(req, dedupe(resolved.missing))
+	result := &Result{Request: *resolved, OK: true, Redact: r.Opts.Redact, DryRun: true, req: req}
+	if len(resolved.missing) == 0 {
+		return result, nil
 	}
-	return &Result{Request: *resolved, OK: true, Redact: r.Opts.Redact, DryRun: true, req: req}, nil
+	supplied := map[string]string{}
+	for _, v := range r.Describe(req).Variables {
+		if v.RefRuns {
+			supplied[v.Name] = v.CapturedBy
+		}
+	}
+	var missing []string
+	for _, e := range resolved.missing {
+		by, ok := supplied[e]
+		if !ok {
+			missing = append(missing, e)
+			continue
+		}
+		if by == "" { // a `login.response.body.$.token` reference
+			by, _, _ = strings.Cut(e, ".response.")
+		}
+		result.Warnings = append(result.Warnings, fmt.Sprintf("{{%s}} is not set; a run would send %s first (# @ref) and capture it", e, by))
+	}
+	if len(missing) > 0 {
+		return nil, r.MissingError(req, missing)
+	}
+	return result, nil
 }
 
 // Resolve substitutes variables in a request without sending it.
@@ -1059,8 +1088,15 @@ func (r *Runner) run(ctx context.Context, req *httpfile.Request, chain []*httpfi
 		return nil, r.MissingError(req, resolved.missing)
 	}
 	result := &Result{Request: *resolved, OK: true, Redact: r.Opts.Redact, Deps: deps, req: req}
-	preparedAsserts := make([]preparedAssert, 0, len(req.Asserts))
-	for _, a := range req.Asserts {
+	asserts, captures := req.Asserts, req.Captures
+	if len(chain) == 0 {
+		// The ad hoc checks apply to the request that was asked for, not
+		// to what it pulled in.
+		asserts = append(append([]httpfile.Assert(nil), asserts...), r.Opts.Asserts...)
+		captures = append(append([]httpfile.Capture(nil), captures...), r.Opts.Captures...)
+	}
+	preparedAsserts := make([]preparedAssert, 0, len(asserts))
+	for _, a := range asserts {
 		expr, err := assert.Parse(a.Expr)
 		if err != nil {
 			return nil, usagef(CodeDirective, "%s:%d: %v", req.File.Path, a.Line, err)
@@ -1104,7 +1140,7 @@ func (r *Runner) run(ctx context.Context, req *httpfile.Request, chain []*httpfi
 	}
 
 	for attempt := 1; ; attempt++ {
-		res, err := r.attempt(ctx, req, resolved, preparedAsserts, schemas, timeout)
+		res, err := r.attempt(ctx, req, resolved, preparedAsserts, captures, schemas, timeout)
 		if err != nil {
 			var ue *UsageError
 			if errors.As(err, &ue) || attempt >= policy.n {
@@ -1206,7 +1242,7 @@ func HistoryKey(p *project.Project, req *httpfile.Request) string {
 // assertions into a fresh Result, without committing anything to the
 // runner or the session. It has its own timeout, so a retry loop gives
 // every attempt the full time.
-func (r *Runner) attempt(ctx context.Context, req *httpfile.Request, resolved *Resolved, asserts []preparedAssert, schemas assert.Options, timeout time.Duration) (*Result, error) {
+func (r *Runner) attempt(ctx context.Context, req *httpfile.Request, resolved *Resolved, asserts []preparedAssert, captures []httpfile.Capture, schemas assert.Options, timeout time.Duration) (*Result, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	var trace traceTimes
@@ -1306,7 +1342,7 @@ func (r *Runner) attempt(ctx context.Context, req *httpfile.Request, resolved *R
 	view, encoding := jsonOrString(data)
 	result.Response = &Response{Status: raw.Status, StatusText: raw.StatusText, Headers: flatHeaders(httpResp.Header), Body: view, BodyEncoding: encoding, DurationMs: dur.Milliseconds(), Size: len(data), Proto: httpResp.Proto, Timings: trace.timings(dur)}
 
-	for _, c := range req.Captures {
+	for _, c := range captures {
 		v, ok, err := selector.Select(raw, c.Selector)
 		if err != nil {
 			result.Errors = append(result.Errors, fmt.Sprintf("capture %s: %v", c.Name, err))

@@ -290,73 +290,93 @@ func trimTrailingBlank(lines []string) []string {
 }
 
 // FormatRequest formats one request of a file and leaves every other byte
-// as written: the block whose `# @name` is name, or the n-th `###` block
-// when name is a number, as `apic run file.http#3` counts them. ok is false
-// when no block matches. It is for an agent (or an editor) that added or
-// changed one request in a file it does not own, so the change stays that
-// request's.
+// as written: the request whose `# @name` is name, or the n-th request of
+// the file when name is a number, counted as the parser and so `apic run
+// file.http#3` count them (the text before the first `###` is a request
+// when it holds a request line; a `###` block without one is not). ok is
+// false when nothing matches. It is for an agent (or an editor) that
+// added or changed one request in a file it does not own, so the change
+// stays that request's.
 func FormatRequest(src, name string) (out string, ok bool) {
 	// The source is split as it is, so the lines around the block keep
 	// their bytes, CRLF included; the formatted block is given the file's
 	// line ending so the result stays one kind.
 	lines := strings.Split(src, "\n")
 	crlf := strings.Contains(src, "\r\n")
-	// Each explicit block runs from its separator line to the line before
-	// the next one, trailing blank lines included.
-	var starts []int
+	// Blocks as the parser sees them: the implicit one before the first
+	// separator, then one per `###` line, each running to the line before
+	// the next separator, trailing blank lines included.
+	type span struct{ start, end int }
+	var blocks []span
+	start := 0
 	for i, line := range lines {
 		if reSeparator.MatchString(line) {
-			starts = append(starts, i)
+			blocks = append(blocks, span{start, i})
+			start = i
 		}
 	}
-	index := -1
-	if n, err := strconv.Atoi(name); err == nil && n >= 1 && n <= len(starts) {
-		index = n - 1
-	}
-	for k, start := range starts {
-		end := len(lines)
-		if k+1 < len(starts) {
-			end = starts[k+1]
-		}
-		if index < 0 && !blockNamed(lines[start:end], name) {
+	blocks = append(blocks, span{start, len(lines)})
+	want, err := strconv.Atoi(name)
+	byNumber := err == nil
+	n := 0
+	for _, b := range blocks {
+		block := lines[b.start:b.end]
+		if !hasRequestLine(block) {
 			continue
 		}
-		if index >= 0 && k != index {
+		n++
+		if byNumber && n != want || !byNumber && !blockNamed(block, name) {
 			continue
 		}
-		block := strings.Split(strings.TrimSuffix(Format(strings.Join(lines[start:end], "\n")), "\n"), "\n")
+		formatted := strings.Split(strings.TrimSuffix(Format(strings.Join(block, "\n")), "\n"), "\n")
 		if crlf {
-			for i := range block {
-				block[i] += "\r"
+			for i := range formatted {
+				formatted[i] += "\r"
 			}
 		}
 		// One blank line before the next block (a bare "\r" under CRLF, so
 		// the join gives "\r\n"), or the file's final newline, the empty
 		// last element of the split, when this block is last.
 		switch {
-		case end < len(lines) && crlf:
-			block = append(block, "\r")
-		case end < len(lines) || strings.HasSuffix(src, "\n"):
-			block = append(block, "")
+		case b.end < len(lines) && crlf:
+			formatted = append(formatted, "\r")
+		case b.end < len(lines) || strings.HasSuffix(src, "\n"):
+			formatted = append(formatted, "")
 		}
-		return strings.Join(append(append(append([]string{}, lines[:start]...), block...), lines[end:]...), "\n"), true
+		return strings.Join(append(append(append([]string{}, lines[:b.start]...), formatted...), lines[b.end:]...), "\n"), true
 	}
 	return src, false
+}
+
+// preambleLine reports whether a line is one the parser passes over before
+// a request line: blank, a file variable, or a comment (a `###` line among
+// them).
+func preambleLine(line string) bool {
+	t := strings.TrimSpace(line)
+	return t == "" || reFileVar.MatchString(t) || reComment.MatchString(t)
+}
+
+// hasRequestLine reports whether a block holds a request, as the parser
+// decides it: a line after the preamble.
+func hasRequestLine(lines []string) bool {
+	for _, line := range lines {
+		if !preambleLine(line) {
+			return true
+		}
+	}
+	return false
 }
 
 // blockNamed reports whether a block's preamble carries `# @name name`.
 func blockNamed(lines []string, name string) bool {
 	for _, line := range lines {
-		t := strings.TrimSpace(line)
-		if t == "" {
-			continue
+		if !preambleLine(line) {
+			return false // the request line: no more directives
 		}
+		t := strings.TrimSpace(line)
 		m := reComment.FindStringSubmatch(t)
 		if m == nil {
-			if reFileVar.MatchString(t) {
-				continue
-			}
-			return false // the request line: no more directives
+			continue
 		}
 		if d := reDirective.FindStringSubmatch(strings.TrimSpace(m[1])); d != nil && d[1] == "name" && strings.TrimSpace(d[2]) == name {
 			return true

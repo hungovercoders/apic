@@ -105,38 +105,41 @@ Commit the result so every clone briefs its agents.`,
 // path is confined to root, symlinks followed, so neither `--to ../x` nor
 // a link under .claude/skills can put the files outside the project.
 func writeSkill(root string, dirs []string) (written, unchanged []string, err error) {
-	// Confine compares real paths, so the root must be absolute: `apic init
-	// my-api` names it relative to the working directory.
-	root, err = filepath.Abs(root)
-	if err != nil {
+	if err := os.MkdirAll(root, 0o755); err != nil { //nolint:gosec // the project directory the user named, which they browse and commit
 		return nil, nil, runner.Usage(runner.CodeFile, err.Error())
 	}
-	if err := os.MkdirAll(root, 0o755); err != nil { //nolint:gosec // the project directory the user named, which they browse and commit
+	// Confine compares real, absolute paths: `apic init my-api` names the
+	// root relative to the working directory, and on macOS a temporary
+	// directory is a symlink. The paths reported are the ones the user
+	// named, joined as the scaffold's are, not the resolved ones.
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
 		return nil, nil, runner.Usage(runner.CodeFile, err.Error())
 	}
 	files := skills.Files()
 	for _, dir := range dirs {
 		for _, name := range skills.Paths() {
 			rel := filepath.Join(dir, skills.Name, filepath.FromSlash(name))
-			target, err := project.Confine(root, root, rel)
+			shown := filepath.Join(root, rel)
+			target, err := project.Confine(absRoot, absRoot, rel)
 			if errors.Is(err, project.ErrOutsideRoot) {
-				return nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s resolves outside %s; the skill is installed under the project", rel, root))
+				return nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s resolves outside %s; the skill is installed under the project", shown, root))
 			}
 			if err != nil {
-				return nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s: %v", rel, err))
+				return nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s: %v", shown, err))
 			}
 			content := []byte(files[name])
-			if existing, err := os.ReadFile(target); err == nil && bytes.Equal(existing, content) { //nolint:gosec // the skill file this command wrote before, under the project
-				unchanged = append(unchanged, target)
+			if existing, err := os.ReadFile(target); err == nil && bytes.Equal(existing, content) { //nolint:gosec // the skill file this command wrote before, confined to the project above
+				unchanged = append(unchanged, shown)
 				continue
 			}
 			if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil { //nolint:gosec // a skill directory the user's agents read and the user commits
 				return nil, nil, runner.Usage(runner.CodeFile, err.Error())
 			}
-			if err := os.WriteFile(target, content, 0o644); err != nil { //nolint:gosec // public text the user commits
+			if err := os.WriteFile(target, content, 0o644); err != nil { //nolint:gosec // public text the user commits, confined to the project above
 				return nil, nil, runner.Usage(runner.CodeFile, err.Error())
 			}
-			written = append(written, target)
+			written = append(written, shown)
 		}
 	}
 	return written, unchanged, nil

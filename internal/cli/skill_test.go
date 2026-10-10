@@ -147,3 +147,30 @@ func TestSkillInstallStaysUnderTheProject(t *testing.T) {
 		t.Error("the symlink was followed out of the project")
 	}
 }
+
+// The paths reported are the ones the user named, joined like the
+// scaffold's, not the resolved ones: on macOS a temporary directory is a
+// symlink into /private, and `apic init --json` must list one shape.
+func TestSkillInstallReportsPathsAsNamed(t *testing.T) {
+	t.Chdir(t.TempDir())
+	if err := os.MkdirAll("real", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("real", "link"); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	code, out, errb := execute(t, "--json", "skill", "install", "link")
+	if code != 0 {
+		t.Fatalf("code=%d err=%s", code, errb)
+	}
+	var got struct{ Written []string }
+	if err := json.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Written) != 4 || got.Written[0] != filepath.Join("link", ".claude", "skills", "apic", "SKILL.md") {
+		t.Errorf("written: %v", got.Written)
+	}
+	if _, err := os.Stat(filepath.Join("real", ".agents", "skills", "apic", "SKILL.md")); err != nil {
+		t.Error("the files should land under the real directory the link names")
+	}
+}

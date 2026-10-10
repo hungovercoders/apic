@@ -89,14 +89,15 @@ checksum:
 # only: the HOMEBREW_TAP_GITHUB_TOKEN secret, which release.yml checks for
 # before goreleaser runs. A snapshot renders the cask into
 # dist/homebrew/Casks/apic.rb and never pushes, so the token is optional
-# there (envOrDefault: a missing key is otherwise a template error).
+# there (index returns "" for a missing key, where .Env.X is a template error;
+# envOrDefault is goreleaser Pro only).
 homebrew_casks:
   - name: apic
     repository:
       owner: hungovercoders
       name: homebrew-tap
       branch: main
-      token: '{{ envOrDefault "HOMEBREW_TAP_GITHUB_TOKEN" "" }}'
+      token: '{{ index .Env "HOMEBREW_TAP_GITHUB_TOKEN" }}'
     directory: Casks
     commit_author:
       name: goreleaser

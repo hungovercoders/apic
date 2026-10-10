@@ -4,6 +4,11 @@
 # so only http and https are checked here.
 scheme = ["https", "http"]
 
+# The landing page's cards and one raw <img> name their target the way the
+# site serves it (/format/#variables); resolve those against the site, where
+# the exclude below leaves them to the build.
+base_url = "https://apic.sh/"
+
 # A link fails on 404 Not Found and 410 Gone. Other answers, such as a site
 # that refuses robots (403) or rate-limits (429), are not rot; a timeout is
 # retried before it counts.

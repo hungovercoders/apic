@@ -1,11 +1,15 @@
 {
 	// apic.sh: the Starlight build served as static assets by a Worker.
-	// Workers Builds runs `npm run build` then `npx wrangler deploy` on main
-	// and gives every pull request a preview URL (see AGENTS.md, Docs site).
+	// Workers Builds runs `npx wrangler deploy` on main and gives every pull
+	// request a preview URL (see AGENTS.md, Docs site); `build.command` makes
+	// wrangler build the site first, so the dashboard needs no build command.
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "apic-site",
 	"compatibility_date": "2026-10-01",
 	"routes": [{ "pattern": "apic.sh", "custom_domain": true }],
+	"build": { "command": "npm run build" },
+	"previews": {},
+	"preview_urls": true,
 	"assets": {
 		"directory": "./dist",
 		"not_found_handling": "404-page"

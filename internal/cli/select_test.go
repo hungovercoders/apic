@@ -138,9 +138,64 @@ func TestParseSize(t *testing.T) {
 			t.Errorf("%q: %d %v, want %d", in, got, err, want)
 		}
 	}
-	for _, bad := range []string{"0", "-1", "k", "4g", "lots"} {
+	for _, bad := range []string{"0", "-1", "k", "4g", "lots", "9223372036854775807k", "99999999999999999999"} {
 		if _, err := parseSize(bad); err == nil {
 			t.Errorf("%q should be refused", bad)
 		}
+	}
+}
+
+// A history entry keeps one value per header, so the count and index
+// forms are refused with a reason rather than answering wrongly.
+func TestSelectRefusesMultiValueHeaderSelectors(t *testing.T) {
+	dir, _ := selectProject(t, "history: 1\n")
+	if code, _, errb := execute(t, "-C", dir, "run", "thing"); code != 0 {
+		t.Fatalf("run: code=%d err=%s", code, errb)
+	}
+	for _, sel := range []string{"header.content-type.#", "header.content-type[0]", "headers.x[-1]"} {
+		if code, _, errb := execute(t, "-C", dir, "select", "thing", sel); code != 2 || !strings.Contains(errb, "one value per header") {
+			t.Errorf("%s: code=%d err=%s", sel, code, errb)
+		}
+	}
+}
+
+// The truncation note offers select only when the history took the
+// response; a binary body keeps its raw prefix under the limit.
+func TestBodyLimitNoteAndBinaryPrefix(t *testing.T) {
+	var hits atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		if r.URL.Path == "/bin" {
+			w.Header().Set("Content-Type", "application/octet-stream")
+			_, _ = w.Write(append([]byte{0xff, 0xfe, 0x00, 0x01}, []byte(strings.Repeat("z", 300))...))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"big": "` + strings.Repeat("x", 500) + `"}`))
+	}))
+	t.Cleanup(srv.Close)
+	dir := t.TempDir()
+	mustWrite(t, filepath.Join(dir, "api.http"), "### thing\n# @name thing\nGET {{baseUrl}}/thing\n\n### bin\n# @name bin\nGET {{baseUrl}}/bin\n\n### anon\nGET {{baseUrl}}/thing\n")
+	mustWrite(t, filepath.Join(dir, "http-client.env.json"), `{"dev":{"baseUrl":"`+srv.URL+`"}}`)
+	// No history: the note says what to set.
+	code, out, _ := execute(t, "-C", dir, "--env", "dev", "run", "thing", "--body-limit", "100", "--no-color")
+	if code != 0 || !strings.Contains(out, "the rest is not kept: set history: N") || strings.Contains(out, "reads the rest") {
+		t.Errorf("without history: code=%d\n%s", code, out)
+	}
+	mustWrite(t, filepath.Join(dir, "apic.yaml"), "env: dev\nhistory: 2\n")
+	if code, out, _ = execute(t, "-C", dir, "run", "thing", "--body-limit", "100", "--no-color"); code != 0 || !strings.Contains(out, "apic select thing body.$.<path> reads the rest") {
+		t.Errorf("with history: code=%d\n%s", code, out)
+	}
+	// An unnamed request is never recorded.
+	if code, out, _ = execute(t, "-C", dir, "run", "api.http#3", "--body-limit", "100", "--no-color"); code != 0 || strings.Contains(out, "reads the rest") {
+		t.Errorf("unnamed: code=%d\n%s", code, out)
+	}
+	// Bytes that are not text: the first 4 as they are, not rune-trimmed
+	// to nothing; the JSON carries their base64.
+	if code, out, _ = execute(t, "-C", dir, "run", "bin", "--body-limit", "4", "--body-only"); code != 0 || out != "\xff\xfe\x00\x01\n" {
+		t.Errorf("binary body-only: code=%d out=%q", code, out)
+	}
+	if code, out, _ = execute(t, "-C", dir, "--json", "run", "bin", "--body-limit", "4"); code != 0 || !strings.Contains(out, `"body":"//4AAQ=="`) || !strings.Contains(out, `"body_encoding":"base64"`) || !strings.Contains(out, `"body_truncated":true`) {
+		t.Errorf("binary json: code=%d %s", code, out)
 	}
 }

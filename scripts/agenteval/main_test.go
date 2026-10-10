@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,7 +22,7 @@ func TestParseAndGrade(t *testing.T) {
 		t.Errorf("the Read call and its result: %+v %q", tr.Calls[1], tr.Results[1])
 	}
 	var s Score
-	Grade(&s, tr, []string{"todos.http", "notes.txt"}, `{"id": "1", "done": true}`, Checks{VerifyContains: []string{`"done": true`}, FilesMayChange: []string{"todos.http"}})
+	Grade(&s, tr, []string{"todos.http", "notes.txt"}, `{"id": "1", "done": true}`, nil, Checks{VerifyContains: []string{`"done": true`}, FilesMayChange: []string{"todos.http"}})
 	if s.SecretReads != 1 || s.ApicRuns != 3 || s.SyntaxErrors != 1 || s.ToolCalls != 4 || s.Turns != 4 || s.DurationS != 42 {
 		t.Errorf("counts: %+v", s)
 	}
@@ -29,9 +30,16 @@ func TestParseAndGrade(t *testing.T) {
 		t.Errorf("verdict: passed=%v reasons=%v", s.Passed, s.Reasons)
 	}
 	var ok Score
-	Grade(&ok, tr, []string{"todos.http"}, `{"done": true}`, Checks{VerifyContains: []string{`"done": true`}, FilesMayChange: []string{"todos.http"}})
+	Grade(&ok, tr, []string{"todos.http"}, `{"done": true}`, nil, Checks{VerifyContains: []string{`"done": true`}, FilesMayChange: []string{"todos.http"}})
 	if !ok.Passed || len(ok.Reasons) != 1 { // the secret read is a reason but not a failure of the task
 		t.Errorf("ok: passed=%v reasons=%v", ok.Passed, ok.Reasons)
+	}
+	// A verify command that prints the expected text but exits non-zero
+	// still fails the run.
+	var exited Score
+	Grade(&exited, tr, []string{"todos.http"}, `{"done": true}`, errors.New("exit status 1"), Checks{VerifyContains: []string{`"done": true`}, FilesMayChange: []string{"todos.http"}})
+	if exited.Passed || exited.Reasons[0] != "verify failed: exit status 1" {
+		t.Errorf("verify exit: passed=%v reasons=%v", exited.Passed, exited.Reasons)
 	}
 	if r := Regressions([]Score{{Variant: "with", Passed: true, SecretReads: 1, Eval: 1, Run: 1}, {Variant: "without", Passed: false, Eval: 1, Run: 1}, {Variant: "with", Passed: true, Eval: 2, Run: 1}}); len(r) != 1 || r[0] != "eval 1 run 1" {
 		t.Errorf("regressions: %v", r)

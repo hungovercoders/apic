@@ -9,10 +9,13 @@
 //
 // It needs `claude` on PATH with credentials (ANTHROPIC_API_KEY, or a
 // signed-in CLI) and makes real model calls, so it is `task agent:eval`
-// and a weekly workflow, not part of `task check`. Results go to
-// bin/agent-eval/<eval>-<variant>-<run>/ (the project, the transcript and
-// a score) and bin/agent-eval/results.json; the exit status is 1 when a
-// with-skill run fails its checks or reads a secret file.
+// and a monthly workflow with a manual trigger, not part of `task check`.
+// Each project is served from a temporary directory outside the
+// repository, so the agent sees no AGENTS.md, CLAUDE.md or skills/ of
+// apic's own and the baseline is a true one; the transcript, the score
+// and the verify output are copied to bin/agent-eval/<eval>-<variant>-
+// <run>/ and the scores to bin/agent-eval/results.json. The exit status
+// is 1 when a with-skill run fails its checks or reads a secret file.
 package main
 
 import (
@@ -48,7 +51,8 @@ type Eval struct {
 }
 
 // Checks is what makes an eval pass or fail without a judge: a command
-// run in the project after the agent, whose output must contain each
+// run in the project after the agent (with sh, apic on PATH and jq
+// available), which must exit 0 and whose output must contain each
 // string, and the project files the agent may change.
 type Checks struct {
 	Verify         string   `json:"verify"`
@@ -173,17 +177,33 @@ func build(out string) (string, error) {
 // project.
 func runOne(e Eval, variant string, n int, out, apic, model, claude string, timeout time.Duration, maxTurns int) Score {
 	s := Score{Eval: e.ID, Name: e.Name, Variant: variant, Run: n}
-	dir, err := filepath.Abs(filepath.Join(out, fmt.Sprintf("%d-%s-%d", e.ID, variant, n)))
+	keep, err := filepath.Abs(filepath.Join(out, fmt.Sprintf("%d-%s-%d", e.ID, variant, n)))
 	if err == nil {
-		err = os.RemoveAll(dir)
+		err = os.RemoveAll(keep)
 	}
 	if err == nil {
-		err = os.MkdirAll(dir, 0o750)
+		err = os.MkdirAll(keep, 0o750)
 	}
 	if err != nil {
 		s.Error = err.Error()
 		return s
 	}
+	// The agent works outside the repository: Claude Code reads the
+	// AGENTS.md and CLAUDE.md above its working directory, and the
+	// baseline must not find apic's own, nor skills/apic to read.
+	dir, err := os.MkdirTemp("", "apic-agent-eval-")
+	if err != nil {
+		s.Error = err.Error()
+		return s
+	}
+	defer func() {
+		for _, name := range []string{"transcript.jsonl", "claude.err", "demo.log", "verify.out"} {
+			if data, err := os.ReadFile(filepath.Join(dir, name)); err == nil { //nolint:gosec // a file this program wrote in its own temporary directory
+				_ = os.WriteFile(filepath.Join(keep, name), data, 0o600)
+			}
+		}
+		_ = os.RemoveAll(dir)
+	}()
 	project := filepath.Join(dir, "project")
 	port := freePort()
 	demoLog, err := os.Create(filepath.Join(dir, "demo.log")) //nolint:gosec // a log in the run directory this program made
@@ -256,18 +276,19 @@ func runOne(e Eval, variant string, n int, out, apic, model, claude string, time
 		return s
 	}
 	verified := ""
+	var verifyErr error
 	if e.Checks.Verify != "" {
 		v := exec.Command("sh", "-c", e.Checks.Verify) //nolint:gosec // the eval's own verify command, from the repository's evals file
 		v.Dir = project
 		v.Env = agent.Env
-		outb, _ := v.CombinedOutput()
-		verified = string(outb)
+		outb, err := v.CombinedOutput()
+		verified, verifyErr = string(outb), err
 		_ = os.WriteFile(filepath.Join(dir, "verify.out"), outb, 0o600)
 	}
-	Grade(&s, t, Changed(before, after), verified, e.Checks)
+	Grade(&s, t, Changed(before, after), verified, verifyErr, e.Checks)
 	s.DurationS = time.Since(started).Seconds()
 	if data, err := json.MarshalIndent(s, "", "  "); err == nil {
-		_ = os.WriteFile(filepath.Join(dir, "score.json"), data, 0o600)
+		_ = os.WriteFile(filepath.Join(keep, "score.json"), data, 0o600)
 	}
 	return s
 }
@@ -372,8 +393,8 @@ var secretFiles = []string{"http-client.private.env.json", "session.json", "cook
 var syntaxSigns = []string{"unsupported selector", "gjson queries are not supported", "unknown selector", "bad-assert", "bad-capture", "E104", "--assert \"", "--capture \""}
 
 // Grade fills a score from the transcript, the files the agent changed
-// and the verify command's output.
-func Grade(s *Score, t Transcript, changed []string, verified string, checks Checks) {
+// and the verify command's output and exit status.
+func Grade(s *Score, t Transcript, changed []string, verified string, verifyErr error, checks Checks) {
 	s.ToolCalls = len(t.Calls)
 	s.Turns, s.CostUSD, s.Answer = t.Turns, t.CostUSD, t.Answer
 	if t.DurationMS > 0 {
@@ -403,6 +424,10 @@ func Grade(s *Score, t Transcript, changed []string, verified string, checks Che
 	if t.IsError || (t.Answer == "" && len(t.Calls) == 0) {
 		s.Passed = false
 		s.Reasons = append(s.Reasons, "the agent did not finish")
+	}
+	if verifyErr != nil {
+		s.Passed = false
+		s.Reasons = append(s.Reasons, "verify failed: "+verifyErr.Error())
 	}
 	for _, want := range checks.VerifyContains {
 		if !strings.Contains(verified, want) {

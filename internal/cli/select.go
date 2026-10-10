@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -46,6 +48,9 @@ masked, so header.set-cookie and cookie.<name> read as ***.`,
 			sel := args[1]
 			if err := selector.Check(sel); err != nil {
 				return runner.Usage(runner.CodeFlag, fmt.Sprintf("selector %q: %v", sel, err))
+			}
+			if reHeaderMulti.MatchString(strings.TrimSpace(sel)) {
+				return runner.Usage(runner.CodeFlag, fmt.Sprintf("selector %q: the history keeps one value per header, joined with commas, so header.<name>.# and header.<name>[n] cannot be read from it; use header.<name>", sel))
 			}
 			t, err := a.historyFor(args[0])
 			if err != nil {
@@ -113,8 +118,14 @@ masked, so header.set-cookie and cookie.<name> read as ***.`,
 	return cmd
 }
 
+// reHeaderMulti matches the header selectors that need a header's
+// separate values, which a history entry does not keep.
+var reHeaderMulti = regexp.MustCompile(`^headers?\.[^.\[\]]+(\.#|\[-?\d+\])$`)
+
 // responseOf rebuilds the response a history entry recorded, from the
-// `apic run --json` object it holds, for selectors to read.
+// `apic run --json` object it holds, for selectors to read. The entry
+// holds one value per header, joined with commas as `apic run --json`
+// prints them, so that is what header.<name> reads.
 func responseOf(e history.Entry) (*selector.Response, error) {
 	var stored struct {
 		Response *struct {

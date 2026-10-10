@@ -193,7 +193,13 @@ func Result(t Theme, res *runner.Result, o Options) string {
 	if body := res.DisplayRawBody(); len(body) > 0 {
 		b.WriteString("\n" + BodyOrSummary(t, res, body) + "\n")
 		if shown := res.DisplayResponse(); shown.BodyTruncated {
-			b.WriteString(t.Dim.Render(fmt.Sprintf("… %s of %s shown (--body-limit); apic select %s body.$.<path> reads the rest", Size(len(body)), Size(res.Response.Size), resultName(res))) + "\n")
+			note := fmt.Sprintf("… %s of %s shown (--body-limit)", Size(len(body)), Size(res.Response.Size))
+			if res.Recorded {
+				note += fmt.Sprintf("; apic select %s body.$.<path> reads the rest", resultName(res))
+			} else {
+				note += "; the rest is not kept: set history: N in apic.yaml before the run for apic select to read it"
+			}
+			b.WriteString(t.Dim.Render(note) + "\n")
 		}
 	}
 	if checks := Checks(t, res, o.Width, false); checks != "" {

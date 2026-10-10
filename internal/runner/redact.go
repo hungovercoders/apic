@@ -93,7 +93,11 @@ func (r *Result) DisplayRawBody() []byte {
 		return []byte(Masked)
 	}
 	if r.limited() {
-		return textPrefix(r.raw.Body[:r.BodyLimit])
+		head := r.raw.Body[:r.BodyLimit]
+		if r.Response != nil && r.Response.BodyEncoding == Base64 {
+			return head // bytes, not text: the cut is on no character
+		}
+		return textPrefix(head)
 	}
 	return r.raw.Body
 }

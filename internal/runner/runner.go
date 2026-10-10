@@ -482,6 +482,9 @@ type Result struct {
 	// DryRun marks a result from DryRun: the request as it would be sent,
 	// with no response because nothing was.
 	DryRun bool `json:"dry_run,omitempty"`
+	// Recorded says the response history took this response, so `apic
+	// select` can read it; set by record, read by the renderers.
+	Recorded bool `json:"-"`
 	// BodyLimit, when set, bounds the body the displays show (the JSON,
 	// --body-only and the report) to that many bytes, marking the
 	// response BodyTruncated. It is for a caller whose context the body
@@ -1235,7 +1238,9 @@ func (r *Runner) record(req *httpfile.Request, result *Result) {
 	}
 	if err != nil {
 		result.Warnings = append(result.Warnings, "history: "+err.Error())
+		return
 	}
+	result.Recorded = true
 }
 
 // HistoryKey is what a request's history is kept under: its name, or

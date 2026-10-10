@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -432,7 +433,7 @@ func parseSize(s string) (int, error) {
 		s = strings.TrimSuffix(strings.TrimSuffix(s, "b"), "m")
 	}
 	n, err := strconv.Atoi(s)
-	if err != nil || n <= 0 {
+	if err != nil || n <= 0 || n > math.MaxInt/mult {
 		return 0, fmt.Errorf("expected a positive size such as 4k, 64k or 1m")
 	}
 	return n * mult, nil

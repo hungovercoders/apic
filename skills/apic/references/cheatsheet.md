@@ -1,8 +1,5 @@
 <!-- Generated from website/src/content/docs/cheatsheet.md by scripts/skilldocs (`task skill`); edit that page, not this file. -->
 # apic cheat sheet
----
-title: "Cheat sheet"
----
 Everything apic understands, on one page. Each section links to the full
 explanation.
 

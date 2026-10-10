@@ -168,9 +168,9 @@ which is what "keys are only added" means in practice.
 a tag reads best beside `description`, so slot it there. Without a rank
 it would still work, sorted after the known ones.
 
-**Document it.** A row in the directive table of `docs/format.md`, a
-line in `docs/cheatsheet.md`, and `tags` in the `list --json` note of
-`docs/cli.md`.
+**Document it.** A row in the directive table of the site's `format.md`, a
+line in its `cheatsheet.md`, and `tags` in the `list --json` note of
+its `cli.md`.
 
 **Test it.** `internal/cli/ref_test.go` shows the pattern: write a
 project to a temp directory, run `list --json`, assert on the text. Add

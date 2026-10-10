@@ -22,11 +22,21 @@ func read(t *testing.T, rel string) string {
 	return strings.ReplaceAll(string(b), "\r\n", "\n")
 }
 
-// TestReferenceIsCurrent fails when docs/cheatsheet.md changed without
+// TestReferenceIsCurrent fails when the site's cheatsheet.md changed without
 // `task skill`, which is how CI catches a stale copy in the skill.
 func TestReferenceIsCurrent(t *testing.T) {
 	if got, want := read(t, Target), Render(read(t, Source)); got != want {
 		t.Fatalf("%s is stale; run `task skill`", Target)
+	}
+}
+
+// The page's front matter is for the site; the skill gets a heading.
+func TestRenderReplacesFrontMatter(t *testing.T) {
+	got := Render("---\ntitle: \"Cheat sheet\"\n---\n\nBody with a [link](format.md#x).\n")
+	want := "<!-- Generated from " + Source + " by scripts/skilldocs (`task skill`); edit that page, not this file. -->\n" +
+		"# apic cheat sheet\nBody with a [link](" + Site + "format/#x).\n"
+	if got != want {
+		t.Fatalf("got\n%s\nwant\n%s", got, want)
 	}
 }
 

@@ -129,7 +129,7 @@ apic run login -C jetbrains | tail -2
 ```
 
 ```
-login.http:10:1: warning: ignoring response handler block (apic has no scripting; see docs/comparison.md) (editor-script)
+login.http:10:1: warning: ignoring response handler block (apic has no scripting; see https://apic.sh/comparison/) (editor-script)
 ! 1 file, 1 request, 1 warning
 ✓ status == 200
 ↳ token = mock-token

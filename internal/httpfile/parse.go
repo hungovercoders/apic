@@ -102,6 +102,13 @@ var KnownDirectives = map[string]string{
 	"prompt":      "REST Client prompt, ignored (pass with --var instead)",
 }
 
+// captureName is the name class `# @capture name = selector` accepts; a
+// name given elsewhere (`apic run --capture`) is held to the same one.
+const captureName = `[A-Za-z_][\w.-]*`
+
+// ValidCaptureName reports whether name is one `# @capture` would accept.
+func ValidCaptureName(name string) bool { return reCaptureName.MatchString(name) }
+
 var (
 	reSeparator   = regexp.MustCompile(`^###(.*)$`)
 	reFileVar     = regexp.MustCompile(`^@([A-Za-z_][\w.-]*)\s*=\s*(.*)$`)
@@ -111,8 +118,9 @@ var (
 	// Header names are RFC 7230 tokens, so X.Correlation-ID is valid. A
 	// leading `#` is the one exception: that line is a comment in this
 	// dialect, so the pattern does not claim it either.
-	reHeader  = regexp.MustCompile("^([!$%&'*+.^_`|~0-9A-Za-z-][!#$%&'*+.^_`|~0-9A-Za-z-]*):\\s*(.*)$")
-	reCapture = regexp.MustCompile(`^([A-Za-z_][\w.-]*)\s*=\s*(.+)$`)
+	reHeader      = regexp.MustCompile("^([!$%&'*+.^_`|~0-9A-Za-z-][!#$%&'*+.^_`|~0-9A-Za-z-]*):\\s*(.*)$")
+	reCapture     = regexp.MustCompile(`^(` + captureName + `)\s*=\s*(.+)$`)
+	reCaptureName = regexp.MustCompile(`^` + captureName + `$`)
 )
 
 // ParseFile reads and parses a .http file from disk.

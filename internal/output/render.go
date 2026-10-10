@@ -164,6 +164,16 @@ func Checks(t Theme, res *runner.Result, width int, expected bool) string {
 func Result(t Theme, res *runner.Result, o Options) string {
 	var b strings.Builder
 	b.WriteString(RequestLine(t, res) + "\n")
+	if res.DryRun {
+		// The request is the whole point of a dry run, so its headers and
+		// body are shown without -v, and so is what a run would fill in.
+		b.WriteString(RequestDetail(t, res))
+		for _, w := range res.Warnings {
+			fmt.Fprintf(&b, "%s %s\n", t.Warn.Render("!"), w)
+		}
+		b.WriteString(t.Dim.Render("dry run · not sent") + "\n")
+		return b.String()
+	}
 	if o.Verbose {
 		b.WriteString(RequestDetail(t, res))
 		b.WriteString("\n")

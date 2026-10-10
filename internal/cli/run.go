@@ -5,19 +5,23 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
 
+	"github.com/hungovercoders/apic/internal/assert"
 	"github.com/hungovercoders/apic/internal/datafile"
 	"github.com/hungovercoders/apic/internal/httpfile"
 	"github.com/hungovercoders/apic/internal/output"
 	"github.com/hungovercoders/apic/internal/report"
 	"github.com/hungovercoders/apic/internal/runner"
+	"github.com/hungovercoders/apic/internal/selector"
 )
 
 func (a *App) runCmd() *cobra.Command {
-	var verbose, bodyOnly, keepGoing, noRetry bool
+	var verbose, bodyOnly, keepGoing, noRetry, dryRun bool
+	var adHocAsserts, adHocCaptures []string
 	var retry, reportPath, outputPath, dataPath string
 	var shareSession bool
 	cmd := &cobra.Command{
@@ -36,15 +40,28 @@ so a later invocation can use them. Use --no-session to disable. A request
 that declares "# @ref login" runs login first when a value it needs is
 missing; "# @forceRef login" runs it first every time. One that declares
 "# @retry 10 2s" is re-sent until its assertions pass, up to 10 times, two
-seconds apart; each failed attempt prints a line as it happens.`,
+seconds apart; each failed attempt prints a line as it happens.
+
+--assert and --capture add a check or a capture to every target for this
+run only, the same expressions "# @assert" and "# @capture" take, so a
+selector can be tried before it is written into the file. --dry-run
+resolves each target as a run would and prints the request instead of
+sending it: no dependency runs, no auth is applied and nothing is captured.`,
 		Example: `  apic run login
   apic run get-user --env staging --var userId=42
   apic run smoke.http --json | jq .response.status
   apic run get-user --body-only | jq .email
   apic run smoke.http --keep-going --report report.html
-  apic run daily-report --output reports/daily.csv`,
+  apic run daily-report --output reports/daily.csv
+  apic run list-todos --assert 'body.$[?(@.done != true)].# == 0'
+  apic run create-todo --capture id=body.$.id --json
+  apic run delete-todo --var todoId=3 --dry-run`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			extraAsserts, extraCaptures, err := adHoc(adHocAsserts, adHocCaptures)
+			if err != nil {
+				return err
+			}
 			p, err := a.loadProject()
 			if err != nil {
 				return err
@@ -54,6 +71,14 @@ seconds apart; each failed attempt prints a line as it happens.`,
 			r, err := a.runnerFor(p, func(o *runner.Options) { o.NoHistory = dataPath != "" })
 			if err != nil {
 				return err
+			}
+			if dryRun {
+				switch {
+				case dataPath != "":
+					return runner.Usage(runner.CodeFlag, "--dry-run shows one request per target; it does not take --data")
+				case outputPath != "" || reportPath != "":
+					return runner.Usage(runner.CodeFlag, "--dry-run sends nothing, so there is no response to save or report")
+				}
 			}
 			var rows []datafile.Row
 			if dataPath != "" {
@@ -66,6 +91,7 @@ seconds apart; each failed attempt prints a line as it happens.`,
 			configure := func(r *runner.Runner) {
 				r.Opts.KeepGoing = keepGoing
 				r.Opts.Retry, r.Opts.NoRetry = retry, noRetry
+				r.Opts.Asserts, r.Opts.Captures = extraAsserts, extraCaptures
 				if !a.g.json && !bodyOnly {
 					r.Progress = func(p runner.Progress) { fmt.Fprint(a.Stdout, output.Attempt(output.Default(), p)) }
 				}
@@ -76,6 +102,9 @@ seconds apart; each failed attempt prints a line as it happens.`,
 				return err
 			}
 			flow := len(reqs) > 1
+			if dryRun {
+				return a.dryRun(r, reqs, verbose, bodyOnly)
+			}
 			if reportPath != "" {
 				if err := outputOverlapsSources(reportPath, r.Project, nil); err != nil {
 					return err
@@ -210,7 +239,69 @@ seconds apart; each failed attempt prints a line as it happens.`,
 	cmd.Flags().StringVar(&outputPath, "output", "", "save the response body to this file (one request only; like a \">>! file\" line in the request)")
 	cmd.Flags().StringVar(&dataPath, "data", "", "run the targets once per row of a CSV file (header row names the variables) or JSON array of objects; - reads stdin")
 	cmd.Flags().BoolVar(&shareSession, "data-share-session", false, "with --data, let captures from one iteration reach the next and the session file")
+	cmd.Flags().StringArrayVar(&adHocAsserts, "assert", nil, "check the response with an expression, as # @assert would, for this run only (repeatable)")
+	cmd.Flags().StringArrayVar(&adHocCaptures, "capture", nil, "capture a value, name=selector, as # @capture would, for this run only (repeatable)")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "resolve the targets and print the requests that would be sent, without sending them")
 	return cmd
+}
+
+// adHoc checks the --assert expressions and --capture definitions once,
+// with the checks `apic validate` gives the directives (the expression
+// parses, the selector is one apic knows, the name is one a directive
+// could have), so a typo is a flag error naming the flag before anything
+// is sent, not a failure after a request that may have changed something.
+func adHoc(asserts, captures []string) ([]httpfile.Assert, []httpfile.Capture, error) {
+	var extraAsserts []httpfile.Assert
+	for _, raw := range asserts {
+		expr, err := assert.Parse(raw)
+		if err == nil {
+			err = selector.Check(expr.Selector)
+		}
+		if err != nil {
+			return nil, nil, runner.Usage(runner.CodeFlag, fmt.Sprintf("--assert %q: %v", raw, err))
+		}
+		extraAsserts = append(extraAsserts, httpfile.Assert{Expr: raw})
+	}
+	var extraCaptures []httpfile.Capture
+	for _, def := range captures {
+		name, sel, ok := strings.Cut(def, "=")
+		name, sel = strings.TrimSpace(name), strings.TrimSpace(sel)
+		if !ok || !httpfile.ValidCaptureName(name) || sel == "" {
+			return nil, nil, runner.Usage(runner.CodeFlag, fmt.Sprintf("--capture %q: expected name=selector, e.g. token=body.$.access_token", def))
+		}
+		if err := selector.Check(sel); err != nil {
+			return nil, nil, runner.Usage(runner.CodeFlag, fmt.Sprintf("--capture %q: %v", def, err))
+		}
+		extraCaptures = append(extraCaptures, httpfile.Capture{Name: name, Selector: sel})
+	}
+	return extraAsserts, extraCaptures, nil
+}
+
+// dryRun prints each target as it would be sent and sends nothing. Under
+// --body-only it prints the request body, there being no response.
+func (a *App) dryRun(r *runner.Runner, reqs []*httpfile.Request, verbose, bodyOnly bool) error {
+	for i, req := range reqs {
+		res, err := r.DryRun(req)
+		if err != nil {
+			return err
+		}
+		switch {
+		case a.g.json:
+			if err := output.JSON(a.Stdout, res); err != nil {
+				return err
+			}
+		case bodyOnly:
+			if body := res.Request.DisplayBody(res.Redact); body != "" {
+				fmt.Fprintln(a.Stdout, strings.TrimRight(body, "\n"))
+			}
+		default:
+			if i > 0 {
+				fmt.Fprintln(a.Stdout)
+			}
+			output.Human(a.Stdout, res, verbose)
+		}
+	}
+	return nil
 }
 
 // targets resolves the command line's targets in order.

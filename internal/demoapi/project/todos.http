@@ -51,7 +51,9 @@ PUT {{baseUrl}}/todos/{{todoId}}
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
-{"done": true}
+{
+  "done": true
+}
 
 ### Confirm the update stuck
 # @name get-updated
@@ -83,7 +85,9 @@ POST {{baseUrl}}/todos
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
-{"title": ""}
+{
+  "title": ""
+}
 
 ### A request that will fail its assertion
 # @name not-found

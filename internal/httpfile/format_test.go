@@ -89,3 +89,59 @@ func TestFormatIsIdempotentOnRepositoryFiles(t *testing.T) {
 		t.Errorf("CRLF: %q", got)
 	}
 }
+
+func TestFormatRequest(t *testing.T) {
+	src := "@base = https://x\n\n###  a\n# @assert status == 200\n# @name a\nGET {{base}}/a\n\n\n### b\n# @name   b\nGET   {{base}}/b\n"
+	got, ok := FormatRequest(src, "b")
+	if !ok || got != "@base = https://x\n\n###  a\n# @assert status == 200\n# @name a\nGET {{base}}/a\n\n\n### b\n# @name b\nGET {{base}}/b\n" {
+		t.Errorf("by name: ok=%v\n%s", ok, got)
+	}
+	got, ok = FormatRequest(src, "1")
+	if !ok || got != "@base = https://x\n\n### a\n# @name a\n# @assert status == 200\nGET {{base}}/a\n\n### b\n# @name   b\nGET   {{base}}/b\n" {
+		t.Errorf("by number: ok=%v\n%s", ok, got)
+	}
+	if _, ok = FormatRequest(src, "c"); ok {
+		t.Error("an unknown name should not match")
+	}
+	if _, ok = FormatRequest(src, "3"); ok {
+		t.Error("a number past the last block should not match")
+	}
+	// The implicit block is request 1 when it holds a request line, a
+	// `###` block without one is not counted, and the number is what the
+	// parser gives the request.
+	implicit := "# @name  p\nGET   https://x/p\n\n### heading only\n\n### q\n# @name  q\nGET https://x/q\n"
+	f, _ := Parse("t.http", implicit)
+	if len(f.Requests) != 2 || f.Requests[1].Name != "q" || f.Requests[1].Index != 2 {
+		t.Fatalf("parser: %+v", f.Requests)
+	}
+	if got, ok := FormatRequest(implicit, "p"); !ok || !strings.HasPrefix(got, "# @name p\nGET https://x/p\n\n### heading only\n") {
+		t.Errorf("implicit by name: ok=%v\n%s", ok, got)
+	}
+	if got, ok := FormatRequest(implicit, "2"); !ok || !strings.HasSuffix(got, "### q\n# @name q\nGET https://x/q\n") || !strings.HasPrefix(got, "# @name  p\n") {
+		t.Errorf("second request, not second block: ok=%v\n%s", ok, got)
+	}
+	if _, ok := FormatRequest(implicit, "3"); ok {
+		t.Error("a heading block is not a request")
+	}
+	// Formatting every request one by one is the whole-file format.
+	both, _ := FormatRequest(src, "a")
+	both, _ = FormatRequest(both, "b")
+	if both != Format(src) {
+		t.Errorf("one by one:\n%s\nwhole:\n%s", both, Format(src))
+	}
+}
+
+// A CRLF file keeps its CRLF outside the formatted block, byte for byte,
+// and the formatted block takes the file's line ending.
+func TestFormatRequestKeepsCRLF(t *testing.T) {
+	src := "###  a\r\n# @name   a\r\nGET https://x/a\r\n\r\n### b\r\n# @name   b\r\nGET https://x/b\r\n"
+	got, ok := FormatRequest(src, "b")
+	want := "###  a\r\n# @name   a\r\nGET https://x/a\r\n\r\n### b\r\n# @name b\r\nGET https://x/b\r\n"
+	if !ok || got != want {
+		t.Errorf("got %q\nwant %q", got, want)
+	}
+	got, _ = FormatRequest(src, "a")
+	if want = "### a\r\n# @name a\r\nGET https://x/a\r\n\r\n### b\r\n# @name   b\r\nGET https://x/b\r\n"; got != want {
+		t.Errorf("first block: got %q\nwant %q", got, want)
+	}
+}

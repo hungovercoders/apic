@@ -69,6 +69,10 @@ export, an MCP server and a terminal UI (apic ui).
 
 Try it with nothing set up:  apic ui --demo
 
+For AI agents: apic skill prints the briefing an agent should read before
+working with a project, apic skill install writes it into the project, and
+apic mcp serves the project as tools.
+
 Exit codes: 0 ok · 1 assertion or capture failed · 2 usage/parse/missing variable · 3 network error`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
@@ -98,7 +102,7 @@ Exit codes: 0 ok · 1 assertion or capture failed · 2 usage/parse/missing varia
 	root.SetErr(a.Stderr)
 
 	root.AddCommand(a.runCmd(), a.uiCmd(), a.testCmd(), a.listCmd(), a.describeCmd(), a.envCmd(), a.sessionCmd(), a.historyCmd(), a.curlCmd(), a.snippetCmd(),
-		a.validateCmd(), a.fmtCmd(), a.importCmd(), a.initCmd(), a.mcpCmd(), a.lspCmd(), a.demoCmd(), a.versionCmd())
+		a.validateCmd(), a.fmtCmd(), a.importCmd(), a.initCmd(), a.skillCmd(), a.mcpCmd(), a.lspCmd(), a.demoCmd(), a.versionCmd())
 	_ = root.RegisterFlagCompletionFunc("env", a.completeEnvs)
 	codeArgumentErrors(root)
 	a.Root = root

@@ -158,7 +158,7 @@ var Catalogue = []Entry{
 		"The server's answer could not be used: it did not negotiate HTTP/2 for a request line that asks for it, the response was malformed, or the body was larger than apic reads."},
 	{CodeCancelled, ExitTransport, "cancelled",
 		"Run the command again.",
-		"The run was interrupted (Ctrl-C, or `esc` in the UI) while a request, a `# @sleep` or a retry wait was in progress."},
+		"The run was interrupted (Ctrl-C, or `esc` in the UI) while a request, a `# @sleep` or a retry wait was in progress. A flow prints its summary so far, the session and the history keep what the completed requests captured and returned, and `--report` is still written. A second Ctrl-C ends the process at once."},
 }
 
 // Lookup returns a code's entry.

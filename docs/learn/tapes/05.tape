@@ -1,9 +1,11 @@
-# Lesson 5: the terminal UI tour. Renders the episode with VHS:
-#   vhs docs/learn/tapes/05.tape
-# Run `apic demo --out apic-demo` in another terminal first. Based on
-# docs/assets/demo.tape, extended with the session, filter and environment
-# flows the lesson walks through. The editor round trip (`o`, edit, `r`)
-# is recorded by hand: it depends on the editor on the recording machine.
+# Lesson 5: the terminal UI tour. The terminal parts of the episode.
+# Record it with `task tapes` (scripts/tapes), which serves the demo API on
+# port 8089, writes apic-demo and the files this lesson's runnable blocks
+# create into a scratch directory, and runs vhs on every tape there;
+# `task tapes:check` validates the syntax. Just this one:
+#   go run ./scripts/tapes -only 05
+# The editor round trip (`o`, edit, `r`) is recorded by hand: it depends
+# on the editor on the recording machine.
 Output docs/learn/tapes/05.gif
 Set Shell "bash"
 Set FontSize 16

@@ -1,7 +1,7 @@
 // Command learncheck runs the commands in the course pages so a lesson
 // cannot rot: it builds apic, starts `apic demo` in a scratch directory,
 // then extracts every fenced block in the site's learn/*.md and migrate/*.md
-// that is preceded by an `<!-- learn -->` comment and runs it there with
+// that is preceded by an `<!-- learn -->` comment (internal/lessons) and runs it there with
 // `sh -e`, in page order (the course first, then the migration guides).
 //
 // Blocks that need credentials, an editor or a browser are simply not
@@ -20,72 +20,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/hungovercoders/apic/internal/lessons"
 )
-
-// Block is one runnable fence: where it came from and what it holds.
-type Block struct {
-	File string
-	Line int // line of the opening fence, 1-based
-	Code string
-}
-
-var (
-	reMarker = regexp.MustCompile(`^\s*<!--\s*learn\s*-->\s*$`)
-	reFence  = regexp.MustCompile("^(\\s*)(```+|~~~+)\\s*(\\S*)")
-)
-
-// Extract returns the runnable blocks of one Markdown page in order.
-func Extract(file string, content string) []Block {
-	var out []Block
-	lines := strings.Split(strings.ReplaceAll(content, "\r\n", "\n"), "\n")
-	armed := false
-	for i := 0; i < len(lines); i++ {
-		line := lines[i]
-		if reMarker.MatchString(line) {
-			armed = true
-			continue
-		}
-		if strings.TrimSpace(line) == "" {
-			continue // a blank line between the marker and the fence is fine
-		}
-		m := reFence.FindStringSubmatch(line)
-		if m == nil {
-			armed = false // something else came before a fence
-			continue
-		}
-		indent, fence := m[1], m[2]
-		start := i
-		var body []string
-		for i++; i < len(lines); i++ {
-			if closesFence(lines[i], fence) {
-				break
-			}
-			body = append(body, strings.TrimPrefix(lines[i], indent))
-		}
-		if armed {
-			out = append(out, Block{File: file, Line: start + 1, Code: strings.Join(body, "\n") + "\n"})
-		}
-		armed = false
-	}
-	return out
-}
-
-// closesFence reports whether line closes a block opened with fence: the
-// same character, at least as many of them (CommonMark allows more), and
-// nothing else on the line.
-func closesFence(line, fence string) bool {
-	t := strings.TrimSpace(line)
-	if !strings.HasPrefix(t, fence) {
-		return false
-	}
-	return strings.Trim(t, fence[:1]) == ""
-}
 
 // Learn and Migrate hold the course and the migration guides, relative to
 // the repository root.
@@ -114,13 +56,13 @@ func run(dirs []string, keep bool) error {
 		sort.Strings(found)
 		pages = append(pages, found...)
 	}
-	var blocks []Block
+	var blocks []lessons.Block
 	for _, p := range pages {
 		data, err := os.ReadFile(p) //nolint:gosec // the course pages, by glob
 		if err != nil {
 			return err
 		}
-		blocks = append(blocks, Extract(p, string(data))...)
+		blocks = append(blocks, lessons.Extract(p, string(data))...)
 	}
 	if len(blocks) == 0 {
 		return fmt.Errorf("no runnable blocks under %s (mark one with <!-- learn -->)", strings.Join(dirs, ", "))

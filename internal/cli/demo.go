@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -79,7 +81,18 @@ project this command just wrote unless you cd into it or pass -C.`,
 				WriteTimeout:      30 * time.Second,
 				IdleTimeout:       60 * time.Second,
 			}
-			return srv.ListenAndServe()
+			// Ctrl-C stops the server cleanly; a port already in use is a
+			// server problem, not a mystery (E214 names this command).
+			go func() {
+				<-cmd.Context().Done()
+				shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				_ = srv.Shutdown(shutdown)
+			}()
+			if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				return runner.Usage(runner.CodeServer, err.Error())
+			}
+			return nil
 		},
 	}
 	cmd.Flags().StringVarP(&out, "out", "o", "apic-demo", "directory to write the example project into")

@@ -1555,7 +1555,10 @@ func (r *Runner) RunAll(ctx context.Context, reqs []*httpfile.Request) ([]*Resul
 			r.OnResult(res, err)
 		}
 		if err != nil {
-			if !r.Opts.KeepGoing {
+			// --keep-going means past a failure, not past Ctrl-C: once the
+			// context is cancelled every remaining request would fail the
+			// same way, so stop here with what completed.
+			if !r.Opts.KeepGoing || ctx.Err() != nil {
 				return out, err
 			}
 			if firstErr == nil {

@@ -128,6 +128,16 @@ tasks:
     cmds:
       - go run ./scripts/shot
 
+  tapes:
+    desc: Record the course's VHS tapes into dist/tapes against the demo API, each from a scratch directory with the files its lesson creates (needs vhs, ttyd, ffmpeg and jq, and port 8089 free)
+    cmds:
+      - go run ./scripts/tapes
+
+  tapes:check:
+    desc: Validate every VHS tape's syntax (needs vhs), as CI does
+    cmds:
+      - go run ./scripts/tapes -check
+
   schemas:
     desc: Regenerate the JSON schemas in website/public/schemas from the config types (a test fails when they are stale)
     cmds:

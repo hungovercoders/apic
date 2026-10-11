@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"runtime"
 	"runtime/debug"
 	"slices"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
@@ -135,8 +137,24 @@ func codeArgumentErrors(c *cobra.Command) {
 
 // Main runs the CLI and returns the process exit code.
 func Main(args []string) int {
-	a := New()
-	return a.Execute(context.Background(), args)
+	ctx, stop := signalContext(context.Background())
+	defer stop()
+	return New().Execute(ctx, args)
+}
+
+// signalContext is cancelled by the first interrupt (Ctrl-C) or SIGTERM,
+// so a run in progress stops where it is, prints what it has, keeps the
+// session and history of the requests that completed, and exits 3 with
+// E305 rather than dying mid-write. Once that first signal has been taken,
+// handling reverts to the default, so a second Ctrl-C ends the process at
+// once if the shutdown itself hangs.
+func signalContext(parent context.Context) (context.Context, context.CancelFunc) {
+	ctx, stop := signal.NotifyContext(parent, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-ctx.Done()
+		stop()
+	}()
+	return ctx, stop
 }
 
 // Execute runs the command tree with args (excluding the program name).

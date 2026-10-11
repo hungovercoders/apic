@@ -99,6 +99,22 @@ jobs:
           go-version-file: go.mod
       - run: go run ./scripts/learncheck
 
+  # The course's VHS tapes parse. vhs alone is enough to validate; recording
+  # needs ttyd and ffmpeg too and is a local job (task tapes).
+  tapes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      # vhs wants a newer Go than go.mod pins; let go fetch that toolchain
+      # for this one install rather than raising the module's floor.
+      - run: go install github.com/charmbracelet/vhs@v0.12.1
+        env:
+          GOTOOLCHAIN: auto
+      - run: go run ./scripts/tapes -check
+
   # The VS Code extension in editors/vscode is the one place Node lives.
   # It is linted, typechecked, bundled, tested in a real VS Code (headless
   # under xvfb, with apic built onto PATH so the binary tests run too) and

@@ -115,8 +115,38 @@ func Serve(ctx context.Context, r io.Reader, w io.Writer, opts Options) error {
 		s.cancelRuns()
 		s.wg.Wait()
 	}()
+	// Reads happen off the loop so a cancelled context (Ctrl-C, SIGTERM)
+	// ends Serve while stdin is quiet, not only at the next message.
+	type read struct {
+		m   *message
+		err error
+	}
+	reads := make(chan read)
+	go func() {
+		for {
+			m, err := s.conn.read()
+			select {
+			case reads <- read{m, err}:
+			case <-ctx.Done():
+				return
+			}
+			if err != nil {
+				var re *rpcError
+				if !errors.As(err, &re) {
+					return // the connection is gone; the loop below returns on it
+				}
+			}
+		}
+	}()
 	for {
-		m, err := s.conn.read()
+		var m *message
+		var err error
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case r := <-reads:
+			m, err = r.m, r.err
+		}
 		if errors.Is(err, io.EOF) {
 			return s.exitErr()
 		}

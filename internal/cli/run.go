@@ -400,7 +400,8 @@ func (a *App) runRows(cmd *cobra.Command, r *runner.Runner, rows []datafile.Row,
 		if runErr != nil && firstErr == nil {
 			firstErr = runErr
 		}
-		if !ok && !keepGoing {
+		// --keep-going carries on past a failed row, not past Ctrl-C.
+		if (!ok && !keepGoing) || cmd.Context().Err() != nil {
 			break
 		}
 	}

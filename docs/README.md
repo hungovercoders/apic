@@ -11,5 +11,6 @@ source is `website/` (see AGENTS.md, Docs site).
 - `learn/_episode-template.md`: the YouTube title and description for a
   lesson's episode
 - `learn/tapes/` and `assets/demo.tape`: the VHS scripts behind the episode
-  b-roll and the README's animation
+  b-roll and the README's animation; `task tapes` records them all against
+  the demo API, `task tapes:check` validates them
 - `.vale/`: the prose style Vale holds the docs to (`task docs:check`)

@@ -3,6 +3,7 @@
 # README use apic-demo.svg instead, an animated SVG that `task shots`
 # generates from real frames with no tooling; this tape is for when a
 # real recording is wanted, for example as b-roll in a course episode.
+# `task tapes` records it with the course tapes (go run ./scripts/tapes -only demo).
 Output docs/assets/demo.gif
 
 Set Shell "bash"

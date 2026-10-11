@@ -1,10 +1,11 @@
-# Lesson 9: from OpenAPI to a project, and back to curl. Renders the
-# terminal parts of the episode with VHS: vhs docs/learn/tapes/09.tape
-# Run `apic demo --out apic-demo` in another terminal first, write
-# todos-openapi.yaml and the two Postman files from the lesson page into
-# the current directory, and put the lesson's step-3 files (auth.http and
-# the tidied todos.http) in ./tidy/: the hidden `cp` below stands in for
-# the editing the episode shows in a split.
+# Lesson 9: from OpenAPI to a project, and back to curl. The terminal parts of the episode.
+# Record it with `task tapes` (scripts/tapes), which serves the demo API on
+# port 8089, writes apic-demo and the files this lesson's runnable blocks
+# create into a scratch directory, and runs vhs on every tape there;
+# `task tapes:check` validates the syntax. Just this one:
+#   go run ./scripts/tapes -only 09
+# The hidden `cp` below stands in for the editing the episode shows in a
+# split; the tidied files come from the lesson's step 3, written to ./tidy.
 Output docs/learn/tapes/09.gif
 Set Shell "bash"
 Set FontSize 16
@@ -30,7 +31,7 @@ Type "clear" Enter
 Type "apic import todos.postman_collection.json -o postman-api --postman-env local.postman_environment.json" Enter Sleep 5s
 Type "cat postman-api/auth.http" Enter Sleep 5s
 Type "clear" Enter
-Type "apic import --curl 'curl -X PUT http://localhost:8089/todos/1 -H \"Authorization: Bearer mock-token\" -H \"Content-Type: application/json\" -d '\"'\"'{\"done\":true}'\"'\"'' --into todos.http --name finish-todo -C todos-api" Enter Sleep 3s
+Type `apic import --curl 'curl -X PUT http://localhost:8089/todos/1 -H "Authorization: Bearer mock-token" -H "Content-Type: application/json" -d '"'"'{"done":true}'"'"'' --into todos.http --name finish-todo -C todos-api` Enter Sleep 3s
 Type "tail -8 todos-api/todos.http" Enter Sleep 4s
 Type "clear" Enter
 Type "apic curl get-todo -C todos-api" Enter Sleep 3s

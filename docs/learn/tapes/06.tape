@@ -1,7 +1,10 @@
-# Lesson 6: authentication. Renders the demo-only parts of the episode
-# with VHS: vhs docs/learn/tapes/06.tape
-# Run `apic demo --out apic-demo` in another terminal first, and create
-# the apic-auth project from the lesson page.
+# Lesson 6: authentication. The terminal parts of the episode.
+# Record it with `task tapes` (scripts/tapes), which serves the demo API on
+# port 8089, writes apic-demo and the files this lesson's runnable blocks
+# create into a scratch directory, and runs vhs on every tape there;
+# `task tapes:check` validates the syntax. Just this one:
+#   go run ./scripts/tapes -only 06
+# Only the demo-only parts: the real-provider auth is talked over slides.
 Output docs/learn/tapes/06.gif
 Set Shell "bash"
 Set FontSize 16

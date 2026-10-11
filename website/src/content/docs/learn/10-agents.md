@@ -361,7 +361,7 @@ was never built for it. Here is one that was."
 
 **Shot list.** A terminal for steps 1 to 3 and 5 to 7; the agent
 session prerecorded in Claude Code, at 2x, with the tool calls
-expanded. No tape for this lesson.
+expanded. `docs/learn/tapes/10.tape` records the terminal parts.
 
 **Chapters.** `0:00 The stuck agent` · `0:40 The briefing` · `1:40
 Not ready, and what to do` · `3:30 # @ref` · `4:20 A real session`

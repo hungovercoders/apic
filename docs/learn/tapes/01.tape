@@ -1,7 +1,9 @@
-# Lesson 1: install apic and send your first request. Renders the terminal
-# parts of the episode with VHS (https://github.com/charmbracelet/vhs):
-#   vhs docs/learn/tapes/01.tape
-# Run `apic demo --out apic-demo` in another terminal first.
+# Lesson 1: install apic and send your first request. The terminal parts of the episode.
+# Record it with `task tapes` (scripts/tapes), which serves the demo API on
+# port 8089, writes apic-demo and the files this lesson's runnable blocks
+# create into a scratch directory, and runs vhs on every tape there;
+# `task tapes:check` validates the syntax. Just this one:
+#   go run ./scripts/tapes -only 01
 Output docs/learn/tapes/01.gif
 Set Shell "bash"
 Set FontSize 16

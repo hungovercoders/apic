@@ -1,7 +1,9 @@
-# Lesson 7: behaviour tests with Gherkin. Renders the terminal parts of
-# the episode with VHS: vhs docs/learn/tapes/07.tape
-# Run `apic demo --out apic-demo` in another terminal first, and write the
-# feature files from the lesson page as it goes.
+# Lesson 7: behaviour tests with Gherkin. The terminal parts of the episode.
+# Record it with `task tapes` (scripts/tapes), which serves the demo API on
+# port 8089, writes apic-demo and the files this lesson's runnable blocks
+# create into a scratch directory, and runs vhs on every tape there;
+# `task tapes:check` validates the syntax. Just this one:
+#   go run ./scripts/tapes -only 07
 Output docs/learn/tapes/07.gif
 Set Shell "bash"
 Set FontSize 16

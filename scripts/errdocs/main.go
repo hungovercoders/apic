@@ -59,11 +59,13 @@ exits 1 and is reported in the result.
 
 ## Where the code appears
 
-On a terminal, under the message:
+Under the message, with the catalogue's hint when the message does not
+already name an apic command to run (dim on a terminal, plain in a log):
 
 ` + "```text" + `
 error: auth.http:9: missing variable
-  {{token}}: it is captured by request "login"; run ` + "`apic run login`" + ` first, or pass --var token=...
+  {{token}}: pass --var token=... or add it to http-client.env.json
+  hint: Pass it with --var name=value, add it to an env file, or run the request that captures it first.
   E101 missing variable · see https://apic.sh/errors/#e101
 ` + "```" + `
 
@@ -76,6 +78,16 @@ pipe into ` + "`jq`" + ` is not disturbed):
 
 Over [MCP](agents.md), a failed tool call carries the same object as its
 structured content, and its text ends with the code, title and hint.
+
+When the error is about a name that matches nothing but is close to one
+that exists (a request id, the target of a ` + "`# @ref`" + ` or an environment, with a
+typo, the wrong case or ` + "`_`" + ` for ` + "`-`" + `), the message asks "did you mean" and the object carries
+the closest names, best first, under ` + "`suggestions`" + `; an agent can retry
+with the first rather than listing. The key is absent when nothing is close.
+
+` + "```json" + `
+{"error":{"code":"E201","title":"unknown request","message":"no request named \"get-usr\"; did you mean get-user? (run ` + "`apic list`" + ` for every id)","hint":"Run apic list …","exit":2,"url":"https://apic.sh/errors/#e201","suggestions":["get-user"]}}
+` + "```" + `
 
 `
 

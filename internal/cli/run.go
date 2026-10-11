@@ -320,7 +320,7 @@ func targets(r *runner.Runner, args []string) ([]*httpfile.Request, error) {
 	for _, t := range args {
 		rs, err := r.Target(t)
 		if err != nil {
-			return nil, runner.Usage(runner.CodeUnknownRequest, err.Error())
+			return nil, runner.Usagef(runner.CodeUnknownRequest, "%v", err)
 		}
 		reqs = append(reqs, rs...)
 	}

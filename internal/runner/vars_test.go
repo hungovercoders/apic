@@ -68,7 +68,7 @@ func TestBuiltins(t *testing.T) {
 		"$random.integer(1, 3)":    regexp.MustCompile(`^[12]$`),
 		"$random.integer(5,6)":     regexp.MustCompile(`^5$`),
 		"$random.float":            regexp.MustCompile(`^\d{1,3}\.\d{3}$`),
-		"$random.float(1.5, 1.6)":  regexp.MustCompile(`^1\.5\d\d$`),
+		"$random.float(1.5, 1.6)":  regexp.MustCompile(`^1\.(5\d\d|600)$`), // the top of the range rounds to 1.600
 		"$random.alphabetic":       regexp.MustCompile(`^[A-Za-z]{10}$`),
 		"$random.alphabetic(3)":    regexp.MustCompile(`^[A-Za-z]{3}$`),
 		"$random.alphanumeric(12)": regexp.MustCompile(`^[A-Za-z0-9]{12}$`),

@@ -101,7 +101,7 @@ var Catalogue = []Entry{
 		"An error without a more specific code. It should be rare: if you meet one, the message is worth an issue so it can get a code of its own."},
 	{CodeUnknownRequest, ExitUsage, "unknown request",
 		"Run apic list to see the request ids, and use name, file.http, file.http#name or file.http#N.",
-		"The target names no request: no `# @name` of that name, no such `.http` file, or no request at that position in the file. The message suggests the closest names."},
+		"The target names no request: no `# @name` of that name, no such `.http` file, or no request at that position in the file. When a known name is close to the one given (a typo, the wrong case, `_` for `-`), the message asks \"did you mean\" and the `--json` object lists them under `suggestions`, best first; otherwise the message lists what there is: the request ids, the files, or the named requests of the file given."},
 	{CodeAmbiguous, ExitUsage, "several requests match",
 		"Pick one with file.http#name, or give the command a single request.",
 		"The command works on one request (`describe`, `curl`, `snippet`) and the target names a whole file or a name used in several files."},
@@ -110,7 +110,7 @@ var Catalogue = []Entry{
 		"A flag has a value the command cannot use, two flags cannot be combined (`--output` with a flow or `--data`, `--use-session` with `--no-session`), an argument is missing or extra, a history entry number names no entry, or the command does not exist."},
 	{CodeEnvironment, ExitUsage, "unknown environment",
 		"Use one of the environments the message lists, or add it to http-client.env.json.",
-		"`--env` (or `env:` in `apic.yaml`) names an environment that neither env file declares, or there are no env files at all. `apic env` lists the environments found."},
+		"`--env` (or `env:` in `apic.yaml`) names an environment that neither env file declares, or there are no env files at all. The message lists the environments found and, when one is close to the name given, asks \"did you mean\"; the `--json` object lists those under `suggestions`. `apic env` shows each environment with its files."},
 	{CodeProject, ExitUsage, "project configuration problem",
 		"Fix apic.yaml or the env file the message names; apic validate helps.",
 		"The project could not be loaded: `apic.yaml` or an env file is not valid YAML/JSON, or a setting in it (a timeout, a retry policy) cannot be read."},
@@ -175,27 +175,59 @@ func Lookup(c Code) (Entry, bool) {
 type UsageError struct {
 	Code Code // the catalogue entry; empty reads as CodeOther
 	Msg  string
+	// Suggestions are the names the user probably meant, best first, when
+	// the one they gave matches nothing (an unknown request or
+	// environment). They reach --json and MCP as the error's
+	// `suggestions`, so an agent can retry without listing.
+	Suggestions []string
 }
 
 func (e *UsageError) Error() string { return e.Msg }
+
+// Suggester is an error that can name what the user probably meant.
+// project.NotFoundError is one; Usagef and Info read it.
+type Suggester interface {
+	Suggestions() []string
+}
 
 // Usage builds a UsageError with its code.
 func Usage(code Code, msg string) *UsageError { return &UsageError{Code: code, Msg: msg} }
 
 // Usagef is Usage with a format. When one of args is itself an error that
 // carries a code (a missing variable inside a header, say), that code is
-// kept: it says more than the outer one.
+// kept: it says more than the outer one. Suggestions an inner error
+// carries are kept the same way, so Usagef(code, "%v", err) codes an
+// error without losing them.
 func Usagef(code Code, format string, args ...any) *UsageError {
+	var suggestions []string
+	coded := false
 	for _, a := range args {
-		if err, ok := a.(error); ok {
-			var ue *UsageError
-			if errors.As(err, &ue) && ue.Code != "" {
-				code = ue.Code
-				break
-			}
+		err, ok := a.(error)
+		if !ok {
+			continue
+		}
+		var ue *UsageError
+		if errors.As(err, &ue) && ue.Code != "" && !coded {
+			code, coded = ue.Code, true
+		}
+		if s := suggestionsOf(err); s != nil && suggestions == nil {
+			suggestions = s
 		}
 	}
-	return &UsageError{Code: code, Msg: fmt.Sprintf(format, args...)}
+	return &UsageError{Code: code, Msg: fmt.Sprintf(format, args...), Suggestions: suggestions}
+}
+
+// suggestionsOf reads the suggestions an error chain carries, if any.
+func suggestionsOf(err error) []string {
+	var ue *UsageError
+	if errors.As(err, &ue) && len(ue.Suggestions) > 0 {
+		return ue.Suggestions
+	}
+	var s Suggester
+	if errors.As(err, &s) {
+		return s.Suggestions()
+	}
+	return nil
 }
 
 func usagef(code Code, format string, args ...any) error {
@@ -253,6 +285,11 @@ type ErrorInfo struct {
 	Hint    string `json:"hint"`
 	Exit    int    `json:"exit"`
 	URL     string `json:"url"`
+	// Suggestions are the names the user probably meant, best first,
+	// when the error is about one that matches nothing: an unknown
+	// request (E201, or E107 when a `# @ref` names it) or environment
+	// (E204). Absent otherwise.
+	Suggestions []string `json:"suggestions,omitempty"`
 }
 
 // Info describes err with its catalogue entry. The exit status is the
@@ -260,7 +297,7 @@ type ErrorInfo struct {
 func Info(err error) *ErrorInfo {
 	c := CodeOf(err)
 	e, _ := Lookup(c)
-	return &ErrorInfo{Code: c, Title: e.Title, Message: err.Error(), Hint: e.Hint, Exit: e.Exit, URL: c.URL()}
+	return &ErrorInfo{Code: c, Title: e.Title, Message: err.Error(), Hint: e.Hint, Exit: e.Exit, URL: c.URL(), Suggestions: suggestionsOf(err)}
 }
 
 // CodeOf is the catalogue code for an error: its own when it carries one,

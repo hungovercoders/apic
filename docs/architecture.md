@@ -80,6 +80,7 @@ flowchart LR
 - `cmd/apic`: entry point
 - `internal/httpfile`: `.http` parser (AST in `ast.go`, parser in `parse.go`, multipart bodies in `multipart.go`, the formatter in `format.go`, golden file in `testdata/`)
 - `internal/project`: file discovery, `apic.yaml`, request lookup, `validate`
+- `internal/suggest`: the "did you mean" ranking (prefix, substring, then edit distance) behind an unknown request or environment name; dependency-free so `project` and `runner` can both use it
 - `internal/env`: `http-client.env.json`, private env file, `.env`, the JetBrains `SSLConfiguration` block
 - `internal/template`: `{{placeholder}}` substitution
 - `internal/selector`: `status`, `header.x`, `cookie.x`, `body.$.path` selectors

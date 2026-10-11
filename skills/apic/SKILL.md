@@ -77,7 +77,7 @@ Branch on the error code, never on the message, whose wording may change:
 | Exit | Where | Do |
 |---|---|---|
 | `1` | `ok: false`, `asserts[].pass` | an assertion or capture failed: report the `actual` against the `expected` |
-| `2` | stderr `{"error": {"code", "message", "hint", …}}` | E101 missing variable: run the request named in the hint, or pass `--var`. E201 unknown request: `apic list`. E103 file has errors: `apic validate`. E204 unknown environment: `apic env` |
+| `2` | stderr `{"error": {"code", "message", "hint", …}}` | E101 missing variable: run the request named in the hint, or pass `--var`. E201 unknown request and E204 unknown environment: retry with the first of `suggestions` if the object has it, else `apic list` or `apic env`. E103 file has errors: `apic validate` |
 | `3` | the same object, codes E300 to E305 | follow the `hint`. E301 could not connect and E303 TLS failed: the server is down or untrusted, so tell the user rather than retrying. E302 timed out: once with a longer `--timeout`, then tell the user. E304 protocol problem and E300 anything else: report the message. E305 cancelled: run the command again |
 
 https://apic.sh/errors/ explains every code.

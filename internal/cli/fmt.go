@@ -13,6 +13,7 @@ import (
 	"github.com/hungovercoders/apic/internal/httpfile"
 	"github.com/hungovercoders/apic/internal/project"
 	"github.com/hungovercoders/apic/internal/runner"
+	"github.com/hungovercoders/apic/internal/suggest"
 )
 
 func (a *App) fmtCmd() *cobra.Command {
@@ -68,7 +69,7 @@ reads stdin and writes the result to stdout, which is what editors use.`,
 				} else {
 					var ok bool
 					if formatted, ok = httpfile.FormatRequest(string(data), target.request); !ok {
-						return runner.Usage(runner.CodeUnknownRequest, fmt.Sprintf("%s: no request named %q (apic list shows the names)", shown, target.request))
+						return unknownInFile(shown, target.request, string(data))
 					}
 					// Diffs are per request: the same file can appear twice.
 					shown += "#" + target.request
@@ -357,4 +358,22 @@ func diffLines(s string) ([]string, bool) {
 	lines := strings.Split(s, "\n")
 	lines[len(lines)-1] += noNewline
 	return lines, true
+}
+
+// unknownInFile is the E201 for file.http#name when the file has no such
+// request, with the file's own names as the guess.
+func unknownInFile(shown, name, data string) error {
+	f, _ := httpfile.Parse(shown, data)
+	var names []string
+	for _, r := range f.Requests {
+		if r.Name != "" {
+			names = append(names, r.Name)
+		}
+	}
+	ue := runner.Usagef(runner.CodeUnknownRequest, "%s: no request named %q (apic list shows the names)", shown, name)
+	if closest := suggest.Closest(name, names); len(closest) > 0 {
+		ue = runner.Usagef(runner.CodeUnknownRequest, "%s: no request named %q; %s (apic list shows the names)", shown, name, suggest.Phrase(closest))
+		ue.Suggestions = closest
+	}
+	return ue
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/hungovercoders/apic/internal/httpfile"
 	"github.com/hungovercoders/apic/internal/phrase"
 	"github.com/hungovercoders/apic/internal/selector"
+	"github.com/hungovercoders/apic/internal/suggest"
 )
 
 // ConfigFile is the optional per-project configuration file name.
@@ -255,7 +256,11 @@ func (p *Project) Resolve(target string) ([]*httpfile.Request, error) {
 	}
 	f := p.fileFor(file)
 	if f == nil {
-		return nil, fmt.Errorf("no .http file %q in %s", file, p.Root)
+		files := p.filePaths()
+		if closest := suggest.Closest(p.relative(file), files); len(closest) > 0 {
+			return nil, notFound(fmt.Sprintf("no .http file %q in %s", file, p.Root), closest)
+		}
+		return nil, &NotFoundError{Msg: fmt.Sprintf("no .http file %q in %s; files: %s (run `apic list`)", file, p.Root, strings.Join(some(files), ", "))}
 	}
 	if n, err := strconv.Atoi(frag); err == nil {
 		if n < 1 || n > len(f.Requests) {
@@ -263,12 +268,44 @@ func (p *Project) Resolve(target string) ([]*httpfile.Request, error) {
 		}
 		return []*httpfile.Request{f.Requests[n-1]}, nil
 	}
+	var names []string
 	for _, r := range f.Requests {
 		if r.Name == frag {
 			return []*httpfile.Request{r}, nil
 		}
+		if r.Name != "" {
+			names = append(names, r.Name)
+		}
 	}
-	return nil, fmt.Errorf("no request named %q in %s", frag, f.Path)
+	if closest := suggest.Closest(frag, names); len(closest) > 0 {
+		return nil, notFound(fmt.Sprintf("no request named %q in %s", frag, f.Path), closest)
+	}
+	if len(names) == 0 {
+		return nil, &NotFoundError{Msg: fmt.Sprintf("no request named %q in %s, which has no named requests; use %s#N", frag, f.Path, file)}
+	}
+	return nil, &NotFoundError{Msg: fmt.Sprintf("no request named %q in %s; it has: %s", frag, f.Path, strings.Join(some(names), ", "))}
+}
+
+// some is names for a message: the first dozen, then "...".
+func some(names []string) []string {
+	if len(names) > 12 {
+		return append(names[:12:12], "...")
+	}
+	return names
+}
+
+// relative turns an absolute path under the root into the slash form the
+// project keys its files by, so it can be compared with them; any other
+// path is returned as given.
+func (p *Project) relative(name string) string {
+	if !filepath.IsAbs(name) {
+		return name
+	}
+	rel, err := filepath.Rel(p.Root, name)
+	if err != nil || strings.HasPrefix(rel, "..") {
+		return name
+	}
+	return filepath.ToSlash(rel)
 }
 
 // File returns the request file at path (relative to the root, or
@@ -294,6 +331,28 @@ func (p *Project) fileFor(name string) *httpfile.File {
 	return nil
 }
 
+// NotFoundError says a target names no request or file. Closest holds the
+// known names nearest to the one given, best first, when any is near;
+// runner.Usagef keeps them on the coded error, so --json and MCP carry
+// them as `suggestions`.
+type NotFoundError struct {
+	Msg     string
+	Closest []string
+}
+
+func (e *NotFoundError) Error() string { return e.Msg }
+
+// Suggestions returns the names the user probably meant (runner.Suggester).
+func (e *NotFoundError) Suggestions() []string { return e.Closest }
+
+// notFound builds the error, adding "did you mean" when there is a guess.
+func notFound(msg string, closest []string) error {
+	if len(closest) > 0 {
+		msg += "; " + suggest.Phrase(closest)
+	}
+	return &NotFoundError{Msg: msg, Closest: closest}
+}
+
 func (p *Project) notFound(name string) error {
 	var names []string
 	for n := range p.byName {
@@ -301,12 +360,23 @@ func (p *Project) notFound(name string) error {
 	}
 	sort.Strings(names)
 	if len(names) == 0 {
-		return fmt.Errorf("no request named %q: no named requests found under %s (add `# @name %s` above a request line)", name, p.Root, name)
+		return &NotFoundError{Msg: fmt.Sprintf("no request named %q: no named requests found under %s (add `# @name %s` above a request line)", name, p.Root, name)}
 	}
-	if len(names) > 12 {
-		names = append(names[:12], "...")
+	// A bare target may also be a file, so a file name is a fair guess.
+	if closest := suggest.Closest(p.relative(name), append(names, p.filePaths()...)); len(closest) > 0 {
+		return &NotFoundError{Msg: fmt.Sprintf("no request named %q; %s (run `apic list` for every id)", name, suggest.Phrase(closest)), Closest: closest}
 	}
-	return fmt.Errorf("no request named %q; known: %s (run `apic list`)", name, strings.Join(names, ", "))
+	return &NotFoundError{Msg: fmt.Sprintf("no request named %q; known: %s (run `apic list`)", name, strings.Join(some(names), ", "))}
+}
+
+// filePaths lists the request files by their path from the root, sorted.
+func (p *Project) filePaths() []string {
+	paths := make([]string, 0, len(p.byPath))
+	for path := range p.byPath {
+		paths = append(paths, path)
+	}
+	sort.Strings(paths)
+	return paths
 }
 
 // diag builds a diagnostic spanning [col, end) on line; zero columns mean

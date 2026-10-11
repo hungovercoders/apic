@@ -18,11 +18,13 @@ exits 1 and is reported in the result.
 
 ## Where the code appears
 
-On a terminal, under the message:
+Under the message, with the catalogue's hint when the message does not
+already name an apic command to run (dim on a terminal, plain in a log):
 
 ```text
 error: auth.http:9: missing variable
-  {{token}}: it is captured by request "login"; run `apic run login` first, or pass --var token=...
+  {{token}}: pass --var token=... or add it to http-client.env.json
+  hint: Pass it with --var name=value, add it to an env file, or run the request that captures it first.
   E101 missing variable · see https://apic.sh/errors/#e101
 ```
 
@@ -35,6 +37,16 @@ pipe into `jq` is not disturbed):
 
 Over [MCP](agents.md), a failed tool call carries the same object as its
 structured content, and its text ends with the code, title and hint.
+
+When the error is about a name that matches nothing but is close to one
+that exists (a request id, the target of a `# @ref` or an environment, with a
+typo, the wrong case or `_` for `-`), the message asks "did you mean" and the object carries
+the closest names, best first, under `suggestions`; an agent can retry
+with the first rather than listing. The key is absent when nothing is close.
+
+```json
+{"error":{"code":"E201","title":"unknown request","message":"no request named \"get-usr\"; did you mean get-user? (run `apic list` for every id)","hint":"Run apic list …","exit":2,"url":"https://apic.sh/errors/#e201","suggestions":["get-user"]}}
+```
 
 ## Summary
 
@@ -141,7 +153,7 @@ Exit 2. An error without a more specific code. It should be rare: if you meet on
 
 ### E201 unknown request
 
-Exit 2. The target names no request: no `# @name` of that name, no such `.http` file, or no request at that position in the file. The message suggests the closest names.
+Exit 2. The target names no request: no `# @name` of that name, no such `.http` file, or no request at that position in the file. When a known name is close to the one given (a typo, the wrong case, `_` for `-`), the message asks "did you mean" and the `--json` object lists them under `suggestions`, best first; otherwise the message lists what there is: the request ids, the files, or the named requests of the file given.
 
 **What to do:** Run apic list to see the request ids, and use name, file.http, file.http#name or file.http#N.
 
@@ -165,7 +177,7 @@ Exit 2. A flag has a value the command cannot use, two flags cannot be combined 
 
 ### E204 unknown environment
 
-Exit 2. `--env` (or `env:` in `apic.yaml`) names an environment that neither env file declares, or there are no env files at all. `apic env` lists the environments found.
+Exit 2. `--env` (or `env:` in `apic.yaml`) names an environment that neither env file declares, or there are no env files at all. The message lists the environments found and, when one is close to the name given, asks "did you mean"; the `--json` object lists those under `suggestions`. `apic env` shows each environment with its files.
 
 **What to do:** Use one of the environments the message lists, or add it to http-client.env.json.
 

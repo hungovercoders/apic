@@ -30,7 +30,7 @@ func (a *App) single(target string) (*runner.Runner, *httpfile.Request, error) {
 	}
 	reqs, err := r.Project.Resolve(target)
 	if err != nil {
-		return nil, nil, runner.Usage(runner.CodeUnknownRequest, err.Error())
+		return nil, nil, runner.Usagef(runner.CodeUnknownRequest, "%v", err)
 	}
 	if len(reqs) != 1 {
 		return nil, nil, runner.Usage(runner.CodeAmbiguous, fmt.Sprintf("%s names %d requests; pick one with %s#<name>", target, len(reqs), target))

@@ -15,7 +15,9 @@ func (a *App) describeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "describe <request>",
 		Short: "Show a request's variables, where each comes from, captures and asserts",
-		Args:  cobra.ExactArgs(1),
+		Example: `  apic describe get-user
+  apic describe get-user --env staging --json`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			r, req, err := a.single(args[0])
 			if err != nil {

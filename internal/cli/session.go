@@ -21,6 +21,8 @@ func (a *App) sessionCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "session",
 		Short: "Show captured values stored for later runs",
+		Example: `  apic session
+  apic session --env staging --json`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			r, err := a.newRunner()
 			if err != nil {
@@ -76,6 +78,8 @@ func (a *App) sessionCmd() *cobra.Command {
 	cookies := &cobra.Command{
 		Use:   "cookies",
 		Short: "List the cookies stored per environment (values masked)",
+		Example: `  apic session cookies
+  apic session cookies --env staging`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			p, err := a.loadProject()
 			if err != nil {
@@ -112,6 +116,9 @@ func (a *App) sessionCmd() *cobra.Command {
 	clear := &cobra.Command{
 		Use:   "clear",
 		Short: "Forget captured values for the current environment (or --all)",
+		Example: `  apic session clear
+  apic session clear --env staging
+  apic session clear --all`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			r, err := a.newRunner()
 			if err != nil {

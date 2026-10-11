@@ -74,6 +74,11 @@ working with a project, apic skill install writes it into the project, and
 apic mcp serves the project as tools.
 
 Exit codes: 0 ok · 1 assertion or capture failed · 2 usage/parse/missing variable · 3 network error`,
+		Example: `  apic ui --demo                     # a fake API and a UI to poke it with, nothing to set up
+  apic init                          # scaffold a project in the current directory
+  apic run login                     # send one request, keep what it captures
+  apic run smoke.http --json | jq    # a whole file as a flow, one JSON line per request
+  apic test                          # run the .feature files against the same requests`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRun: func(cmd *cobra.Command, _ []string) {
@@ -252,6 +257,8 @@ func (a *App) versionCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
 		Short: "Print the apic version",
+		Example: `  apic version
+  apic version --json | jq -r .version`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			info := buildInfo()
 			if a.g.json {

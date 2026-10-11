@@ -82,7 +82,7 @@ commands on top.
   out the project root for a file.
 
 Coming next, tracked in the
-[VS Code epic](https://github.com/hungovercoders/apic/issues/29): a
+[VS Code epic](https://github.com/hungovercoders/apic/issues/3): a
 language server for diagnostics as you type.
 
 ## Install

@@ -46,8 +46,7 @@ lesson cannot quietly stop working when apic changes.
 | 13 | [How apic works inside, and contributing](13-inside-apic.md) | Architecture, a first pull request | coming soon |
 
 Every lesson is written; the episode column links to the video once it
-is recorded. Each lesson is tracked in the
-[course epic](https://github.com/hungovercoders/apic/issues/28) on GitHub.
+is recorded.
 
 Start with [lesson 0](00-what-is-apic.md), or jump straight to
 [lesson 1](01-first-request.md) if you already know why you are here.

@@ -22,6 +22,8 @@ func TestClosest(t *testing.T) {
 		{"xyz", nil},                                              // nothing close
 		{"", nil},                                                 //
 		{"a", nil},                                                // one letter would match everything within one edit
+		{"é", nil},                                                // one letter in two bytes, the same
+		{"héalth", []string{"health"}},                            // one edit, counted in runes
 		{"user", []string{"get-user", "get-users", "list-users"}}, // capped at Max, shortest first
 	}
 	for _, c := range cases {

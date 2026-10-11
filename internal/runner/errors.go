@@ -101,7 +101,7 @@ var Catalogue = []Entry{
 		"An error without a more specific code. It should be rare: if you meet one, the message is worth an issue so it can get a code of its own."},
 	{CodeUnknownRequest, ExitUsage, "unknown request",
 		"Run apic list to see the request ids, and use name, file.http, file.http#name or file.http#N.",
-		"The target names no request: no `# @name` of that name, no such `.http` file, or no request at that position in the file. When a known name is close to the one given (a typo, the wrong case, `_` for `-`), the message asks \"did you mean\" and the `--json` object lists them under `suggestions`, best first; otherwise the message lists the known names."},
+		"The target names no request: no `# @name` of that name, no such `.http` file, or no request at that position in the file. When a known name is close to the one given (a typo, the wrong case, `_` for `-`), the message asks \"did you mean\" and the `--json` object lists them under `suggestions`, best first; otherwise the message lists what there is: the request ids, the files, or the named requests of the file given."},
 	{CodeAmbiguous, ExitUsage, "several requests match",
 		"Pick one with file.http#name, or give the command a single request.",
 		"The command works on one request (`describe`, `curl`, `snippet`) and the target names a whole file or a name used in several files."},
@@ -286,8 +286,9 @@ type ErrorInfo struct {
 	Exit    int    `json:"exit"`
 	URL     string `json:"url"`
 	// Suggestions are the names the user probably meant, best first,
-	// when the error is about one that matches nothing (E201, E204).
-	// Absent otherwise.
+	// when the error is about one that matches nothing: an unknown
+	// request (E201, or E107 when a `# @ref` names it) or environment
+	// (E204). Absent otherwise.
 	Suggestions []string `json:"suggestions,omitempty"`
 }
 

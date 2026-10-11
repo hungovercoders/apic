@@ -39,8 +39,8 @@ Over [MCP](agents.md), a failed tool call carries the same object as its
 structured content, and its text ends with the code, title and hint.
 
 When the error is about a name that matches nothing but is close to one
-that exists (a request id or an environment with a typo, the wrong case or
-`_` for `-`), the message asks "did you mean" and the object carries
+that exists (a request id, the target of a `# @ref` or an environment, with a
+typo, the wrong case or `_` for `-`), the message asks "did you mean" and the object carries
 the closest names, best first, under `suggestions`; an agent can retry
 with the first rather than listing. The key is absent when nothing is close.
 
@@ -153,7 +153,7 @@ Exit 2. An error without a more specific code. It should be rare: if you meet on
 
 ### E201 unknown request
 
-Exit 2. The target names no request: no `# @name` of that name, no such `.http` file, or no request at that position in the file. When a known name is close to the one given (a typo, the wrong case, `_` for `-`), the message asks "did you mean" and the `--json` object lists them under `suggestions`, best first; otherwise the message lists the known names.
+Exit 2. The target names no request: no `# @name` of that name, no such `.http` file, or no request at that position in the file. When a known name is close to the one given (a typo, the wrong case, `_` for `-`), the message asks "did you mean" and the `--json` object lists them under `suggestions`, best first; otherwise the message lists what there is: the request ids, the files, or the named requests of the file given.
 
 **What to do:** Run apic list to see the request ids, and use name, file.http, file.http#name or file.http#N.
 

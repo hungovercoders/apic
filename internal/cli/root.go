@@ -177,7 +177,7 @@ func (a *App) printError(err error, exit int) {
 	}
 	fmt.Fprintln(a.Stderr, "error:", err)
 	var lines []string
-	if info.Hint != "" && !strings.Contains(err.Error(), "apic ") {
+	if info.Hint != "" && !a.namesCommand(err.Error()) {
 		lines = append(lines, "  hint: "+info.Hint)
 	}
 	lines = append(lines, fmt.Sprintf("  %s %s · see %s", info.Code, info.Title, info.URL))
@@ -188,6 +188,18 @@ func (a *App) printError(err error, exit int) {
 		}
 		fmt.Fprintln(a.Stderr, l)
 	}
+}
+
+// namesCommand reports whether a message already tells the user which
+// apic command to run ("run `apic list`"), as against merely mentioning
+// apic ("apic does not send cleartext HTTP/2").
+func (a *App) namesCommand(msg string) bool {
+	for _, c := range a.Root.Commands() {
+		if strings.Contains(msg, "apic "+c.Name()) {
+			return true
+		}
+	}
+	return false
 }
 
 // exitError carries an explicit exit code (e.g. failed assertions).

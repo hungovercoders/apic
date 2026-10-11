@@ -5,6 +5,7 @@ package suggest
 import (
 	"sort"
 	"strings"
+	"unicode/utf8"
 )
 
 // Max is how many names Closest returns at most: enough to show the
@@ -19,10 +20,11 @@ const Max = 3
 // letter: a wrong name should not get a guess for the sake of it.
 func Closest(query string, candidates []string) []string {
 	q := normalize(query)
-	if len(q) < 2 {
+	n := utf8.RuneCountInString(q)
+	if n < 2 {
 		return nil // one letter is inside half the names
 	}
-	limit := 1 + len(q)/5
+	limit := 1 + n/5
 	if limit > 3 {
 		limit = 3
 	}
@@ -38,16 +40,17 @@ func Closest(query string, candidates []string) []string {
 			continue
 		}
 		seen[c] = true
-		n := normalize(c)
+		name := normalize(c)
+		extra := utf8.RuneCountInString(name) - n
 		switch {
-		case n == q:
+		case name == q:
 			found = append(found, scored{c, 0, 0})
-		case strings.HasPrefix(n, q):
-			found = append(found, scored{c, 0, len(n) - len(q)})
-		case strings.Contains(n, q):
-			found = append(found, scored{c, 1, len(n) - len(q)})
+		case strings.HasPrefix(name, q):
+			found = append(found, scored{c, 0, extra})
+		case strings.Contains(name, q):
+			found = append(found, scored{c, 1, extra})
 		default:
-			if d := distance(q, n); d <= limit && d < len(q) {
+			if d := distance(q, name); d <= limit && d < n {
 				found = append(found, scored{c, 2, d})
 			}
 		}

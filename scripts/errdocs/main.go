@@ -80,8 +80,8 @@ Over [MCP](agents.md), a failed tool call carries the same object as its
 structured content, and its text ends with the code, title and hint.
 
 When the error is about a name that matches nothing but is close to one
-that exists (a request id or an environment with a typo, the wrong case or
-` + "`_`" + ` for ` + "`-`" + `), the message asks "did you mean" and the object carries
+that exists (a request id, the target of a ` + "`# @ref`" + ` or an environment, with a
+typo, the wrong case or ` + "`_`" + ` for ` + "`-`" + `), the message asks "did you mean" and the object carries
 the closest names, best first, under ` + "`suggestions`" + `; an agent can retry
 with the first rather than listing. The key is absent when nothing is close.
 

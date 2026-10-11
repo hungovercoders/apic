@@ -54,8 +54,13 @@ func TestUnknownNamesSuggestTheClosest(t *testing.T) {
 		{[]string{"run", "api.http#get-usr"}, runner.CodeUnknownRequest, `no request named "get-usr" in api.http; did you mean get-user?`, []string{"get-user"}},
 		{[]string{"fmt", "api.http#get-usr"}, runner.CodeUnknownRequest, `no request named "get-usr"; did you mean get-user?`, []string{"get-user"}},
 		{[]string{"run", "login", "--env", "stagin"}, runner.CodeEnvironment, `environment "stagin" not found in http-client.env.json; did you mean staging? (have: dev, staging)`, []string{"staging"}},
-		// Nothing close: the known names, and no suggestions key.
+		// An absolute path is compared by its path from the root.
+		{[]string{"run", filepath.Join(dir, "apo.http") + "#1"}, runner.CodeUnknownRequest, `; did you mean api.http?`, []string{"api.http"}},
+		// Nothing close: what there is, and no suggestions key.
 		{[]string{"run", "zzzzzz"}, runner.CodeUnknownRequest, `no request named "zzzzzz"; known: get-user, login (run `, nil},
+		{[]string{"run", "zzz.http#1"}, runner.CodeUnknownRequest, `no .http file "zzz.http" in `, nil},
+		{[]string{"run", "zzz.http#1"}, runner.CodeUnknownRequest, `; files: api.http (run `, nil},
+		{[]string{"run", "api.http#zzz"}, runner.CodeUnknownRequest, `no request named "zzz" in api.http; it has: login, get-user`, nil},
 		{[]string{"run", "login", "--env", "zzz"}, runner.CodeEnvironment, `environment "zzz" not found in http-client.env.json (have: dev, staging)`, nil},
 	}
 	for _, c := range cases {
@@ -103,5 +108,13 @@ func TestHumanErrorsCarryTheHintAndCodeOffATerminal(t *testing.T) {
 	_, _, errb = execute(t, "-C", dir, "--no-session", "run", "get-usr")
 	if strings.Contains(errb, "hint:") || !strings.Contains(errb, "\n  E201 unknown request · see https://apic.sh/errors/#e201\n") {
 		t.Errorf("want the code line and no hint when the message names a command:\n%s", errb)
+	}
+	// A message that merely mentions apic is not one that names a command.
+	if err := os.WriteFile(filepath.Join(dir, "h2.http"), []byte("GET http://localhost/ HTTP/2\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, _, errb = execute(t, "-C", dir, "--no-session", "run", "h2.http")
+	if !strings.Contains(errb, "apic does not send") || !strings.Contains(errb, "\n  hint: ") {
+		t.Errorf("want the hint under a message that mentions apic without naming a command:\n%s", errb)
 	}
 }

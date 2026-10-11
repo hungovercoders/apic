@@ -284,22 +284,33 @@ func (m *Model) paneID() string {
 	return fmt.Sprintf("%s|%d|%v|%v|%v|%v|%p|%p|%d|%d|%d|%d|%d", m.paneReqID(), m.tab, m.showHeaders, m.codeLang, m.showHelp, m.confirmClear, res, desc, len(m.session), len(m.cookies), m.histSeq, m.vp.width, m.vp.height)
 }
 
-// renderStatus draws the bottom bar.
+// statusPart is one segment of the bottom bar. drop says what goes first
+// when the bar is wider than the terminal: the highest number is dropped
+// first, and zero is never dropped.
+type statusPart struct {
+	text string
+	drop int
+}
+
+// renderStatus draws the bottom bar. On a narrow terminal it gives up the
+// project path, then the last run's summary, then the environment, so the
+// key hint and anything in flight stay in view rather than being cut off
+// at the right.
 func (m *Model) renderStatus() string {
 	t := m.theme
-	parts := []string{t.Accent.Render("apic")}
+	parts := []statusPart{{t.Accent.Render("apic"), 0}}
 	if m.cfg.Demo {
-		parts = append(parts, t.Warn.Render("demo"))
+		parts = append(parts, statusPart{t.Warn.Render("demo"), 0})
 	}
 	if m.cfg.Redact {
-		parts = append(parts, t.Warn.Render("redact"))
+		parts = append(parts, statusPart{t.Warn.Render("redact"), 0})
 	}
-	parts = append(parts, t.Dim.Render(output.Truncate(m.cfg.Root, 30)))
+	parts = append(parts, statusPart{t.Dim.Render(output.Truncate(m.cfg.Root, 30)), 3})
 	env := m.env
 	if env == "" {
 		env = "(none)"
 	}
-	parts = append(parts, "env="+t.Bold.Render(env))
+	parts = append(parts, statusPart{"env=" + t.Bold.Render(env), 1})
 	if m.inflight != nil {
 		rs := m.inflight
 		running := m.theme.Accent.Render(m.spin.view()) + " running " + rs.reqs[rs.idx].ID()
@@ -309,15 +320,36 @@ func (m *Model) renderStatus() string {
 		if !rs.started.IsZero() {
 			running += " " + t.Dim.Render(shortDuration(time.Since(rs.started)))
 		}
-		parts = append(parts, running)
+		parts = append(parts, statusPart{running, 0})
 	} else if m.lastSummary != "" {
-		parts = append(parts, "last: "+m.lastSummary)
+		parts = append(parts, statusPart{"last: " + m.lastSummary, 2})
 	}
 	if m.status != "" {
-		parts = append(parts, t.Warn.Render(m.status))
+		parts = append(parts, statusPart{t.Warn.Render(m.status), 0})
 	}
-	parts = append(parts, t.Dim.Render("? help · q quit"))
-	line := strings.Join(parts, t.Dim.Render(" · "))
+	parts = append(parts, statusPart{t.Dim.Render("? help · q quit"), 0})
+	sep := t.Dim.Render(" · ")
+	join := func() string {
+		texts := make([]string, 0, len(parts))
+		for _, p := range parts {
+			texts = append(texts, p.text)
+		}
+		return strings.Join(texts, sep)
+	}
+	line := join()
+	for ansi.StringWidth(line) > m.width {
+		at, drop := -1, 0
+		for i, p := range parts {
+			if p.drop > drop {
+				at, drop = i, p.drop
+			}
+		}
+		if at < 0 {
+			break
+		}
+		parts = append(parts[:at], parts[at+1:]...)
+		line = join()
+	}
 	return ansi.Truncate(line, m.width, "…")
 }
 

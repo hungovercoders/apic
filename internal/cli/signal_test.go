@@ -6,7 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -92,5 +95,59 @@ func TestDemoPortInUseIsAServerError(t *testing.T) {
 	}
 	if code != 2 || got.Error.Code != runner.CodeServer {
 		t.Errorf("code=%d %s: %s", code, got.Error.Code, got.Error.Message)
+	}
+}
+
+// hangServer answers nothing until the test ends, so a request to it is
+// still in flight when the context is cancelled.
+func hangServer(t *testing.T) string {
+	t.Helper()
+	done := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-done:
+		case <-r.Context().Done():
+		}
+	}))
+	t.Cleanup(func() { close(done); srv.Close() })
+	return srv.URL
+}
+
+// --keep-going carries a flow past a failed request, not past Ctrl-C: once
+// the context is cancelled, the remaining requests and data rows are not
+// attempted, so the output holds what completed plus the one interrupted,
+// not a cancellation per remaining request.
+func TestCancellationStopsAKeepGoingFlow(t *testing.T) {
+	url := hangServer(t)
+	dir := t.TempDir()
+	files := map[string]string{
+		"a.http":   "# @name one\nGET " + url + "/{{row}}\n\n###\n# @name two\nGET " + url + "/\n\n###\n# @name three\nGET " + url + "/\n",
+		"rows.csv": "row\nx\ny\nz\n",
+	}
+	for name, body := range files {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, args := range [][]string{
+		{"run", "a.http", "--keep-going", "--json", "--var", "row=x"},
+		{"run", "a.http", "--keep-going", "--json", "--data", filepath.Join(dir, "rows.csv")},
+	} {
+		t.Run(strings.Join(args[2:], " "), func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			time.AfterFunc(100*time.Millisecond, cancel)
+			a := New()
+			var out, errb bytes.Buffer
+			a.Stdout, a.Stderr = &out, &errb
+			code := a.Execute(ctx, append([]string{"-C", dir, "--no-session"}, args...))
+			lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+			if code != 3 || len(lines) != 1 || !strings.Contains(lines[0], `"E305"`) {
+				t.Fatalf("code=%d, %d result lines, want 3 and one E305 result:\n%s\n%s", code, len(lines), out.String(), errb.String())
+			}
+			if !strings.Contains(errb.String(), `"code":"E305"`) {
+				t.Errorf("stderr should end with the E305 object:\n%s", errb.String())
+			}
+		})
 	}
 }

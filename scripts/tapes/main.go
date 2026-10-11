@@ -3,7 +3,7 @@
 // tape a scratch directory with a fresh apic-demo project and the files its
 // lesson's runnable blocks create (internal/lessons), and runs vhs there
 // with a fixed HOME and time zone, so two recordings of a tape differ only
-// in timings. Run it with `task tapes` (vhs, ttyd and ffmpeg on PATH);
+// in timings. Run it with `task tapes` (vhs, ttyd, ffmpeg and jq on PATH);
 // `task tapes:check` validates every tape's syntax with vhs alone, which
 // CI does, so a tape that only a person has run cannot quietly break.
 package main
@@ -170,9 +170,12 @@ func Validate(tapes []Tape, w io.Writer) int {
 }
 
 func record(root string, tapes []Tape, out string, keep, prepareOnly bool) error {
-	for _, tool := range []string{"vhs", "ttyd", "ffmpeg"} {
+	// vhs records a shell, so a missing tool would not fail the recording:
+	// it would be filmed as "command not found". Check up front for vhs
+	// and what it drives, and for jq, which most tapes pipe through.
+	for _, tool := range []string{"vhs", "ttyd", "ffmpeg", "jq"} {
 		if _, err := exec.LookPath(tool); err != nil && !prepareOnly {
-			return fmt.Errorf("%s is not on PATH; recording needs vhs, ttyd and ffmpeg (https://github.com/charmbracelet/vhs#installation)", tool)
+			return fmt.Errorf("%s is not on PATH; recording needs vhs, ttyd and ffmpeg (https://github.com/charmbracelet/vhs#installation) and jq, which the tapes pipe through", tool)
 		}
 	}
 	if err := os.MkdirAll(out, 0o755); err != nil { //nolint:gosec // the GIF directory the caller named
@@ -255,7 +258,7 @@ func recordOne(root, bin string, t Tape, out string, keep, prepareOnly bool) err
 	}
 	for _, g := range gifs {
 		dst := filepath.Join(out, filepath.Base(g))
-		if err := os.Rename(g, dst); err != nil {
+		if err := moveFile(g, dst); err != nil {
 			return err
 		}
 		fmt.Printf("%s: wrote %s\n", t.Name, dst)
@@ -264,6 +267,23 @@ func recordOne(root, bin string, t Tape, out string, keep, prepareOnly bool) err
 		fmt.Printf("%s: scratch directory kept at %s\n", t.Name, work)
 	}
 	return nil
+}
+
+// moveFile renames src to dst, copying when the two are on different
+// filesystems (the scratch directory is under the system temp directory,
+// the output under the repository), where a rename fails.
+func moveFile(src, dst string) error {
+	if err := os.Rename(src, dst); err == nil {
+		return nil
+	}
+	data, err := os.ReadFile(src) //nolint:gosec // the GIF vhs just wrote in the scratch directory
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(dst, data, 0o644); err != nil { //nolint:gosec // a GIF for the docs, meant to be world-readable
+		return err
+	}
+	return os.Remove(src)
 }
 
 // environment is what the setup and vhs run under: the fresh apic first on

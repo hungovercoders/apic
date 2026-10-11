@@ -129,7 +129,7 @@ tasks:
       - go run ./scripts/shot
 
   tapes:
-    desc: Record the course's VHS tapes into dist/tapes against the demo API, each from a scratch directory with the files its lesson creates (needs vhs, ttyd and ffmpeg, and port 8089 free)
+    desc: Record the course's VHS tapes into dist/tapes against the demo API, each from a scratch directory with the files its lesson creates (needs vhs, ttyd, ffmpeg and jq, and port 8089 free)
     cmds:
       - go run ./scripts/tapes
 

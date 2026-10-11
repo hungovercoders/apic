@@ -42,11 +42,11 @@ September 2026; they move fast, so a correction is a welcome pull request.
 | GraphQL, gRPC, WebSocket | curl for GraphQL | GraphQL (JetBrains: all three) | GraphQL, WebSocket | GraphQL, gRPC, WebSocket | GraphQL, gRPC, WS, MQTT, AMQP | yes | GraphQL | GraphQL; the rest are [not planned](#deliberately-not-planned) |
 | GUI | no | the editor | no | Neovim | VS Code extension | yes | no | terminal UI (`apic ui`) and a VS Code extension |
 
-What is coming is tracked in the parity epics:
-[the `.http` dialect](https://github.com/hungovercoders/apic/issues/24),
-[the runner, auth and CLI](https://github.com/hungovercoders/apic/issues/25),
-[distribution](https://github.com/hungovercoders/apic/issues/26) and
-[the VS Code extension](https://github.com/hungovercoders/apic/issues/29).
+What is coming is tracked in the
+[epics on GitHub](https://github.com/hungovercoders/apic/issues?q=is%3Aissue+label%3Aepic):
+[distribution](https://github.com/hungovercoders/apic/issues/1),
+[the docs](https://github.com/hungovercoders/apic/issues/2) and
+[the VS Code extension](https://github.com/hungovercoders/apic/issues/3).
 
 ## Size
 
@@ -179,9 +179,14 @@ So you are not surprised later:
   no GraphQL schema tooling.
 - Reports are limited to what `apic test` emits (pretty, progress, cucumber
   JSON, JUnit, HTML) and `run --json` or `run --report`.
-- Installing is `go install`, the install script, a release archive or the
-  [GitHub Action](getting-started.md#7-put-it-in-ci); package managers are on the
-  [distribution epic](https://github.com/hungovercoders/apic/issues/26).
+- Installing is Homebrew on macOS and Linux, `go install`, the install
+  scripts for Linux, macOS and Windows, `.deb`, `.rpm` and `.apk` packages, a
+  Docker image, a release archive or the
+  [GitHub Action](getting-started.md#7-put-it-in-ci), each shown in
+  [getting started](getting-started.md#1-install). There is no
+  apt, yum or apk repository, and Scoop, winget and the mise, aqua and asdf
+  registries are still on the
+  [distribution epic](https://github.com/hungovercoders/apic/issues/1).
 
 ## Deliberately not planned
 

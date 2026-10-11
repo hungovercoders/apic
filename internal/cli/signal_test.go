@@ -9,7 +9,6 @@ import (
 	"os"
 	"runtime"
 	"strings"
-	"syscall"
 	"testing"
 	"time"
 
@@ -24,7 +23,11 @@ func TestInterruptCancelsTheContext(t *testing.T) {
 	}
 	ctx, stop := signalContext(context.Background())
 	defer stop()
-	if err := syscall.Kill(os.Getpid(), syscall.SIGINT); err != nil {
+	self, err := os.FindProcess(os.Getpid())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := self.Signal(os.Interrupt); err != nil {
 		t.Fatal(err)
 	}
 	select {

@@ -108,7 +108,11 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
+      # vhs wants a newer Go than go.mod pins; let go fetch that toolchain
+      # for this one install rather than raising the module's floor.
       - run: go install github.com/charmbracelet/vhs@v0.12.1
+        env:
+          GOTOOLCHAIN: auto
       - run: go run ./scripts/tapes -check
 
   # The VS Code extension in editors/vscode is the one place Node lives.

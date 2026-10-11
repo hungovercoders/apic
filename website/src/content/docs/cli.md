@@ -42,6 +42,12 @@ set, when `--no-color` is given, or when `--json` is used.
 | 2 | Usage error: unknown command or request, parse error in a `.http` file, unknown environment, missing variable, bad `--var`. `validate` with errors. |
 | 3 | Transport error: DNS, connection refused, TLS failure, timeout. |
 
+Ctrl-C during a run stops it where it is: a flow prints its summary so far,
+the session and the history keep what the completed requests captured and
+returned, `--report` is still written, and the exit is 3 with
+[E305](errors.md#e305). A second Ctrl-C ends the process at once. The
+servers (`demo`, `mcp`, `lsp`) stop cleanly and exit 0.
+
 Errors are printed to stderr prefixed with `error:`; stdout stays clean for
 piping. Every error has a stable code. Under the message come the
 [error catalogue](errors.md)'s hint, unless the message already names an

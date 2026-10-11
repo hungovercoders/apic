@@ -3,6 +3,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -43,6 +44,8 @@ when the client goes without one.`,
 			runner.Version = Version
 			err := lsp.Serve(cmd.Context(), a.Stdin, a.Stdout, lsp.Options{Root: a.g.dir, Env: a.g.env, Version: Version, Debounce: 150 * time.Millisecond})
 			switch {
+			case errors.Is(err, context.Canceled):
+				return nil // Ctrl-C or SIGTERM: the server was told to stop
 			case errors.Is(err, lsp.ErrNoShutdown):
 				// Not a usage error: the protocol asks for exit 1 when the
 				// client goes without a shutdown request.

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -54,7 +55,10 @@ without a bearer token guarding it.`,
 				return nil
 			}
 			err := mcp.Serve(cmd.Context(), cfg)
-			if errors.Is(err, io.EOF) || (err != nil && strings.HasSuffix(err.Error(), "EOF")) {
+			switch {
+			case errors.Is(err, context.Canceled):
+				return nil // Ctrl-C or SIGTERM: the server was told to stop
+			case errors.Is(err, io.EOF) || (err != nil && strings.HasSuffix(err.Error(), "EOF")):
 				return nil // client closed the pipe: normal shutdown
 			}
 			return err

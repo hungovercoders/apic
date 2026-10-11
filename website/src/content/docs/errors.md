@@ -307,7 +307,7 @@ Exit 3. The server's answer could not be used: it did not negotiate HTTP/2 for a
 
 ### E305 cancelled
 
-Exit 3. The run was interrupted (Ctrl-C, or `esc` in the UI) while a request, a `# @sleep` or a retry wait was in progress.
+Exit 3. The run was interrupted (Ctrl-C, or `esc` in the UI) while a request, a `# @sleep` or a retry wait was in progress. A flow prints its summary so far, the session and the history keep what the completed requests captured and returned, and `--report` is still written. A second Ctrl-C ends the process at once.
 
 **What to do:** Run the command again.
 

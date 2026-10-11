@@ -98,7 +98,9 @@ UI adds an entry, including the requests a `# @ref` ran first.
 The status bar carries the project root, the environment, a spinner with
 progress and a running clock while a request is out, and the result of the
 last run. `demo` and `redact` badges show when `--demo` or `--redact` is in
-force, so a screenshot never hides that values were masked.
+force, so a screenshot never hides that values were masked. On a narrow
+terminal the bar gives up the project root first, then the last result,
+then the environment, so the key hint and anything in flight stay in view.
 
 ## Keys
 

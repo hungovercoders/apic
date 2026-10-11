@@ -162,8 +162,10 @@ func (a *App) Execute(ctx context.Context, args []string) int {
 }
 
 // printError writes an error to stderr: under --json as an object an
-// agent can branch on, otherwise as a line, followed on a terminal by the
-// code and where the catalogue explains it.
+// agent can branch on, otherwise as a line, followed by the catalogue's
+// hint (unless the message already names an apic command to run) and by
+// the code and where the catalogue explains it. The extra lines are dim
+// on a terminal and plain in a log, where they are read most.
 func (a *App) printError(err error, exit int) {
 	info := runner.Info(err)
 	info.Exit = exit
@@ -174,8 +176,17 @@ func (a *App) printError(err error, exit int) {
 		return
 	}
 	fmt.Fprintln(a.Stderr, "error:", err)
-	if isTerminal(a.Stderr) {
-		fmt.Fprintln(a.Stderr, theme.Dim.Render(fmt.Sprintf("  %s %s · see %s", info.Code, info.Title, info.URL)))
+	var lines []string
+	if info.Hint != "" && !strings.Contains(err.Error(), "apic ") {
+		lines = append(lines, "  hint: "+info.Hint)
+	}
+	lines = append(lines, fmt.Sprintf("  %s %s · see %s", info.Code, info.Title, info.URL))
+	dim := isTerminal(a.Stderr)
+	for _, l := range lines {
+		if dim {
+			l = theme.Dim.Render(l)
+		}
+		fmt.Fprintln(a.Stderr, l)
 	}
 }
 

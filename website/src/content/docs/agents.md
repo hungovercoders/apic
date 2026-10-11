@@ -162,7 +162,7 @@ wording may improve between releases:
 
 | Where | What |
 |---|---|
-| `apic … --json`, exit 2 or 3 | one `{"error": {"code", "title", "message", "hint", "exit", "url"}}` object on stderr; stdout carries only results |
+| `apic … --json`, exit 2 or 3 | one `{"error": {"code", "title", "message", "hint", "exit", "url"}}` object on stderr, plus `suggestions` (the closest known names, best first) when an unknown request or environment is near one that exists; stdout carries only results |
 | `apic run --json`, a request that could not be sent | its result has `"ok": false` and the same object as `error`, beside `errors` |
 | MCP tool error | the object as structured content; the text ends with `(code title: hint)` |
 
@@ -171,7 +171,7 @@ The codes an agent meets most, and what to do:
 | Code | Do |
 |---|---|
 | [E101](errors.md#e101) missing variable | the message names the request that captures it: run that, or pass `vars` |
-| [E201](errors.md#e201) unknown request | `list_requests` (or `apic list --json`) and pick an id |
+| [E201](errors.md#e201) unknown request | retry with the first of `suggestions` when there are any; otherwise `list_requests` (or `apic list --json`) and pick an id |
 | [E103](errors.md#e103) request file has errors | `validate_project` and fix what it reports |
 | [E301](errors.md#e301)–[E303](errors.md#e303) network | report to the user; the server is down, slow or untrusted, and retrying the same thing will not help |
 

@@ -35,6 +35,7 @@ import (
 	"github.com/hungovercoders/apic/internal/project"
 	"github.com/hungovercoders/apic/internal/selector"
 	"github.com/hungovercoders/apic/internal/session"
+	"github.com/hungovercoders/apic/internal/suggest"
 	"github.com/hungovercoders/apic/internal/template"
 )
 
@@ -170,6 +171,11 @@ func New(p *project.Project, opts Options) (*Runner, error) {
 	}
 	if opts.Env != "" && !envs.Has(opts.Env) {
 		if names := envs.Names(); len(names) > 0 {
+			if closest := suggest.Closest(opts.Env, names); len(closest) > 0 {
+				ue := Usagef(CodeEnvironment, "environment %q not found in %s; %s (have: %s)", opts.Env, env.PublicFile, suggest.Phrase(closest), strings.Join(names, ", "))
+				ue.Suggestions = closest
+				return nil, ue
+			}
 			return nil, usagef(CodeEnvironment, "environment %q not found in %s (have: %s)", opts.Env, env.PublicFile, strings.Join(names, ", "))
 		}
 		return nil, usagef(CodeEnvironment, "environment %q requested but no %s found in %s", opts.Env, env.PublicFile, p.Root)

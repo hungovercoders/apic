@@ -342,7 +342,7 @@ func (s *scenario) render(text string) (string, error) {
 func (s *scenario) run(ctx context.Context, target string, vars map[string]string) error {
 	reqs, err := s.r.Target(target)
 	if err != nil {
-		return s.cfg.fail(runner.Usage(runner.CodeUnknownRequest, err.Error()))
+		return s.cfg.fail(runner.Usagef(runner.CodeUnknownRequest, "%v", err))
 	}
 	return s.runRequests(ctx, reqs, vars)
 }

@@ -78,7 +78,7 @@ func (a *App) historyFor(target string) (*historyTarget, error) {
 	if entries, err := store.List(env, target); err == nil && len(entries) > 0 {
 		return &historyTarget{store: store, project: p, env: env, name: target}, nil
 	}
-	return nil, runner.Usage(runner.CodeUnknownRequest, rerr.Error())
+	return nil, runner.Usagef(runner.CodeUnknownRequest, "%v", rerr)
 }
 
 // entryCount renders "1 entry" or "3 entries".

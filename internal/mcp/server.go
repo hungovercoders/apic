@@ -303,7 +303,7 @@ func (s *service) runFile(ctx context.Context, _ *sdk.CallToolRequest, in runFil
 	}
 	reqs, err := r.Project.Resolve(in.File)
 	if err != nil {
-		return toolError(runner.Usage(runner.CodeUnknownRequest, err.Error()))
+		return toolError(runner.Usagef(runner.CodeUnknownRequest, "%v", err))
 	}
 	results, runErr := r.RunAll(ctx, reqs)
 	ok := runErr == nil
@@ -481,7 +481,7 @@ func (s *service) resourcePath(uri string) (string, error) {
 func single(r *runner.Runner, target string) (*httpfile.Request, error) {
 	reqs, err := r.Project.Resolve(target)
 	if err != nil {
-		return nil, runner.Usage(runner.CodeUnknownRequest, err.Error())
+		return nil, runner.Usagef(runner.CodeUnknownRequest, "%v", err)
 	}
 	if len(reqs) != 1 {
 		return nil, runner.Usagef(runner.CodeAmbiguous, "%q names %d requests; use run_file for a whole file or %s#<name> for one", target, len(reqs), target)

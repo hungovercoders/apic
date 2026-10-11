@@ -43,13 +43,24 @@ set, when `--no-color` is given, or when `--json` is used.
 | 3 | Transport error: DNS, connection refused, TLS failure, timeout. |
 
 Errors are printed to stderr prefixed with `error:`; stdout stays clean for
-piping. Every error has a stable code, and on a terminal a second line gives
-it and where the [error catalogue](errors.md) explains it:
+piping. Every error has a stable code. Under the message come the
+[error catalogue](errors.md)'s hint, unless the message already names an
+apic command to run, and a line with the code and where the catalogue
+explains it; both are dim on a terminal and plain in a log:
 
 ```text
 error: me.http:1: missing variable
   {{token}}: pass --var token=... or add it to http-client.env.json
+  hint: Pass it with --var name=value, add it to an env file, or run the request that captures it first.
   E101 missing variable · see https://apic.sh/errors/#e101
+```
+
+A request id or an environment that matches nothing but is close to one that
+exists gets a guess, in the message and, under `--json`, as `suggestions`:
+
+```text
+error: no request named "get-usr"; did you mean get-user? (run `apic list` for every id)
+  E201 unknown request · see https://apic.sh/errors/#e201
 ```
 
 Under `--json` the error is instead one JSON object on stderr, so a script

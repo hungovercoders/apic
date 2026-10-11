@@ -248,7 +248,8 @@ went wrong without failing the request (a history that could not be
 written), and an error comes with
 its catalogue code: as `error` beside `errors` on a result, and as one
 `{"error": {"code", "title", "message", "hint", "exit", "url"}}` object on
-stderr (stdout is unchanged).
+stderr (stdout is unchanged), with `suggestions` beside them when an
+unknown request or environment is close to a known one.
 
 ## The format
 

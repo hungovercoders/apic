@@ -180,7 +180,15 @@ func (m *Model) renderList(width, height int) string {
 		start = m.cursor - rows + 1
 	}
 	if len(v) == 0 {
-		lines = append(lines, t.Dim.Render("  no requests match"))
+		if len(m.items) == 0 {
+			// Nothing to browse at all: say what gives this directory
+			// some requests, the way apic list does.
+			for _, l := range []string{"  no .http files here", "  apic init scaffolds a project;", "  apic ui --demo shows a working one"} {
+				lines = append(lines, t.Dim.Render(l))
+			}
+		} else {
+			lines = append(lines, t.Dim.Render("  no requests match"))
+		}
 	}
 	rolls := m.rollups(v)
 	for i := start; i < len(v) && i < start+rows; i++ {

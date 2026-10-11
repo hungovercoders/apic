@@ -65,10 +65,15 @@ to requests whose id, URL, file or description contains it.`,
 				if entries == nil {
 					entries = []listEntry{}
 				}
+				hint := ""
+				if len(p.Files) == 0 {
+					hint = newHereHint
+				}
 				return a.writeJSON(struct {
 					Root     string      `json:"root"`
 					Requests []listEntry `json:"requests"`
-				}{p.Root, entries})
+					Hint     string      `json:"hint,omitempty"`
+				}{p.Root, entries, hint})
 			}
 			if len(entries) == 0 {
 				if len(args) == 1 {
@@ -76,6 +81,9 @@ to requests whose id, URL, file or description contains it.`,
 					return nil
 				}
 				fmt.Fprintf(a.Stdout, "no .http files found under %s\n", p.Root)
+				if len(p.Files) == 0 {
+					fmt.Fprintln(a.Stdout, newHereHint)
+				}
 				return nil
 			}
 			files := map[string]bool{}
@@ -139,3 +147,7 @@ func refIDs(r *httpfile.Request) []string {
 	}
 	return out
 }
+
+// newHereHint is what a directory with no request files gets told: the two
+// commands that give it some. The project's not-found error says the same.
+const newHereHint = "new here? apic init scaffolds a project, and apic ui --demo shows a working one"

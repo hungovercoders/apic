@@ -359,6 +359,9 @@ func (p *Project) notFound(name string) error {
 		names = append(names, n)
 	}
 	sort.Strings(names)
+	if len(p.Files) == 0 {
+		return &NotFoundError{Msg: fmt.Sprintf("no request named %q: no .http files found under %s (new here? apic init scaffolds a project, and apic ui --demo shows a working one)", name, p.Root)}
+	}
 	if len(names) == 0 {
 		return &NotFoundError{Msg: fmt.Sprintf("no request named %q: no named requests found under %s (add `# @name %s` above a request line)", name, p.Root, name)}
 	}

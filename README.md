@@ -249,7 +249,8 @@ written), and an error comes with
 its catalogue code: as `error` beside `errors` on a result, and as one
 `{"error": {"code", "title", "message", "hint", "exit", "url"}}` object on
 stderr (stdout is unchanged), with `suggestions` beside them when an
-unknown request or environment is close to a known one.
+unknown request or environment is close to a known one; `apic list --json`
+carries a `hint` when the directory has no request files at all.
 
 ## The format
 

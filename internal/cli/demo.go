@@ -23,13 +23,15 @@ CRUD resource) into --out, then serves the fake API those requests target.
 No network access or git clone needed. Existing files are left alone
 unless --force is given.
 
-Run it, then in another terminal (substituting your --out if you set one):
-  apic run login whoami -C apic-demo --env local
-  apic ui -C apic-demo --env local
+Run it, then use the project from another terminal (the examples below;
+substitute your --out if you set one).
 
 Every apic command, including ui, resolves .http files relative to -C
 (default: the current directory) — apic ui on its own won't find the
 project this command just wrote unless you cd into it or pass -C.`,
+		Example: `  apic demo                                  # terminal 1: writes ./apic-demo, serves the API
+  apic run login whoami -C apic-demo         # terminal 2
+  apic ui -C apic-demo --env local           # or the UI, same directory`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if port < 1 || port > 65535 {

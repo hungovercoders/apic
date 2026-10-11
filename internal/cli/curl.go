@@ -13,6 +13,8 @@ func (a *App) curlCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "curl <request>",
 		Short: "Print the equivalent curl command (with variables resolved)",
+		Example: `  apic curl login
+  apic curl get-user --env staging | sh`,
 		Long: `Print the curl command that sends what apic would, variables resolved.
 It is apic snippet --lang curl; see apic snippet for other languages.`,
 		Args: cobra.ExactArgs(1),

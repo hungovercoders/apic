@@ -16,6 +16,9 @@ func (a *App) envCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "env",
 		Short: "Show environments and the variables in effect",
+		Example: `  apic env
+  apic env --env staging
+  apic env --json | jq .environments`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			r, err := a.newRunner()
 			if err != nil {

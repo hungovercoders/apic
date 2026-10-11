@@ -157,6 +157,8 @@ and everything when the run used --redact.`,
 	diff := &cobra.Command{
 		Use:   "diff <request> [from] [to]",
 		Short: "Show what changed between two responses (default: the last two)",
+		Example: `  apic history diff get-user
+  apic history diff get-user 1 3`,
 		Long: `Compare two recorded responses of a request: the status, then the body.
 JSON bodies are compared by structure, keys in sorted order and arrays
 index by index; other text line by line. Headers are left out, since a
@@ -190,6 +192,8 @@ newest; the default compares 2 with 1.`,
 	clear := &cobra.Command{
 		Use:   "clear [request]",
 		Short: "Forget the history of a request, or of every request with --all",
+		Example: `  apic history clear get-user
+  apic history clear --all`,
 		Long: `Forget the history of one request in the current environment. With
 --all and no request, forget every request's history in the environment;
 add --every-env to forget it in every environment.`,

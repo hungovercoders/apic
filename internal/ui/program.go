@@ -163,6 +163,13 @@ func (p *program) dispatch(cmd Cmd) bool {
 		return false
 	case Cmd:
 		return p.dispatch(msg)
+	case batchMsg:
+		for _, c := range msg {
+			if p.dispatch(c) {
+				return true
+			}
+		}
+		return false
 	case asyncMsg:
 		go func() {
 			out := msg.run()
@@ -280,6 +287,15 @@ func (p *program) render() {
 	}
 	b.WriteString(eraseBelow)
 	p.write(b.String())
+}
+
+// batchMsg carries several commands to run in order.
+type batchMsg []Cmd
+
+// batch runs several commands, so one key can both start a run and set a
+// status.
+func batch(cmds ...Cmd) Cmd {
+	return func() Msg { return batchMsg(cmds) }
 }
 
 // asyncMsg carries work that must not block the event loop.

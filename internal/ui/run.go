@@ -166,7 +166,18 @@ func (m *Model) startRun(reqs []*httpfile.Request, flow bool) Cmd {
 	}
 	m.codeLang = 0
 	m.tab = tabResponse
-	m.selected = reqs[0]
+	// A flow runs the whole file, filter or not. Its rows light up one by
+	// one only if they are on screen, so a filter that hides some of them
+	// goes now rather than leaving the cursor behind the pane.
+	var cleared Cmd
+	if m.filter != "" && !m.allVisible(reqs) {
+		m.filter, m.filtering = "", false
+		cleared = m.setStatus("filter cleared: the run includes requests it hid")
+	}
+	m.focus(reqs[0])
+	if cleared != nil {
+		return batch(cleared, m.stepCmd())
+	}
 	return m.stepCmd()
 }
 
@@ -203,8 +214,7 @@ func (m *Model) handleResult(msg resultMsg) Cmd {
 	if msg.err != nil {
 		m.errs[msg.req] = msg.err
 	}
-	m.selected = msg.req
-	m.syncCursorTo(msg.req)
+	m.focus(msg.req)
 	rs.idx++
 	if rs.idx < len(rs.reqs) {
 		return m.stepCmd()
@@ -252,15 +262,6 @@ func (m *Model) finishRun(rs *runState) {
 		return
 	}
 	m.lastSummary = strings.TrimSpace(output.SummaryLine(m.theme, results))
-}
-
-func (m *Model) syncCursorTo(req *httpfile.Request) {
-	for i, it := range m.visible() {
-		if it.req == req {
-			m.cursor = i
-			return
-		}
-	}
 }
 
 // cycleEnv switches to the next environment and rebuilds the runner.

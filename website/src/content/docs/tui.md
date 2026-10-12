@@ -133,7 +133,9 @@ then the environment, so the key hint and anything in flight stay in view.
   in flight says so rather than queueing; <kbd>esc</kbd> cancels.
 - **Flows update live.** Running a file sends its requests one after
   another, and each row turns green or red as its response arrives, so a long
-  flow shows progress instead of a frozen screen.
+  flow shows progress instead of a frozen screen. The cursor follows the
+  request in flight, and a filter that would hide any of them is cleared
+  when the flow starts, so the pane and the list always agree.
 - **Retries happen inside the run.** A request with `# @retry` is sent
   until its assertions pass; the status line of its response then says how
   many attempts it took. The row is "running" until then, so a long poll

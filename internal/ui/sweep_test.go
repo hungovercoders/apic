@@ -40,6 +40,9 @@ func TestEveryPaneFitsAtEverySize(t *testing.T) {
 		if !strings.Contains(lines[len(lines)-1], "? help") {
 			t.Errorf("%dx%d %s: the status bar lost its key hint:\n%s", w, h, what, lines[len(lines)-1])
 		}
+		if f.m.selected != f.m.selectedReq() {
+			t.Errorf("%dx%d %s: the pane shows %v while the cursor is on %v", w, h, what, f.m.selected, f.m.selectedReq())
+		}
 	}
 	requests := len(f.m.allRequests())
 	if requests < 10 {

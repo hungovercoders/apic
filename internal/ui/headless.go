@@ -72,6 +72,14 @@ func (m *Model) settleWatch(cmd Cmd, each func()) {
 			}
 		case Cmd:
 			cmd = msg
+		case batchMsg:
+			if len(msg) == 0 {
+				return
+			}
+			for _, c := range msg[:len(msg)-1] {
+				m.settleWatch(c, each)
+			}
+			cmd = msg[len(msg)-1]
 		default:
 			cmd = m.Update(msg)
 		}

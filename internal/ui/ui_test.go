@@ -354,6 +354,15 @@ func TestEditorCommand(t *testing.T) {
 	if err != nil || strings.Join(cmd.Args[1:], " ") != "--wait -g auth.http:7" {
 		t.Fatalf("code: %v %v", cmd.Args, err)
 	}
+	// Without --wait, VS Code returns at once and the reload sees no edit.
+	cmd, err = editorCommand("code", "auth.http", 7)
+	if err != nil || strings.Join(cmd.Args[1:], " ") != "--wait -g auth.http:7" {
+		t.Fatalf("code without --wait: %v %v", cmd.Args, err)
+	}
+	cmd, err = editorCommand("cursor -w", "auth.http", 7)
+	if err != nil || strings.Join(cmd.Args[1:], " ") != "-w -g auth.http:7" {
+		t.Fatalf("cursor -w: %v %v", cmd.Args, err)
+	}
 	if _, err := editorCommand("", "x", 1); err == nil {
 		t.Fatal("empty editor should error")
 	}

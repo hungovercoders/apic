@@ -151,7 +151,10 @@ then the environment, so the key hint and anything in flight stay in view.
   from somewhere else.
 - **Editing is round-tripped.** <kbd>o</kbd> opens `$VISUAL`, then `$EDITOR`
   (`vi`, or `notepad` on Windows), at the request's line; the project is
-  reloaded when the editor exits. <kbd>r</kbd> reloads without editing, which
+  reloaded when the editor exits. VS Code, Cursor and VSCodium are given
+  `--wait` so that moment is the tab closing, not the window opening. While
+  the editor runs the UI stops reading the keyboard, so everything typed
+  goes to the editor. <kbd>r</kbd> reloads without editing, which
   picks up files written by anything else.
 - **Redaction is honoured.** With `--redact`, bodies, header values, query
   values and captured values are masked on screen exactly as they are in

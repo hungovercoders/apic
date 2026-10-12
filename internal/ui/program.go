@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -128,6 +129,11 @@ func (p *program) loop(ctx context.Context) error {
 				return nil
 			}
 		case msg := <-p.msgs:
+			if pm, ok := msg.(panicMsg); ok {
+				// Raised here rather than on the worker so Run's deferred
+				// restore puts the terminal back before the crash prints.
+				panic(pm)
+			}
 			if p.dispatch(p.m.Update(msg)) {
 				return nil
 			}
@@ -172,7 +178,7 @@ func (p *program) dispatch(cmd Cmd) bool {
 		return false
 	case asyncMsg:
 		go func() {
-			out := msg.run()
+			out := guard(msg.run)
 			select {
 			case p.msgs <- out:
 			case <-p.done:
@@ -296,6 +302,27 @@ type batchMsg []Cmd
 // status.
 func batch(cmds ...Cmd) Cmd {
 	return func() Msg { return batchMsg(cmds) }
+}
+
+// panicMsg is a panic caught on a worker goroutine, carried to the loop
+// so that the terminal is restored before it is raised again. A panic that
+// escaped the worker would end the process with the terminal still in raw
+// mode on the alternate screen.
+type panicMsg struct {
+	value any
+	stack []byte
+}
+
+func (pm panicMsg) String() string { return fmt.Sprintf("%v\n\n%s", pm.value, pm.stack) }
+
+// guard runs fn, turning a panic into a panicMsg.
+func guard(fn func() Msg) (out Msg) {
+	defer func() {
+		if v := recover(); v != nil {
+			out = panicMsg{value: v, stack: debug.Stack()}
+		}
+	}()
+	return fn()
 }
 
 // asyncMsg carries work that must not block the event loop.

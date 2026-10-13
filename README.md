@@ -11,7 +11,7 @@
 
 </div>
 
-<p align="center"><img src="website/public/assets/apic-demo.svg" width="820" alt="apic ui --demo: send a request, run a file as a flow, read the checks, see what was captured"></p>
+<p align="center"><img src="website/public/assets/apic-demo.svg" width="820" alt="apic ui --demo"></p>
 
 ```sh
 apic ui --demo                      # a fake API and a UI to poke it with, no setup
@@ -39,16 +39,14 @@ signed and ship an SBOM.
 
 Everything is on **[apic.sh](https://apic.sh/)**: [getting started](https://apic.sh/getting-started/),
 [the course](https://apic.sh/learn/), the [CLI reference](https://apic.sh/cli/),
-the [`.http` format](https://apic.sh/format/) and a [comparison](https://apic.sh/comparison/)
-with Bruno, Hurl, Postman, httpyac and curl.
+the [`.http` format](https://apic.sh/format/) and [authentication](https://apic.sh/auth/).
 
 ## Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request, and
-[AGENTS.md](AGENTS.md) if you are an AI agent. For any task on apic itself,
-read [docs/README.md](docs/README.md) for the routing table for every doc in
-this repo. Report a credential that escapes privately, as
-[SECURITY.md](SECURITY.md) describes.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) first, [AGENTS.md](AGENTS.md) if you
+are an AI agent, and [docs/README.md](docs/README.md) for the routing table for
+every doc in this repo. Report a credential that escapes privately
+([SECURITY.md](SECURITY.md)).
 
 ## Pipeline status
 

@@ -1,8 +1,9 @@
 # Response headers for Cloudflare Workers static assets, and for
 # slopstopper's local server during the browser checks. This file is a
 # template: plugins/security-headers.mjs writes the built copy into dist/
-# with __INLINE_SCRIPT_HASHES__ replaced by a hash of every inline script
-# the build produced, so the policy needs no 'unsafe-inline' for scripts.
+# with the placeholder on the Content-Security-Policy line replaced by a
+# hash of every inline script the build produced, so the policy needs no
+# 'unsafe-inline' for scripts.
 # Styles need it: Starlight sets CSS custom properties through style
 # attributes. 'wasm-unsafe-eval' is for Pagefind, the search index.
 /*

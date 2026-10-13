@@ -45,11 +45,12 @@ export default function securityHeaders() {
 			'astro:build:done': async ({ dir, logger }) => {
 				const dist = fileURLToPath(dir);
 				const template = await readFile(join(dist, '_headers'), 'utf8');
-				if (!template.includes(PLACEHOLDER)) {
-					throw new Error(`public/_headers no longer carries ${PLACEHOLDER}`);
+				const occurrences = template.split(PLACEHOLDER).length - 1;
+				if (occurrences !== 1) {
+					throw new Error(`public/_headers must carry ${PLACEHOLDER} exactly once, on the Content-Security-Policy line; found ${occurrences}`);
 				}
 				const hashes = await inlineScriptHashes(dist);
-				await writeFile(join(dist, '_headers'), template.replaceAll(PLACEHOLDER, hashes.join(' ')));
+				await writeFile(join(dist, '_headers'), template.replace(PLACEHOLDER, hashes.join(' ')));
 				logger.info(`_headers: script-src allows ${hashes.length} inline script hash(es)`);
 			},
 		},

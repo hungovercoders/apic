@@ -47,11 +47,13 @@ reliability:
   sitemap:
     sitemap_path: /sitemap-index.xml
 
-# apic.sh is static assets on a Worker with no headers file, so there is no
-# CSP to check for drift. Point this at website/public/_headers if one is
-# added (format: cloudflare-text).
+# The response headers Cloudflare sends, including the Content-Security-
+# Policy, in the template plugins/security-headers.mjs builds from. The
+# drift check reads the policy from here; a per-path relaxation needs a
+# matching entry in docs/security/CSP_EXCEPTIONS.md.
 headers:
-  source: null
+  source: website/public/_headers
+  format: cloudflare-text
 
 hygiene:
   complexity:

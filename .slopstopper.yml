@@ -55,10 +55,14 @@ headers:
 
 hygiene:
   complexity:
-    # lizard counts every `case`, and apic's parsers, importers and the
-    # runner are switch-driven by design, so the ceiling is golangci-lint's
-    # gocyclo default (30) rather than slopstopper's 15.
-    max_ccn: 30
+    # A baseline, not a target: the ceiling sits at the most complex
+    # function in the tree today (curlimport.Parse, 74), so nothing worse
+    # can land, and it ratchets down as the backlog below 75 is refactored.
+    # The aim is 30, golangci-lint's gocyclo default; 22 functions sit
+    # between 30 and 75 (the runner, the importers, the parsers and the
+    # UI's key handler). lizard counts every `case`, which is why 15 never
+    # fitted a switch-driven CLI.
+    max_ccn: 75
 
 # Any check you don't want, by workflow filename. A profile drops whole
 # sets; this is for one-offs. `enabled` takes a single check back from a

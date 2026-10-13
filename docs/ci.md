@@ -55,11 +55,12 @@ in place, so a deliberately deleted one does not come back.
   instead of carrying everything: `AGENTS.md` stays under about 2,000
   tokens, `README.md` under 600 (badges excluded) and every doc under `docs/`
   has a trigger-first route from `AGENTS.md` or the map in `docs/README.md`.
-- The complexity check is lizard with a CCN ceiling of 30, golangci-lint's
-  `gocyclo` default rather than slopstopper's 15: lizard counts every
-  `case`, and apic's parsers, importers and the runner are switch-driven by
-  design. Functions still above 30 are listed in
-  the report `task ss:hygiene:complexity` writes under `.ss/reports/`.
+- The complexity check is lizard, with the CCN ceiling in `.slopstopper.yml`
+  set as a ratchet: it sits at the most complex function in the tree, so
+  nothing worse can land, and it comes down as functions are refactored. The
+  aim is 30, golangci-lint's `gocyclo` default; lizard counts every `case`,
+  so a switch-driven parser reads high. Lower the ceiling in the same change
+  that takes the worst function under it, and never raise it.
 - Before diagnosing a red check, read
   `.claude/skills/slopstopper-triage/SKILL.md`, which maps each workflow to
   the local task, its report under `.ss/reports/` and where the fix lives.

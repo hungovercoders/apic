@@ -29,7 +29,7 @@ the cask installs the binary, the man pages and shell completions, and
 
 
 ```sh
-go install github.com/hungovercoders/apic/cmd/apic@latest   # Go 1.25 or newer
+go install github.com/hungovercoders/apic/cmd/apic@latest   # Go 1.25.7 or newer
 ```
 
 </TabItem>
@@ -43,8 +43,9 @@ Without Homebrew:
 curl -fsSL https://raw.githubusercontent.com/hungovercoders/apic/main/install.sh | sh
 ```
 
-`APIC_VERSION=v1.2.3` pins a version, `APIC_INSTALL_DIR=~/bin` chooses
-where it lands. The installer verifies the release checksum.
+`| APIC_VERSION=v1.2.3 sh` pins a version, `| APIC_INSTALL_DIR=~/bin sh`
+chooses where it lands; the variable goes before `sh`, which runs the
+installer. The installer verifies the release checksum.
 
 </TabItem>
 
@@ -94,7 +95,8 @@ to install by hand.
 docker run --rm -v "$PWD:/work" ghcr.io/hungovercoders/apic version
 ```
 
-The image is the binary on `scratch`, about 7 MB, for amd64 and arm64.
+The image is the binary on `scratch`, about 16 MB (about 7 MB to pull),
+for amd64 and arm64.
 The project directory is mounted at `/work`; see
 [the cookbook](cookbook.md#in-a-container) for CI systems that run
 containers.
@@ -150,6 +152,8 @@ api/
   api.http
   features/smoke.feature
   .gitignore
+  .claude/skills/apic/           the Agent Skill (--no-skill leaves it out)
+  .agents/skills/apic/
 ```
 
 `apic.yaml` sets defaults so you do not repeat flags:
@@ -248,6 +252,7 @@ The first time, this fails with exit code 2 and tells you why:
 ```
 error: users.http:6: missing variable
   {{token}}: it is captured by request "login"; run `apic run login` first, or pass --var token=...
+  E101 missing variable · see https://apic.sh/errors/#e101
 ```
 
 So log in (or add `# @ref login` to `get-user` and apic does this for you;
@@ -365,7 +370,9 @@ Cucumber runtime:
 # @name create-user
 # @step a user named {name} exists
 POST {{baseUrl}}/users
-...
+Content-Type: application/json
+
+{"name": "{{name}}", "email": "{{name}}@example.com"}
 
 ### Fetch a user
 # @name get-user

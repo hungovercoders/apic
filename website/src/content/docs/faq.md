@@ -1,6 +1,6 @@
 ---
 title: "FAQ"
-description: "Short answers to the questions that come up: missing variables, environments, the session, assertions, auth, output and editors."
+description: "Short answers to the questions that come up: missing or wrong variables, the session, secrets in CI, AWS, proxies and OAuth2, Gherkin steps, the UI, installing and editors."
 ---
 Short answers to the things that come up. Anything longer lives in the
 guides these link to. Every error apic prints has a code (`E101`, `E301`,
@@ -13,6 +13,7 @@ Because nothing provided it. The error names the request that would:
 ```
 error: users.http:14: missing variable
   {{token}}: it is captured by request "login"; run `apic run login` first, or pass --var token=...
+  E101 missing variable · see https://apic.sh/errors/#e101
 ```
 
 `apic describe <id>` shows every variable the request needs, the source each
@@ -148,9 +149,12 @@ piping to a file gives clean text with no escape codes.
 Yes:
 
 ```sh
-APIC_VERSION=v1.2.3 curl -fsSL https://raw.githubusercontent.com/hungovercoders/apic/main/install.sh | sh
-APIC_INSTALL_DIR=~/bin curl -fsSL ... | sh
+curl -fsSL https://raw.githubusercontent.com/hungovercoders/apic/main/install.sh | APIC_VERSION=v1.2.3 sh
+curl -fsSL https://raw.githubusercontent.com/hungovercoders/apic/main/install.sh | APIC_INSTALL_DIR=~/bin sh
 ```
+
+The variable goes before `sh`, not before `curl`: it is the installer that
+reads it.
 
 On Windows, the same variables for `install.ps1`:
 

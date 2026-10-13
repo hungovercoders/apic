@@ -93,7 +93,7 @@ Several commands take a target:
 | `users.http#3` | The third request in the file. Unnamed requests are listed with this id. |
 
 Files are found by walking the project root for `*.http` and `*.rest`,
-skipping hidden directories, `node_modules` and `vendor`. `apic.yaml` can
+skipping hidden directories, `node_modules`, `vendor` and `testdata`. `apic.yaml` can
 narrow this with `dir: api`.
 
 ## apic run
@@ -261,7 +261,7 @@ for the vocabulary.
 
 | Flag | Meaning |
 |---|---|
-| `-f, --format` | `pretty` (default), `progress`, `cucumber`, `junit`. `--json` selects `cucumber`. |
+| `-f, --format` | `pretty` (default), `progress`, `cucumber`, `junit`, `html` (a self-contained report, with `--output`). `--json` selects `cucumber`. |
 | `-o, --output <file>` | Write the report to a file. |
 | `-t, --tags <expr>` | Tag expression, e.g. `"@smoke && ~@slow"`. |
 | `--stop-on-failure` | Stop after the first failed scenario; the remaining scenarios are reported as skipped. |
@@ -280,8 +280,8 @@ apic ui [--demo]
 ```
 
 Opens the [terminal UI](tui.md): requests on the left, each row carrying its
-status and round trip once it has run, and preview, response, checks and
-session tabs on the right. <kbd>enter</kbd> runs the selected request,
+status and round trip once it has run, and preview, response, checks,
+session and history tabs on the right. <kbd>enter</kbd> runs the selected request,
 <kbd>f</kbd> runs its file as a flow, <kbd>e</kbd> switches environment,
 <kbd>J</kbd>/<kbd>K</kbd> scroll the right pane, <kbd>?</kbd> lists every key.
 
@@ -374,8 +374,8 @@ the request headers. `refs` lists the request's
 Sources are one of `--var`, `shell APIC_VAR_<name>`, `captured this run`,
 `session`, `http-client.private.env.json [env]`, `http-client.env.json [env]`,
 `.env`, `<file>:<line> @<name>`, `built-in`, `response reference (flow only)`
-or `missing`. Values with `"secret": true` (private env file, `.env`,
-session) are shown as `***`.
+or `missing`. Values with `"secret": true` (`--var`, `APIC_VAR_`, values captured this
+run, the session, the private env file and `.env`) are shown as `***`.
 
 ## apic env
 
@@ -916,10 +916,12 @@ them.
   "out": "apic-demo",
   "url": "http://localhost:8089",
   "written": ["apic-demo/apic.yaml"],
-  "skipped": [],
   "listening": true
 }
 ```
+
+`skipped` lists the files that were already there and were left alone; it
+is omitted when there are none.
 
 ## apic init
 
@@ -931,8 +933,8 @@ Writes a working starting point into `dir` (default: the current
 directory): `apic.yaml` (with `history: 10`, so `apic history` and `apic
 select` work from the first run), `http-client.env.json`, a `http-client.private.env.json`
 with mode 0600, `api.http` with two annotated requests, a
-`features/smoke.feature`, `.gitignore` lines for the private env file
-and `.apic/`, and the [Agent Skill](agents.md#3-a-skill-claude-code-codex-cursor-any-agent-that-loads-skills)
+`features/smoke.feature`, `.gitignore` lines for the private env file,
+`.env` and `.apic/`, and the [Agent Skill](agents.md#3-a-skill-claude-code-codex-cursor-any-agent-that-loads-skills)
 under `.claude/skills/apic` and `.agents/skills/apic`, so an AI agent
 working in the project knows how to use apic from the first session.
 Existing files are kept unless `--force` is given, the skill's included
@@ -998,8 +1000,8 @@ source <(apic completion bash)
 apic completion zsh > "${fpath[1]}/_apic"
 ```
 
-Completion knows the project: `run`, `describe` and `curl` complete request
-ids and `.http` file names, and `--env` completes the environments in
+Completion knows the project: `run`, `describe`, `curl`, `snippet`,
+`select` and `history` complete request ids and `.http` file names, and `--env` completes the environments in
 `http-client.env.json`.
 
 ## Configuration file
@@ -1056,7 +1058,7 @@ and the URL above.
 | `apic.yaml` | Defaults. |
 | `http-client.env.json` | Public per-environment variables. |
 | `http-client.private.env.json` | Secret per-environment variables. Gitignore it. |
-| `.env` | `KEY=value` lines; lowest precedence after file `@vars`. |
+| `.env` | `KEY=value` lines; second-lowest precedence, above file `@vars`. |
 | `.apic/session.json` | Captured values per environment. Written by `run`, cleared by `session clear`. `.apic/.gitignore` is created alongside so it is never committed. |
 | `.apic/cookies.json` | The cookie jar per environment, when cookies are on. Written `0600` by `run`, cleared by `session clear`, listed by `session cookies`. |
 | `.apic/history/` | The last responses of each named request per environment, when `history:` is set. One `0600` file per response, written by `run`, read by `history`, cleared by `history clear`. |

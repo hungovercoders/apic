@@ -21,8 +21,8 @@ func (a *App) uiCmd() *cobra.Command {
 		Use:   "ui",
 		Short: "Browse and run the project's requests in a terminal UI",
 		Long: `ui opens an interactive terminal UI: the requests on the left, and a
-preview, the response, the checks and the session on the right. Run a
-request with enter, a whole file with f, switch environment with e, and
+preview, the response, the checks, the session and the history on the
+right. Run a request with enter, a whole file with f, switch environment with e, and
 press ? for every key.
 
 This is the one apic command that needs a terminal. It refuses to start when

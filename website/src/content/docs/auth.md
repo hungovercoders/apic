@@ -1,6 +1,6 @@
 ---
 title: "Authentication"
-description: "Attach credentials with # @auth or auth.default: bearer, basic, API key, OAuth2 with caching and refresh, AWS SigV4 and any CLI that prints a token."
+description: "Attach credentials with # @auth or auth.default: bearer, basic, API key, digest, OAuth2 with caching and refresh, AWS SigV4, any CLI that prints a token, and TLS client certificates."
 ---
 apic can attach credentials to a request with a `# @auth` directive, or to
 every request in a project with `auth.default` in `apic.yaml`. Like every
@@ -19,6 +19,8 @@ GET {{baseUrl}}/orders
 | `none` | `# @auth none` | Send no credentials. Overrides a project default. |
 | `bearer` | `# @auth bearer {{token}}` | `Authorization: Bearer <token>` |
 | `basic` | `# @auth basic {{user}} {{password}}` | HTTP basic auth (base64 done for you) |
+| `apikey` | `# @auth apikey {{key}} [header=..] [query=..] [prefix=..]` | The key as a header (default `X-Api-Key`, no prefix) or a query parameter |
+| `digest` | `# @auth digest {{user}} {{password}}` | HTTP digest auth (RFC 7616), answering the server's challenge |
 | `aws` | `# @auth aws [service=execute-api] [region=..] [profile=..]` | AWS Signature V4 using the standard credential chain |
 | `oauth2` | `# @auth oauth2 tokenUrl=.. clientId=.. ...` | Client credentials, password, device code or authorization code (PKCE) grant; token cached and refreshed |
 | `exec` | `# @auth exec <command> [args]` | Run a command and use its output as the token |
@@ -68,7 +70,7 @@ See `examples/github/repo.http` for `bearer` against the real GitHub API.
 ## apikey
 
 ```http
-# @auth apikey {{key}}                                  # header X-Api-Key, no prefix
+# @auth apikey {{key}}
 # @auth apikey {{key}} header=X-Auth-Token
 # @auth apikey {{key}} query=api_key
 # @auth apikey {{key}} header=Authorization prefix="Token "
@@ -164,8 +166,10 @@ login") is passed through.
 | `clientAuth=` | `body` (default: `client_id`/`client_secret` in the form) or `basic` (HTTP basic auth on the token request). |
 
 The access token is cached in the session (`.apic/session.json`) for the
-current environment, keyed by token URL, client id, grant, scope, username
-and audience. It is reused until a minute before it expires, then refreshed
+current environment, keyed by every option that changes the token: the
+token and device URLs, the client id, secret and auth method, the grant,
+scope, username, password, audience and, for the authorization code grant,
+the authorization URL. It is reused until a minute before it expires, then refreshed
 with the refresh token when the server issued one, otherwise re-requested.
 `apic session` shows the cached entries and their remaining lifetime;
 `apic session clear` forgets them. `--no-session` fetches a fresh token on
@@ -363,7 +367,7 @@ second table):
 | `apikey` | `-H 'X-Api-Key: key'` (or the header named), or `--url-query 'name=key'` for the query form (curl 7.87 or newer) |
 | `digest` | `--digest --user 'user:password'` |
 | `aws` | `--aws-sigv4 'aws:amz:<region>:<service>' --user "$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY"` plus the session token header |
-| `oauth2` | a placeholder `$TOKEN` header with a comment naming the token URL |
+| `oauth2` | a placeholder `-H "Authorization: Bearer $TOKEN"` header |
 | `exec` | `-H "Authorization: Bearer $(command)"` |
 
 | Type | httpie | powershell | python | js | go |

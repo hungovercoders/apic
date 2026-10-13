@@ -1,6 +1,6 @@
 ---
 title: "Using apic with Taskfile"
-description: "Make Task the front door for an apic project: tasks that run requests, flows and features with the environment and secrets handled in one place."
+description: "Make Task the front door for an apic project: tasks that run requests and flows, with the environment and secrets handled in one place."
 ---
 If your team already runs things with [Task](https://taskfile.dev), keep
 it. apic is a plain CLI with clean exit codes, so Task becomes the front
@@ -33,7 +33,8 @@ and the task is a one-line reference:
 ```yaml
 get-user:
   dir: api
-  cmds: [apic run get-user --var userId={{.ID}}]
+  cmds:
+    - apic run get-user --var userId={{.ID}}
 ```
 
 ## Patterns
@@ -62,17 +63,20 @@ tasks:
   login:
     desc: Log in and store the token for later tasks
     dir: api
-    cmds: [apic run login --env {{.ENV}}]
+    cmds:
+      - apic run login --env {{.ENV}}
 
   user:
     desc: task user ID=42 [ENV=staging]
     dir: api
-    cmds: [apic run get-user --env {{.ENV}} --var userId={{.ID}}]
+    cmds:
+      - apic run get-user --env {{.ENV}} --var userId={{.ID}}
 
   smoke:
     desc: Run every request in smoke.http; fails if any assertion fails
     dir: api
-    cmds: [apic run smoke.http --env {{.ENV}}]
+    cmds:
+      - apic run smoke.http --env {{.ENV}}
 ```
 
 Run `task login ENV=staging` once, then `task user ID=7 ENV=staging` as often
@@ -82,7 +86,8 @@ as you like. The token lives in apic's session, so you do not need `deps:
 ```yaml
   user:
     deps: [login]
-    cmds: [apic run get-user --var userId={{.ID}}]
+    cmds:
+      - apic run get-user --var userId={{.ID}}
 ```
 
 ### Piping output into other tasks
@@ -129,7 +134,8 @@ For a machine that has Task and curl but not apic:
   api:curl:
     desc: Print the curl for a request, e.g. task api:curl -- get-user
     dir: api
-    cmds: [apic curl {{.CLI_ARGS}}]
+    cmds:
+      - apic curl {{.CLI_ARGS}}
 ```
 
 ### Installing apic from a task

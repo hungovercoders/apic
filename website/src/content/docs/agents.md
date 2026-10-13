@@ -3,7 +3,7 @@ title: "Using apic from an AI agent"
 description: "Drive an API from an AI agent with apic: the shell contract, stable --json output, exit codes, the error catalogue, the MCP server and the Agent Skill."
 ---
 apic is designed so an agent can drive an API with the same files a human
-uses in their editor. Two integration styles are available.
+uses in their editor. Three integration styles are available.
 
 ## 1. Shell (works with any agent that can run commands)
 
@@ -47,14 +47,14 @@ The `--json` shape is stable:
   "request": {"name": "get-user", "file": "users.http", "line": 10, "method": "GET", "url": "https://...", "headers": {"Accept": "application/json"}},
   "response": {"status": 200, "status_text": "OK", "headers": {"content-type": "application/json"}, "body": {"id": 42}, "duration_ms": 87, "size": 412},
   "captures": {"email": "a@b.c"},
-  "asserts": [{"expr": "status == 200", "pass": true, "actual": "200", "expected": "200"}],
-  "errors": []
+  "asserts": [{"expr": "status == 200", "pass": true, "actual": "200", "expected": "200"}]
 }
 ```
 
 `response.body` is parsed JSON when the body is JSON, otherwise a string;
 a body that is not text comes as base64 with `"body_encoding": "base64"`
-beside it, and `saved_to` says where a `>> file` line wrote it.
+beside it, and `saved_to` says where a `>> file` line wrote it. `errors`
+appears only when something failed, as a list of messages.
 `request.auth` names the auth type applied (`aws`, `oauth2` and so on) without
 exposing credentials, and sensitive request headers are shown as `***`;
 see [auth.md](auth.md). URL, body and captures are real values so an agent
@@ -108,7 +108,7 @@ Tools exposed:
 |---|---|
 | `list_requests` | ids, methods, URL templates, descriptions, captures, asserts |
 | `describe_request {name, env?}` | variables and sources, `ready` flag |
-| `run_request {name, env?, vars?}` | send one request; returns the same JSON as `apic run --json` |
+| `run_request {name, env?, vars?}` | send one request; returns the same JSON as `apic run --json`, with any `# @ref` dependencies nested under `ran_first` |
 | `run_file {file, env?, vars?, keep_going?}` | run a file as a flow |
 | `list_environments {env?}` | environments and effective variables (secrets masked) |
 | `clear_session {env?, all?}` | forget captured values and cookies |

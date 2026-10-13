@@ -228,17 +228,20 @@ tasks:
   api:
     desc: Run any request, e.g. task api -- get-user --env staging
     dir: api
-    cmds: [apic run {{.CLI_ARGS}}]
+    cmds:
+      - apic run {{.CLI_ARGS}}
 
   login:
     desc: Log in and keep the token for the tasks below
     dir: api
-    cmds: [apic run login --env {{.ENV}}]
+    cmds:
+      - apic run login --env {{.ENV}}
 
   smoke:
     desc: Run every request in smoke.http
     dir: api
-    cmds: [apic run smoke.http --env {{.ENV}}]
+    cmds:
+      - apic run smoke.http --env {{.ENV}}
 
   api:check:
     desc: Validate the request files and run the smoke flow, as CI does

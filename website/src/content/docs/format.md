@@ -49,7 +49,7 @@ Accept: application/json
 | Editor script blocks | `> {% … %}`, `< {% … %}` and `> ./handler.js` are skipped with a warning, not sent — apic has no scripting. `apic validate` lists them |
 
 Files are found by walking the project root for `*.http` and `*.rest`,
-skipping hidden directories, `node_modules` and `vendor`.
+skipping hidden directories, `node_modules`, `vendor` and `testdata`.
 
 ## Directives
 
@@ -102,8 +102,9 @@ Unknown directives are reported as warnings by `apic validate` and ignored.
 
 Select with `--env dev`, or set a default in `apic.yaml` (`env: dev`).
 Keep secrets in `http-client.private.env.json` and gitignore it; apic masks
-values from that file, from `.env` and from the session in `describe`, `env`
-and MCP output. A JetBrains `SSLConfiguration` entry in either file is not
+values from that file, from `.env`, from the session, from `--var` and
+`APIC_VAR_`, and values captured this run, in `describe`, `env` and MCP
+output. A JetBrains `SSLConfiguration` entry in either file is not
 a variable: it configures a client certificate, see
 [auth.md](auth.md#tls-and-client-certificates). Neither is a `Security`
 block, whose `Auth` configurations requests use as
@@ -311,7 +312,9 @@ GET {{baseUrl}}/users/{{userId}}
 
 `apic run file.http` runs every request in the file in order and stops at
 the first failed assertion, failed capture or transport error (use
-`--keep-going` to continue). Exit code is 1 if anything failed. `--json`
+`--keep-going` to continue). Exit code is 1 if an assertion or capture
+failed, 2 for a definition problem such as a missing variable, and 3 for a
+network error. `--json`
 prints one JSON object per request (NDJSON).
 
 ## HTTP version
@@ -338,8 +341,8 @@ GET https://api.example.com/health HTTP/2
 `run -v` puts the protocol the response came over in front of the status
 (`HTTP/2.0 200 OK`), `--json` has it as `response.proto` and the pinned
 version as `request.http_version`, and `apic curl` adds `--http1.1` or
-`--http2`. `apic import curl` reads those two flags back onto the request
-line.
+`--http2`. `apic import --curl` reads those two flags back onto the
+request line.
 
 ## Dependencies
 
@@ -376,8 +379,9 @@ response.
 A dependency that fails (an assertion, a capture, the network) stops the
 request that depends on it: the run reports the dependency's result, then
 the request as failed without sending it. The output shows what ran first
-(`↳ ran login first (# @ref)` in the terminal, `ran_first` in `--json`,
-see [cli.md](cli.md#apic-run)).
+(`↳ ran login first (# @ref)` in the terminal; under `--json` the
+dependency prints as its own object before the request, and MCP
+`run_request` nests it under `ran_first`; see [cli.md](cli.md#apic-run)).
 
 ## Retries
 
@@ -524,7 +528,7 @@ they are. Formatting twice changes nothing. See
 
 ```
 api/
-  apic.yaml                      optional: env, dir, timeout, auth.default, auth.allowExec, test.paths
+  apic.yaml                      optional: env, dir, timeout, retry, cookies, history, proxy, noProxy, maxBodyBytes, tls, auth.default, auth.allowExec, test.paths
   features/*.feature             Gherkin specs run by `apic test`
   http-client.env.json           public per-environment variables
   http-client.private.env.json   secrets (gitignored)

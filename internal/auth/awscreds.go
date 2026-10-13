@@ -85,7 +85,7 @@ func (s *awsSettings) checkRegion() error {
 
 // exportCredentials asks the AWS CLI for the profile's current credentials.
 func exportCredentials(ctx context.Context, cli, profile string) (AWSCredentials, error) {
-	cmd := exec.CommandContext(ctx, cli, "configure", "export-credentials", "--profile", profile, "--format", "process")
+	cmd := exec.CommandContext(ctx, cli, "configure", "export-credentials", "--profile", profile, "--format", "process") // the AWS CLI the user configured; nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
 	var stderr strings.Builder
 	cmd.Stderr = &stderr
 	raw, err := cmd.Output()

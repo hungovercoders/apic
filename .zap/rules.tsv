@@ -24,3 +24,8 @@
 #                # Cosmos emulator). ZAP's heuristic matches SQL syntax in
 #                # <pre><code> blocks as if the application were leaking
 #                # source code; it isn't
+
+10055-6	IGNORE	# style-src 'unsafe-inline': Starlight sets CSS custom properties
+#                # through style attributes (--sl-icon-size on every icon) and
+#                # inlines component <style> blocks, which hashes cannot cover.
+#                # Scripts are hashed (website/plugins/security-headers.mjs).

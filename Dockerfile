@@ -18,4 +18,8 @@ ARG TARGETPLATFORM
 COPY --from=rootfs /rootfs/ /
 COPY $TARGETPLATFORM/apic /apic
 WORKDIR /work
+# The image runs as root on purpose: apic writes .apic/ into the bind-mounted
+# project (-v "$PWD:/work"), which a fixed non-root uid could not do on a
+# directory the host user owns. Nothing listens; it is a CLI.
+# nosemgrep: dockerfile.security.missing-user-entrypoint.missing-user-entrypoint
 ENTRYPOINT ["/apic"]

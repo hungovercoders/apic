@@ -221,7 +221,7 @@ func runOne(e Eval, variant string, n int, out, apic, model, claude string, time
 		return s
 	}
 	defer func() { _ = demoLog.Close() }()
-	demo := exec.Command(apic, "demo", "--out", project, "--port", strconv.Itoa(port), "--force") //nolint:gosec // the binary this program just built
+	demo := exec.Command(apic, "demo", "--out", project, "--port", strconv.Itoa(port), "--force") //nolint:gosec // the binary this program just built; nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
 	demo.Stdout, demo.Stderr = demoLog, demoLog
 	if err := demo.Start(); err != nil {
 		s.Error = "starting apic demo: " + err.Error()
@@ -233,7 +233,7 @@ func runOne(e Eval, variant string, n int, out, apic, model, claude string, time
 		return s
 	}
 	if variant == "with" {
-		if outb, err := exec.Command(apic, "skill", "install", project).CombinedOutput(); err != nil { //nolint:gosec // the binary this program just built
+		if outb, err := exec.Command(apic, "skill", "install", project).CombinedOutput(); err != nil { //nolint:gosec // the binary this program just built; nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
 			s.Error = "installing the skill: " + err.Error() + ": " + string(outb)
 			return s
 		}
@@ -251,7 +251,7 @@ func runOne(e Eval, variant string, n int, out, apic, model, claude string, time
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	agent := exec.CommandContext(ctx, claude, args...) //nolint:gosec // the CLI named on the command line, with the eval's prompt
+	agent := exec.CommandContext(ctx, claude, args...) //nolint:gosec // the CLI named on the command line, with the eval's prompt; nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
 	agent.Dir = project
 	agent.Env = append(os.Environ(), "PATH="+filepath.Dir(apic)+string(os.PathListSeparator)+os.Getenv("PATH"))
 	transcript, err := os.Create(filepath.Join(dir, "transcript.jsonl")) //nolint:gosec // the transcript in the run directory this program made
@@ -287,7 +287,7 @@ func runOne(e Eval, variant string, n int, out, apic, model, claude string, time
 	verified := ""
 	var verifyErr error
 	if e.Checks.Verify != "" {
-		v := exec.Command("sh", "-c", e.Checks.Verify) //nolint:gosec // the eval's own verify command, from the repository's evals file
+		v := exec.Command("sh", "-c", e.Checks.Verify) //nolint:gosec // the eval's own verify command, from the repository's evals file; nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
 		v.Dir = project
 		v.Env = agent.Env
 		outb, err := v.CombinedOutput()

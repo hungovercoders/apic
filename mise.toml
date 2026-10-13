@@ -12,4 +12,4 @@
 # which looks for dist/ at the root unless told otherwise.
 [env]
 SERVE_ROOT = "website/dist"
-SS_SERVER_HEADERS = "website/public/_headers"
+SS_SERVER_HEADERS = "website/dist/_headers"

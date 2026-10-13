@@ -31,7 +31,7 @@ func editorCommand(editor, file string, line int) (*exec.Cmd, error) {
 	default:
 		args = append(args, fmt.Sprintf("+%d", line), file)
 	}
-	return exec.Command(parts[0], args...), nil //nolint:gosec // the editor is the user's own $EDITOR
+	return exec.Command(parts[0], args...), nil //nolint:gosec // the editor is the user's own $EDITOR; nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
 }
 
 // openEditor suspends the UI, opens the selected request's file at its

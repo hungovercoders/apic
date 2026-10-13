@@ -1,5 +1,19 @@
-# Served by Cloudflare Workers static assets (and by slopstopper's local
-# server during the browser checks). The share image is embedded by other
-# sites, so it needs an explicit cross-origin resource policy.
+# Response headers for Cloudflare Workers static assets, and for
+# slopstopper's local server during the browser checks. This file is a
+# template: plugins/security-headers.mjs writes the built copy into dist/
+# with __INLINE_SCRIPT_HASHES__ replaced by a hash of every inline script
+# the build produced, so the policy needs no 'unsafe-inline' for scripts.
+# Styles need it: Starlight sets CSS custom properties through style
+# attributes. 'wasm-unsafe-eval' is for Pagefind, the search index.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' __INLINE_SCRIPT_HASHES__; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), camera=(), microphone=()
+  Cross-Origin-Opener-Policy: same-origin
+
+# The share image is embedded by other sites, so it needs an explicit
+# cross-origin resource policy.
 /og-image.png
   Cross-Origin-Resource-Policy: cross-origin

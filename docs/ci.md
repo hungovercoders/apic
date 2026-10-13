@@ -48,8 +48,9 @@ in place, so a deliberately deleted one does not come back.
 - `.slopstopper.yml` points the browser checks at apic.sh and sets the
   hygiene knobs. The site builds from `website/`, so the root
   `package.json` has a `build` script that installs and builds it, and
-  `mise.toml` exports `SERVE_ROOT=website/dist` for the bundled static server
-  the browser checks run against on pull requests.
+  `mise.toml` exports `SERVE_ROOT=website/dist` and `SS_SERVER_HEADERS` for
+  the bundled static server the browser checks and DAST run against on pull
+  requests, so it sends the same headers as Cloudflare.
 - The entry-file budgets are the reason `AGENTS.md` routes to this directory
   instead of carrying everything: `AGENTS.md` stays under about 2,000
   tokens, `README.md` under 600 (badges excluded) and every doc under `docs/`
@@ -58,7 +59,7 @@ in place, so a deliberately deleted one does not come back.
   `gocyclo` default rather than slopstopper's 15: lizard counts every
   `case`, and apic's parsers, importers and the runner are switch-driven by
   design. Functions still above 30 are listed in
-  `.ss/reports/complexity/complexity-report.md` after `task ss:hygiene:complexity`.
+  the report `task ss:hygiene:complexity` writes under `.ss/reports/`.
 - Before diagnosing a red check, read
   `.claude/skills/slopstopper-triage/SKILL.md`, which maps each workflow to
   the local task, its report under `.ss/reports/` and where the fix lives.

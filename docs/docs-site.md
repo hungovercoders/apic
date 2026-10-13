@@ -34,8 +34,11 @@ the prose checks. The site's content is not reference for working on apic;
   `src/assets/logo.svg` is the logo the README and the site share.
 - `src/routeData.ts` adds the share tags Starlight does not write
   (`og:image`, the Twitter title, description and image) to every page;
-  `public/og-image.png` is the 1200×630 image they point at, and
-  `public/_headers` sets its cross-origin resource policy. `robots.txt` and
+  `public/og-image.png` is the 1200×630 image they point at.
+  `public/_headers` is the template for the response headers Cloudflare
+  sends (a Content-Security-Policy, frame and sniffing protection);
+  `plugins/security-headers.mjs` writes the built copy with a hash of every
+  inline script, so the policy allows Starlight's own scripts and nothing else. `robots.txt` and
   `llms.txt` are generated under `src/pages/` from the site URL and the
   docs collection, so neither can drift from the pages. slopstopper's
   reliability checks assert all of this against the built site; see `ci.md`.

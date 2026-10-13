@@ -37,6 +37,9 @@ exclude = [
   '^https://apic\.sh',
   '^https://hungovercoders\.github\.io/apic',
   '^https://github\.com/hungovercoders/apic/(blob|tree|releases|issues|pull|compare)',
+  # A workflow badge is a 404 until the workflow has run on main; the
+  # README's slopstopper block names workflows added in the same pull request.
+  '^https://github\.com/hungovercoders/apic/actions/workflows/.*/badge\.svg',
   '^https://raw\.githubusercontent\.com/hungovercoders/apic',
   '^https://github\.com/hungovercoders/homebrew-tap',
   # The extension's own listings exist once it is published.

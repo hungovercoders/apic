@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"sync"
+	"sync/atomic"
 )
 
 // errCancelled is what a keySource's Read returns once Cancel has been
@@ -28,11 +29,13 @@ type keySource interface {
 // reads the file for the life of the program and Read waits on it or on
 // Cancel. The read that is pending when Cancel is called still completes
 // in the background, so on these platforms the first bytes typed into the
-// editor can be lost to it; Resume drops them rather than letting them
-// reach the model as keys.
+// editor can be lost to it. Each chunk records whether its read returned
+// while paused, and Read drops those, so what the editor was meant to
+// get never reaches the model as keys, however late the chunk arrives.
 type bgSource struct {
-	chunks chan []byte
+	chunks chan chunk
 	errc   chan error
+	paused atomic.Bool
 
 	mu     sync.Mutex
 	cancel chan struct{} // closed by Cancel, replaced by Resume
@@ -40,14 +43,21 @@ type bgSource struct {
 	rest   []byte        // the tail of a chunk a short Read left over
 }
 
+// chunk is one read's bytes. stale marks a read that returned while the
+// source was paused: its bytes were typed at the editor, not the UI.
+type chunk struct {
+	b     []byte
+	stale bool
+}
+
 func newBgSource(r io.Reader) *bgSource {
-	s := &bgSource{chunks: make(chan []byte, 8), errc: make(chan error, 1), cancel: make(chan struct{})}
+	s := &bgSource{chunks: make(chan chunk, 8), errc: make(chan error, 1), cancel: make(chan struct{})}
 	go func() {
 		buf := make([]byte, 256)
 		for {
 			n, err := r.Read(buf)
 			if n > 0 {
-				s.chunks <- append([]byte(nil), buf[:n]...)
+				s.chunks <- chunk{b: append([]byte(nil), buf[:n]...), stale: s.paused.Load()}
 			}
 			if err != nil {
 				s.errc <- err
@@ -70,18 +80,23 @@ func (s *bgSource) Read(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	select {
-	case <-cancel:
-		return 0, errCancelled
-	case b := <-s.chunks:
-		n := copy(p, b)
-		s.setRest(b[n:])
-		return n, nil
-	case err := <-s.errc:
-		s.mu.Lock()
-		s.err = err
-		s.mu.Unlock()
-		return 0, err
+	for {
+		select {
+		case <-cancel:
+			return 0, errCancelled
+		case c := <-s.chunks:
+			if c.stale {
+				continue
+			}
+			n := copy(p, c.b)
+			s.setRest(c.b[n:])
+			return n, nil
+		case err := <-s.errc:
+			s.mu.Lock()
+			s.err = err
+			s.mu.Unlock()
+			return 0, err
+		}
 	}
 }
 
@@ -94,6 +109,7 @@ func (s *bgSource) setRest(b []byte) {
 func (s *bgSource) Cancel() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.paused.Store(true)
 	select {
 	case <-s.cancel:
 	default:
@@ -105,12 +121,6 @@ func (s *bgSource) Resume() {
 	s.mu.Lock()
 	s.cancel = make(chan struct{})
 	s.rest = nil
+	s.paused.Store(false)
 	s.mu.Unlock()
-	for {
-		select {
-		case <-s.chunks:
-		default:
-			return
-		}
-	}
 }

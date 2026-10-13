@@ -52,11 +52,18 @@ func TestBgSourceCancelAndResume(t *testing.T) {
 		t.Fatalf("a Read after Cancel should fail at once, got %q, %v", r.s, r.err)
 	}
 
-	// Typed while paused: taken by the background read, dropped by Resume.
+	// Typed while paused: taken by the background read, which marks it
+	// stale, so it is dropped however late it is consumed. Wait for it to
+	// be queued so that Resume cannot run before the mark is taken.
 	if _, err := pw.Write([]byte("zzz")); err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(20 * time.Millisecond) // the reader hands the chunk on right after the write returns
+	for start := time.Now(); len(s.chunks) == 0; {
+		if time.Since(start) > 2*time.Second {
+			t.Fatal("the reader should have queued the chunk")
+		}
+		time.Sleep(time.Millisecond)
+	}
 	s.Resume()
 	after := readAsync(s)
 	if _, err := pw.Write([]byte("a")); err != nil {

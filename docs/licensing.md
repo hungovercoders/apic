@@ -18,6 +18,10 @@
   modules godog pulls in are the existing exception). Anything reciprocal —
   GPL or LGPL — would change apic's own terms, so it is off the table for a
   statically linked binary.
+- The rule is about what ships: the binary, the archives, the image and the
+  extension. Tooling that only runs in CI, such as the npm devDependencies
+  slopstopper's browser checks use (`axe-core` is MPL-2.0), is not
+  distributed and is outside it.
 - Write the AWS signer and the OpenAPI reader style of code from the spec,
   not by copying from another project; the tree carries no third-party
   source files and should stay that way.

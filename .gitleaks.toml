@@ -1,21 +1,18 @@
 # gitleaks config for the slopstopper secrets check (task ss:security:secrets).
-# The default rules apply; the allowlist covers the example credentials the
-# docs and tests carry on purpose: `--user bob:hunter2` in a lesson, a
-# `Bearer abc` in a curl-import test case, a fake API key in a feature.
-# Real credentials live in http-client.private.env.json, which is gitignored.
+# The default rules apply. The allowlist names the example credentials the
+# docs and tests carry on purpose, by value rather than by path, so a real
+# credential pasted into a lesson or a fixture is still caught. Real
+# credentials live in http-client.private.env.json, which is gitignored.
 
 [extend]
 useDefault = true
 
 [[allowlists]]
-description = "Example credentials in tests, fixtures, the course and the migration guides"
-paths = [
-  '''.*_test\.go$''',
-  '''.*/testdata/.*''',
-  '''^docs/learn/.*''',
-  '''^docs/migrate/.*''',
-  '''^website/src/content/docs/learn/.*''',
-  '''^website/src/content/docs/migrate/.*''',
-  '''^website/src/content/docs/cookbook\.md$''',
-  '''^examples/.*''',
+description = "The example credentials in the course, the migration guides, the fixtures and the tests"
+regexTarget = "secret"
+regexes = [
+  '''^mock-token$''',
+  '''^'?bob:hunter2'?$''',
+  '''^'?alice:s3cret'?$''',
+  '''^hunter2-default-env$''',
 ]

@@ -16,7 +16,8 @@ const sections: Array<[string, (id: string) => boolean]> = [
 ];
 
 export const GET: APIRoute = async ({ site }) => {
-	const docs = (await getCollection('docs')).sort((a, b) => a.id.localeCompare(b.id));
+	// Starlight builds no route for a draft, so it gets no link either.
+	const docs = (await getCollection('docs', ({ data }) => !data.draft)).sort((a, b) => a.id.localeCompare(b.id));
 	const url = (id: string) => new URL(id === 'index' ? '/' : `/${id}/`, site).href;
 	const lines = ['# apic', '', `> ${SUMMARY}`, '', 'Every page of apic.sh, the documentation for the apic CLI. Pages link to each other; the CLI reference and the `.http` format guide are the two most agents need.', ''];
 	const seen = new Set<string>();

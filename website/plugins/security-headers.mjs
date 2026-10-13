@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const PLACEHOLDER = '__INLINE_SCRIPT_HASHES__';
+const MAX_HEADER_VALUE = 2000;
 const INLINE_SCRIPT = /<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g;
 
 async function htmlFiles(dir) {
@@ -50,8 +51,16 @@ export default function securityHeaders() {
 					throw new Error(`public/_headers must carry ${PLACEHOLDER} exactly once, on the Content-Security-Policy line; found ${occurrences}`);
 				}
 				const hashes = await inlineScriptHashes(dist);
-				await writeFile(join(dist, '_headers'), template.replace(PLACEHOLDER, hashes.join(' ')));
-				logger.info(`_headers: script-src allows ${hashes.length} inline script hash(es)`);
+				const built = template.replace(PLACEHOLDER, hashes.join(' '));
+				// Cloudflare ignores a _headers value longer than 2,000 characters, and
+				// nothing in CI would notice: the local server has no such limit.
+				const policy = built.split('\n').find((line) => line.trimStart().startsWith('Content-Security-Policy:')) ?? '';
+				const value = policy.slice(policy.indexOf(':') + 1).trim();
+				if (value.length > MAX_HEADER_VALUE) {
+					throw new Error(`Content-Security-Policy is ${value.length} characters; Cloudflare drops a _headers value over ${MAX_HEADER_VALUE}. Fewer distinct inline scripts, or a shorter policy.`);
+				}
+				await writeFile(join(dist, '_headers'), built);
+				logger.info(`_headers: script-src allows ${hashes.length} inline script hash(es); the policy is ${value.length} of ${MAX_HEADER_VALUE} characters`);
 			},
 		},
 	};

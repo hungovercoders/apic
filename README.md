@@ -14,12 +14,14 @@
 <p align="center"><img src="website/public/assets/apic-demo.svg" width="820" alt="apic ui --demo"></p>
 
 ```sh
-apic ui --demo                      # a fake API and a UI to poke it with, no setup
+apic demo                           # terminal 1: a fake API and a project for it in ./apic-demo
+cd apic-demo                        # terminal 2
 apic run login                      # POST, capture the token
-apic run get-user --env staging     # reuse the token, check assertions
-apic run smoke.http --json | jq     # whole file as a flow, one JSON line per request
-apic test                           # run Gherkin features against the same requests
-claude mcp add api -- apic mcp      # let an agent call the same requests as tools
+apic run whoami                     # reuse the token, check assertions
+apic run auth.http --json | jq      # a file as a flow, one JSON line per request
+apic test                           # Gherkin features against the same requests
+claude mcp add api -- apic mcp      # an agent calls the same requests as tools
+apic ui --demo                      # or just the UI on the fake API, no project
 ```
 
 ## Install
@@ -31,9 +33,8 @@ curl -fsSL https://raw.githubusercontent.com/hungovercoders/apic/main/install.sh
 irm https://raw.githubusercontent.com/hungovercoders/apic/main/install.ps1 | iex   # Windows
 ```
 
-Packages, the Docker image and the GitHub Action are on the
-[getting started](https://apic.sh/getting-started/) page; releases are
-signed and ship an SBOM.
+Packages, the Docker image and the GitHub Action:
+[getting started](https://apic.sh/getting-started/).
 
 ## Documentation
 
@@ -81,7 +82,6 @@ every doc in this repo. Report a credential that escapes privately
 
 ### 🤖 Operational
 [![Deployed Checks](https://github.com/hungovercoders/apic/actions/workflows/ss-cloudflare-deployed.yml/badge.svg?branch=main)](https://github.com/hungovercoders/apic/actions/workflows/ss-cloudflare-deployed.yml)
-[![Doc Updater](https://github.com/hungovercoders/apic/actions/workflows/ss-hygiene-doc-updater.lock.yml/badge.svg?branch=main)](https://github.com/hungovercoders/apic/actions/workflows/ss-hygiene-doc-updater.lock.yml)
 [![Workflow Failures](https://github.com/hungovercoders/apic/actions/workflows/ss-workflow-failure-issue.yml/badge.svg?branch=main)](https://github.com/hungovercoders/apic/actions/workflows/ss-workflow-failure-issue.yml)
 
 ## Licence

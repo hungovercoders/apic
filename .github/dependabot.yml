@@ -10,6 +10,16 @@ updates:
     commit-message:
       prefix: "chore"
 
+  # slopstopper's browser-check tooling (Playwright, Lighthouse CI, axe-core)
+  # in the root package.json; Trivy scans its lockfile on every PR.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore"
+
   # The docs site (apic.sh): Astro, Starlight and wrangler.
   - package-ecosystem: npm
     directory: /website

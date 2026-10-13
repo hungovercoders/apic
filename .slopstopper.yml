@@ -68,8 +68,9 @@ hygiene:
 
 # Any check you don't want, by workflow filename. A profile drops whole
 # sets; this is for one-offs. `enabled` takes a single check back from a
-# profile. The Cloudflare config lives in website/wrangler.jsonc, where the
-# installer does not look, so the post-deploy workflow is enabled by hand.
+# profile. The doc-updater is an agentic workflow that needs a
+# COPILOT_GITHUB_TOKEN secret; without one its weekly run fails on main and
+# opens an issue, so it stays out until someone sets that up.
 workflows:
-  disabled: []
-  enabled: [ss-cloudflare-deployed.yml]
+  disabled: [ss-hygiene-doc-updater.md, ss-hygiene-doc-updater.lock.yml]
+  enabled: []

@@ -62,7 +62,8 @@ the row (`200 12ms`), and the file heading above it rolls its requests up
 as `✓9 ✗1`, so a flow over a long file reads at a glance. A narrow pane
 sheds the timing first and the description second; the status code and the
 mark always stay. The colour of a status code is its class, not its verdict:
-a `404` a request asserts is still a `✓`.
+a `404` a request asserts is still a `✓`. When the list is taller than the
+pane, the right of its title counts the rows out of view: `↑3 ↓8`.
 
 **Preview** is `apic describe` for the selected request: the URL template,
 headers, the body, auth, every variable with the source it resolved from,

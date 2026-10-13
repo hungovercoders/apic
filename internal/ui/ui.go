@@ -97,6 +97,7 @@ type Model struct {
 	paneShown   string // paneTopic of that content; a change scrolls back to the top
 
 	width, height int
+	now           func() time.Time // the clock the session tab reads; tests set it
 	spin          spinner
 	keys          keyMap
 	showHelp      bool
@@ -114,6 +115,7 @@ func New(cfg Config) *Model {
 		theme:  cfg.Theme,
 		runner: cfg.Runner,
 		env:    cfg.Env,
+		now:    time.Now,
 		spin:   newSpinner(),
 		keys:   newKeyMap(),
 	}
@@ -281,8 +283,31 @@ func (m *Model) paneID() string {
 		res = m.results[m.selected]
 		desc = m.descs[m.selected]
 	}
-	return fmt.Sprintf("%s|%d|%v|%v|%v|%v|%p|%p|%d|%d|%d|%d|%d", m.paneReqID(), m.tab, m.showHeaders, m.codeLang, m.showHelp, m.confirmClear, res, desc, len(m.session), len(m.cookies), m.histSeq, m.vp.width, m.vp.height)
+	var clock int64
+	if m.liveClock() {
+		clock = m.now().Unix()
+	}
+	return fmt.Sprintf("%s|%d|%v|%v|%v|%v|%p|%p|%d|%d|%d|%d|%d|%d", m.paneReqID(), m.tab, m.showHeaders, m.codeLang, m.showHelp, m.confirmClear, res, desc, len(m.session), len(m.cookies), m.histSeq, m.vp.width, m.vp.height, clock)
 }
+
+// liveClock reports whether the pane shows something that changes with
+// the clock: the session tab, when it holds a cached token whose expiry
+// it counts down.
+func (m *Model) liveClock() bool {
+	if m.tab != tabSession || m.showHelp || m.confirmClear {
+		return false
+	}
+	for k := range m.session {
+		if strings.HasPrefix(k, "$oauth2:") || strings.HasPrefix(k, "$exec:") {
+			return true
+		}
+	}
+	return false
+}
+
+// Live reports whether the screen changes on its own: a run is in flight,
+// or the pane counts a token's expiry down. The program ticks only then.
+func (m *Model) Live() bool { return m.inflight != nil || m.liveClock() }
 
 // statusPart is one segment of the bottom bar. drop says what goes first
 // when the bar is wider than the terminal: the highest number is dropped

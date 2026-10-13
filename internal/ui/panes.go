@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/charmbracelet/x/ansi"
 
@@ -213,7 +212,7 @@ func (m *Model) renderSession(width int) string {
 		v := m.session[k]
 		switch {
 		case strings.HasPrefix(k, "$oauth2:") || strings.HasPrefix(k, "$exec:"):
-			v = auth.DescribeCached(v, time.Now())
+			v = auth.DescribeCached(v, m.now())
 		case m.cfg.Redact:
 			v = "***"
 		default:
@@ -222,7 +221,7 @@ func (m *Model) renderSession(width int) string {
 		b.WriteString(fmt.Sprintf("  %s %s = %s\n", t.Capture.Render("↳"), k, v))
 	}
 	for _, c := range m.cookies {
-		b.WriteString(fmt.Sprintf("  %s cookie %s = *** %s\n", t.Capture.Render("↳"), c.Name, t.Dim.Render(fmt.Sprintf("(%s%s · %s)", c.Domain, c.Path, c.ExpiryText(time.Now())))))
+		b.WriteString(fmt.Sprintf("  %s cookie %s = *** %s\n", t.Capture.Render("↳"), c.Name, t.Dim.Render(fmt.Sprintf("(%s%s · %s)", c.Domain, c.Path, c.ExpiryText(m.now())))))
 	}
 	b.WriteString("\n" + t.Dim.Render("x clears these values for this environment") + "\n")
 	return b.String()

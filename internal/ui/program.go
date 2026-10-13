@@ -201,7 +201,8 @@ func (p *program) dispatch(cmd Cmd) bool {
 		}()
 		return false
 	default:
-		return p.dispatch(func() Msg { return msg })
+		// A plain message goes to the model, whose answer may be more work.
+		return p.dispatch(p.m.Update(msg))
 	}
 }
 

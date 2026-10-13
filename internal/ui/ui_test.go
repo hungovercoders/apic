@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -422,6 +423,23 @@ func TestEditorCommand(t *testing.T) {
 		t.Fatal("empty editor should error")
 	}
 	f := newFixture(t, runner.Options{})
+	f.press("j") // whoami, further down auth.http
+	e, ok := f.press("o")().(execMsg)
+	if !ok {
+		t.Fatal("o should ask the program to run the editor")
+	}
+	want := fmt.Sprintf("+%d %s", f.m.Selected().Line, filepath.Join(f.dir, "auth.http"))
+	if got := strings.Join(e.cmd.Args[1:], " "); got != want {
+		t.Fatalf("editor args %q, want %q", got, want)
+	}
+	if _, ok := e.done(nil).(editorDoneMsg); !ok {
+		t.Fatal("the editor finishing should come back as editorDoneMsg")
+	}
+	run := f.press("enter")
+	if _, busy := f.press("o")().(execMsg); busy || !strings.Contains(f.m.Status(), "busy") {
+		t.Fatalf("o during a run should say busy, status=%q", f.m.Status())
+	}
+	f.drain(run)
 	f.m.cfg.Editor = ""
 	f.press("o")
 	if !strings.Contains(f.m.Status(), "$EDITOR") {
@@ -473,6 +491,69 @@ func TestQuitCancelsInflight(t *testing.T) {
 		t.Fatalf("quit should cancel the in-flight request, err=%v", ctx.Err())
 	}
 	<-done
+}
+
+// The spinner only moves while a run is in flight, so an idle UI does not
+// redraw on every tick.
+func TestTickAdvancesSpinnerOnlyWhileRunning(t *testing.T) {
+	f := newFixture(t, runner.Options{})
+	before := f.m.spin.view()
+	f.m.Update(tickMsg{})
+	if f.m.spin.view() != before {
+		t.Fatal("an idle tick should not move the spinner")
+	}
+	cmd := f.press("enter")
+	f.m.Update(tickMsg{})
+	if f.m.spin.view() == before {
+		t.Fatal("a tick during a run should move the spinner")
+	}
+	f.drain(cmd)
+}
+
+// The editor coming back reloads the project, or reports why it failed.
+func TestEditorDoneReloadsOrReports(t *testing.T) {
+	f := newFixture(t, runner.Options{})
+	f.m.PressAll("j j")
+	if f.m.Selected().ID() != "basic-auth" {
+		t.Fatalf("PressAll should move twice, got %s", f.m.Selected().ID())
+	}
+	f.drain(f.m.Update(editorDoneMsg{err: errors.New("exit status 1")}))
+	if f.m.Status() != "editor: exit status 1" || len(f.rebuilt) != 0 {
+		t.Fatalf("a failed editor should say so and not reload: status=%q rebuilt=%v", f.m.Status(), f.rebuilt)
+	}
+	if err := os.WriteFile(filepath.Join(f.dir, "extra.http"), []byte("### Extra\n# @name extra\nGET {{baseUrl}}/status/200\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	f.drain(f.m.Update(editorDoneMsg{}))
+	if v := f.view(); !strings.Contains(v, "extra.http") || len(f.rebuilt) != 1 || f.m.Selected().ID() != "basic-auth" {
+		t.Fatalf("the editor closing should reload and keep the cursor: rebuilt=%v selected=%s\n%s", f.rebuilt, f.m.Selected().ID(), v)
+	}
+}
+
+// A status clears when its own timer fires, not when an older one does.
+func TestStatusClearsOnlyOnItsOwnTimer(t *testing.T) {
+	f := newFixture(t, runner.Options{})
+	first := f.m.Update(kp("e"))  // env other
+	second := f.m.Update(kp("e")) // back to local, a newer status
+	if f.m.Status() != "env local" {
+		t.Fatalf("status=%q", f.m.Status())
+	}
+	clear := func(cmd Cmd) Msg {
+		t.Helper()
+		d, ok := cmd().(delayMsg)
+		if !ok {
+			t.Fatalf("a status should schedule its own clearing, got %T", cmd())
+		}
+		return d.msg
+	}
+	f.m.Update(clear(first))
+	if f.m.Status() != "env local" {
+		t.Fatal("the first status's timer must not clear the second status")
+	}
+	f.m.Update(clear(second))
+	if f.m.Status() != "" {
+		t.Fatalf("the second status's timer should clear it, status=%q", f.m.Status())
+	}
 }
 
 func TestHelpOverlay(t *testing.T) {
@@ -547,7 +628,7 @@ func TestPaneScrollSurvivesRedraw(t *testing.T) {
 	f.press("1") // the preview is taller than the pane
 	f.view()
 	if len(f.m.vp.lines) <= f.m.vp.height {
-		t.Skipf("preview fits in %d lines; nothing to scroll", f.m.vp.height)
+		t.Fatalf("the preview should overflow a %d-line pane, it has %d lines", f.m.vp.height, len(f.m.vp.lines))
 	}
 	f.m.Update(Key{Type: KeyCtrlD})
 	want := f.m.vp.offset
@@ -557,6 +638,15 @@ func TestPaneScrollSurvivesRedraw(t *testing.T) {
 	if f.view(); f.m.vp.offset != want {
 		t.Fatalf("redrawing reset the scroll offset to %d, want %d", f.m.vp.offset, want)
 	}
+	f.press("ctrl+u")
+	if f.m.vp.offset != 0 {
+		t.Fatalf("ctrl+u should scroll back up the half page, offset=%d", f.m.vp.offset)
+	}
+	f.press("pgdown", "pgup")
+	if f.m.vp.offset != 0 {
+		t.Fatalf("pgdown then pgup should land back at the top, offset=%d", f.m.vp.offset)
+	}
+	f.m.Update(Key{Type: KeyCtrlD})
 	f.press("K")
 	if f.m.vp.offset != want-1 {
 		t.Fatalf("K should scroll up a line, offset=%d want %d", f.m.vp.offset, want-1)

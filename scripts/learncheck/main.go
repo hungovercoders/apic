@@ -98,7 +98,7 @@ func run(dirs []string, keep bool) error {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	demo := exec.CommandContext(ctx, apic, "demo", "--out", "apic-demo", "--port", strconv.Itoa(port), "--force") //nolint:gosec // the binary built a moment ago, in the scratch directory
+	demo := exec.CommandContext(ctx, apic, "demo", "--out", "apic-demo", "--port", strconv.Itoa(port), "--force") //nolint:gosec // the binary built a moment ago, in the scratch directory; nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
 	demo.Dir = work
 	demo.Stdout, demo.Stderr = os.Stdout, os.Stderr
 	if err := demo.Start(); err != nil {

@@ -1,0 +1,194 @@
+name: SlopStopper · DAST Analysis
+
+# Runs OWASP ZAP baseline scan against a running app and gates on
+# alerts neither .zap/rules.tsv ignores nor docs/security/CSP_EXCEPTIONS.md
+# documents. PRs and pushes
+# to main scan a local build (fast, no secrets). The deployed site is
+# scanned after a successful deployment, daily against urls.production,
+# and on a manual run given a `url`, because headers set at the edge
+# (CSP, HSTS, framing from a CDN or _headers) only exist there. Emits a
+# rolling PR comment (with the swallowed-CSP preamble inline) and, on
+# every non-PR run on main, opens or closes the tracking issue.
+# Docs: docs/security/README.md.
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  deployment_status:
+  schedule:
+    - cron: '30 7 * * *'
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'URL to scan (leave blank to scan a local build)'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  dast:
+    name: Dynamic Application Security Testing with OWASP ZAP
+    if: |
+      github.event_name != 'deployment_status' ||
+      github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up slopstopper
+        # Python, the mise-pinned toolchain (task, node, slopstopper-cli) and,
+        # in the slopstopper repo only, the CLI from source. One local
+        # composite action; install.sh copies it in next to the workflows.
+        uses: ./.github/actions/ss-setup
+
+      # PRs, pushes and a blank dispatch scan a local build instead. A
+      # schedule with urls.production unset skips with a notice.
+      - name: Resolve the deployed URL (deployment, schedule, dispatch with a url)
+        id: remote
+        uses: ./.github/actions/ss-resolve-url
+        if: >-
+          github.event_name == 'deployment_status' ||
+          github.event_name == 'schedule' ||
+          (github.event_name == 'workflow_dispatch' && inputs.url != '')
+        with:
+          mode: skip
+          url: ${{ inputs.url }}
+          deployment-url: ${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
+          check: DAST
+
+      - name: Decide scan mode
+        id: mode
+        env:
+          REMOTE: ${{ steps.remote.outcome }}
+          REMOTE_URL: ${{ steps.remote.outputs.url }}
+          REMOTE_SKIP: ${{ steps.remote.outputs.skip }}
+        # The scan takes one of two paths. With `api.openapi.spec` set the
+        # target is a deployed API and ZAP reads the spec. There is nothing to
+        # build or serve, and guessing an API's start command would be worse
+        # than not guessing. Without a spec this is the original site path,
+        # which builds the site, serves it on :8080 and spiders it.
+        run: |
+          SPEC="$(slopstopper config get api.openapi.spec)"
+          if [ "$REMOTE" = "success" ]; then
+            if [ "$REMOTE_SKIP" = "true" ]; then
+              echo "mode=skip" >> "$GITHUB_OUTPUT"
+            else
+              # A deployed site, or a deployed API when a spec is set.
+              echo "mode=$([ -n "$SPEC" ] && echo api || echo deployed)" >> "$GITHUB_OUTPUT"
+              echo "url=$REMOTE_URL" >> "$GITHUB_OUTPUT"
+            fi
+            exit 0
+          fi
+          if [ -z "$SPEC" ]; then
+            echo "mode=site" >> "$GITHUB_OUTPUT"
+            echo "url=http://localhost:8080" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # CUSTOMISE FOR YOUR APP: point urls.preview at the environment your
+          # PRs deploy to. With no preview environment the PR run skips and the
+          # deployed-main / scheduled runs carry the coverage.
+          case "${{ github.event_name }}" in
+            pull_request) URL="$(slopstopper config get urls.preview)" ;;
+            *)            URL="$(slopstopper config get urls.production)" ;;
+          esac
+
+          if [ -z "$URL" ]; then
+            echo "::notice::api.openapi.spec is set but no URL resolved for this event. Set urls.preview / urls.production to enable the API scan here."
+            echo "mode=skip" >> "$GITHUB_OUTPUT"
+          else
+            # Same shape as the resolve-url action's validator: the URL reaches a
+            # `run:` line, so only URL-safe characters pass.
+            if [[ ! "$URL" =~ ^https?://[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~%/-]*)?$ ]]; then
+              echo "::error::Invalid URL format: $URL" >&2
+              exit 1
+            fi
+            echo "mode=api" >> "$GITHUB_OUTPUT"
+            echo "url=$URL" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install dependencies
+        if: steps.mode.outputs.mode == 'site'
+        run: npm ci
+
+      - name: Start local server
+        if: steps.mode.outputs.mode == 'site'
+        # `npm run build` runs only when package.json has a build script;
+        # the installer's seed has none.
+        run: |
+          if [ -f package.json ] && node -e "process.exit(require('./package.json').scripts?.build ? 0 : 1)"; then
+            npm run build
+          fi
+          slopstopper serve &
+          echo "SERVER_PID=$!" >> $GITHUB_ENV
+          for i in $(seq 1 10); do
+            if curl -s http://localhost:8080 > /dev/null; then
+              echo "✅ Server ready"
+              break
+            fi
+            sleep 1
+          done
+
+      # The check itself is the gate: it exits 1 on blocking alerts and 2
+      # when ZAP did not produce a report, so this step's outcome IS the
+      # verdict and the step that fails is the one that ran the scan. The
+      # spec comes from .slopstopper.yml, so the same command covers both
+      # modes and the check picks the ZAP entry point.
+      - name: Run DAST analysis + gate
+        id: dast
+        if: steps.mode.outputs.mode != 'skip'
+        # `task -x` passes the CLI's exit code through (plain `task` maps
+        # every failure to 201). The code is kept as an output so later
+        # steps can tell blocking alerts (1) from could-not-run (2).
+        shell: bash
+        run: |
+          set +e
+          task -x ss:security:dast -- ${{ steps.mode.outputs.url }}
+          rc=$?
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          exit $rc
+
+      - name: Stop local server
+        if: steps.mode.outputs.mode == 'site' && always()
+        run: kill $SERVER_PID || true
+
+      - name: Upload DAST reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dast-reports
+          path: |
+            .ss/reports/dast/dast-report.md
+            .ss/reports/dast/dast-report.json
+            .ss/reports/dast/dast-gate.json
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Emit PR comment
+        if: always() && github.event_name == 'pull_request' && steps.mode.outputs.mode != 'skip'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: slopstopper emit security:dast --target pr-comment --status ${{ steps.dast.outcome == 'success' && 'pass' || 'fail' }} --on-pass=delete
+
+      - name: Emit issue on main (non-PR runs with blocking alerts)
+        # Only rc 1 is a finding. Exit 2 means the scan didn't run, and the
+        # failure tracker raises that.
+        if: always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.dast.outputs.rc == '1'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: slopstopper emit security:dast --target issue
+
+      - name: Close issue on main when clean (non-PR runs)
+        if: always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.dast.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: slopstopper emit security:dast --target issue --on-pass=close

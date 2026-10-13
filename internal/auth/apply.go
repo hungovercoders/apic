@@ -132,7 +132,7 @@ func applyExec(ctx context.Context, s *Spec, req *http.Request, env *Env) error 
 	if token == "" {
 		// The command comes from the project's own .http file and only runs
 		// when apic.yaml opts in with auth.allowExec; see apply's gate above.
-		cmd := exec.CommandContext(ctx, s.Args[0], s.Args[1:]...) //nolint:gosec // operator-supplied by design, gated by auth.allowExec
+		cmd := exec.CommandContext(ctx, s.Args[0], s.Args[1:]...) //nolint:gosec // operator-supplied by design, gated by auth.allowExec; nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
 		var stderr strings.Builder
 		cmd.Stderr = &stderr
 		out, err := cmd.Output()

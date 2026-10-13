@@ -1,6 +1,11 @@
 # https://taskfile.dev — developer tasks for apic itself.
 version: "3"
 
+# The slopstopper quality suite (task ss:*): see .slopstopper.yml.
+includes:
+  ss:
+    taskfile: ./Taskfile.ss.yml
+
 vars:
   BIN: bin/apic
   VERSION:

@@ -3,7 +3,7 @@ title: "Writing a lesson"
 ---
 This page is the template every lesson in the course is copied from, and
 the rules a lesson follows. Copy it to
-`website/src/content/docs/learn/NN-slug.md`, keep the `title:` front
+`website/src/content/docs/learn/<NN>-<slug>.md`, keep the `title:` front
 matter (a lesson has no H1), replace each section, and add the page to
 the **Learn** group of the sidebar in `website/astro.config.mjs`. Asides are
 `:::tip[Title]` … `:::` and collapsible blocks are `<details>` with a
@@ -118,8 +118,10 @@ works.
 
 ## Going further
 
-- The guide page this lesson skimmed, for example [the `.http` format](../format.md)
-- The reference section, for example [`apic run`](../cli.md#apic-run)
+- The guide page this lesson skimmed, for example the `.http` format guide
+  (linked as `format.md`, the way the site's pages link each other)
+- The reference section, for example `apic run` on the CLI page
+  (`cli.md#apic-run`)
 
 <details>
 <summary>Episode script</summary>

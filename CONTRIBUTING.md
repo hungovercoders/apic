@@ -16,6 +16,7 @@ You need Go (the version in `go.mod`) and, for the shortcuts below,
 ```sh
 git clone https://github.com/hungovercoders/apic
 cd apic
+git config core.hooksPath .githooks   # the pre-push hygiene gate (task ss:hygiene:test)
 task build          # -> bin/apic
 task test
 ```

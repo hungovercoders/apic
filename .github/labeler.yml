@@ -1,0 +1,42 @@
+# .github/labeler.yml: drives the ss-hygiene-auto-label-pr workflow
+# (actions/labeler@v5), mapping changed-file globs to PR labels.
+
+cli:
+  - changed-files:
+      - any-glob-to-any-file: ['cmd/**', 'internal/**', 'go.mod', 'go.sum']
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file: ['docs/**', 'website/**', 'README.md', 'AGENTS.md', 'CLAUDE.md', 'CONTRIBUTING.md', 'SECURITY.md', '.vale.ini', '.codespellrc', '.lychee.toml']
+
+skill:
+  - changed-files:
+      - any-glob-to-any-file: ['skills/**', '.claude/**']
+
+vscode:
+  - changed-files:
+      - any-glob-to-any-file: ['editors/vscode/**']
+
+examples:
+  - changed-files:
+      - any-glob-to-any-file: ['examples/**']
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file: ['**/*_test.go', '**/testdata/**', 'editors/vscode/src/test/**']
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file: ['.github/**', 'Taskfile*.yml', '.ss/**', '.golangci.yml', '.slopstopper.yml', 'mise.toml', '.githooks/**', 'scripts/**']
+
+release:
+  - changed-files:
+      - any-glob-to-any-file: ['.goreleaser.yaml', 'Dockerfile', 'install.sh', 'install.ps1', 'setup-apic/**']
+
+deps:
+  - changed-files:
+      - any-glob-to-any-file: ['go.mod', 'go.sum', 'package.json', 'package-lock.json', 'website/package.json', 'website/package-lock.json', 'editors/vscode/package.json', 'editors/vscode/package-lock.json']
+
+security:
+  - changed-files:
+      - any-glob-to-any-file: ['.zap/**', 'SECURITY.md', 'internal/auth/**']

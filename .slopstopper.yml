@@ -1,0 +1,76 @@
+# .slopstopper.yml: slopstopper's per-repo config.
+#
+# This is the starter install.sh seeds: the handful of keys most repos
+# actually set. Every other knob has a sensible default and is documented,
+# with its default, in the schema reference:
+#   https://github.com/hungovercoders/slopstopper/blob/main/.slopstopper.yml.example
+# Copy a block from there when you need it. Re-running install.sh never
+# overwrites this file.
+#
+# That link tracks main; .ss/.installed-from names the commit you installed
+# from (put it in place of `main` to see that version). A knob the CLI reads
+# takes effect once the slopstopper-cli pinned in mise.toml has it.
+
+# apic is a Go CLI, but website/ is apic.sh, a Starlight site deployed by
+# Cloudflare Workers Builds, so the browser checks apply: `ui`. The site
+# builds from website/ (the root package.json's `build` script) and
+# mise.toml exports SERVE_ROOT=website/dist for the bundled static server.
+profile: ui
+
+# Where the deployed app lives. production is what scheduled and post-deploy
+# runs audit (and the API checks on a push to main); preview is where your
+# PRs deploy. The browser checks build and serve the repo on PRs and pushes;
+# the API checks and DAST's API mode (api.openapi.spec) hit preview on a PR,
+# and skip there without it. Workers Builds gives every pull request its own
+# preview URL, which ss-cloudflare-deployed.yml reads from Cloudflare's PR
+# comment, so preview stays blank.
+urls:
+  production: https://apic.sh
+  preview:
+
+# Paths each browser check audits, comma-separated. Starlight serves every
+# page with a trailing slash.
+pages:
+  smoke:         /,/getting-started/,/cli/,/learn/,/tui/
+  e2e:           /,/getting-started/,/learn/
+  accessibility: /,/getting-started/,/cli/,/learn/,/tui/,/cheatsheet/
+  seo:           /,/getting-started/,/learn/,/comparison/
+  broken_links:  /,/getting-started/,/cheatsheet/,/learn/
+
+# website/public/og-image.png, with its cross-origin resource policy set in
+# website/public/_headers.
+smoke:
+  og_image_path: /og-image.png
+
+# Starlight writes a sitemap index rather than a flat sitemap.xml.
+reliability:
+  sitemap:
+    sitemap_path: /sitemap-index.xml
+
+# The response headers Cloudflare sends, including the Content-Security-
+# Policy, in the template plugins/security-headers.mjs builds from. The
+# drift check reads the policy from here; a per-path relaxation needs a
+# matching entry in docs/security/CSP_EXCEPTIONS.md.
+headers:
+  source: website/public/_headers
+  format: cloudflare-text
+
+hygiene:
+  complexity:
+    # A baseline, not a target: the ceiling sits at the most complex
+    # function in the tree today (curlimport.Parse, 74), so nothing worse
+    # can land, and it ratchets down as the backlog below 75 is refactored.
+    # The aim is 30, golangci-lint's gocyclo default; 22 functions sit
+    # between 30 and 75 (the runner, the importers, the parsers and the
+    # UI's key handler). lizard counts every `case`, which is why 15 never
+    # fitted a switch-driven CLI.
+    max_ccn: 75
+
+# Any check you don't want, by workflow filename. A profile drops whole
+# sets; this is for one-offs. `enabled` takes a single check back from a
+# profile. The doc-updater is an agentic workflow that needs a
+# COPILOT_GITHUB_TOKEN secret; without one its weekly run fails on main and
+# opens an issue, so it stays out until someone sets that up.
+workflows:
+  disabled: [ss-hygiene-doc-updater.md, ss-hygiene-doc-updater.lock.yml]
+  enabled: []

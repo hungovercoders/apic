@@ -1,0 +1,14 @@
+{
+  "name": "apic",
+  "private": true,
+  "description": "slopstopper's browser-check dependencies; the site itself is website/",
+  "scripts": {
+    "build": "npm --prefix website ci && npm --prefix website run build"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
+    "@lhci/cli": "^0.14.0",
+    "@playwright/test": "^1.40.0",
+    "markdownlint-cli": "^0.47.0"
+  }
+}

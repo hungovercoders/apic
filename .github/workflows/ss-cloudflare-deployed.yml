@@ -1,0 +1,158 @@
+name: SlopStopper · Cloudflare Deployed Checks
+
+# Cloudflare Workers Builds deploys every push but raises no GitHub
+# deployment, so the deployment_status trigger the URL-driven checks use
+# never fires: PR previews went unchecked and the live site waited for the
+# next schedule. Workers Builds does report a check run, so when that
+# check run succeeds this workflow works out what was deployed and where:
+#
+#   default branch  → urls.production
+#   any other branch → the preview URL Cloudflare's bot posts on the PR,
+#                      from the comment row for this commit
+#
+# and dispatches each installed URL-driven check on the deployed branch
+# with that `url`, skipping any this repo turns off (`slopstopper profile
+# disabled`: the profile, its no-API holdbacks, workflows.disabled). The
+# runs land on the branch head, so they show on the PR, and a run on main
+# opens or closes the issue for the checks that raise one. A PR from a
+# fork is skipped, because `gh workflow run` can't target a fork's branch.
+# DAST runs against production only: Cloudflare previews answer a missing
+# path with a bare "Not found" carrying none of the site's headers, which
+# ZAP's 404 probes always flag.
+#
+# install.sh ships this only when the repo has wrangler config (at the
+# root or one directory down) or a worker/ directory. Docs: docs/deployment/README.md.
+
+on:
+  check_run:
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  dispatch:
+    name: Check the deployed site
+    if: >-
+      github.event.check_run.app.slug == 'cloudflare-workers-and-pages' &&
+      github.event.check_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up slopstopper
+        uses: ./.github/actions/ss-setup
+
+      - name: Work out what was deployed and where
+        id: target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.event.check_run.check_suite.head_branch }}
+          SHA: ${{ github.event.check_run.head_sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -eo pipefail
+          if [ -z "$BRANCH" ]; then
+            echo "::notice::The deployed commit is on no branch, so there is nothing to dispatch on."
+            exit 0
+          fi
+          if [ "$BRANCH" = "$DEFAULT_BRANCH" ]; then
+            url="$(slopstopper config get urls.production)"
+            if [ -z "$url" ]; then
+              echo "::notice::urls.production is unset in .slopstopper.yml, so the live site isn't checked after deploys."
+              exit 0
+            fi
+          else
+            pr_line="$(gh pr list -R "$GITHUB_REPOSITORY" --head "$BRANCH" --state open --json number,headRepositoryOwner -q '.[0] // empty | "\(.number) \(.headRepositoryOwner.login)"')"
+            pr="${pr_line%% *}"
+            pr_owner="${pr_line#* }"
+            if [ -z "$pr" ]; then
+              echo "::notice::$BRANCH has no open PR, so there is no preview URL to check."
+              exit 0
+            fi
+            if [ "$pr_owner" != "${GITHUB_REPOSITORY%%/*}" ]; then
+              echo "::notice::#$pr comes from a fork ($pr_owner), whose branch gh workflow run can't target, so its preview isn't checked."
+              exit 0
+            fi
+            # The bot's comment is a table with one row per deployed commit.
+            # It can land a little after the check run completes, so retry.
+            url=""
+            for attempt in 1 2 3 4 5 6; do
+              url="$(gh api "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --paginate \
+                --jq '.[] | select(.user.login == "cloudflare-workers-and-pages[bot]") | .body' |
+                slopstopper cloudflare preview-url "$SHA")" || true
+              [ -n "$url" ] && break
+              [ "$attempt" = 6 ] || sleep 20
+            done
+            if [ -z "$url" ]; then
+              # A PR-only problem: this workflow runs on main, so a failure
+              # here would open a "failure on main" issue.
+              echo "::warning::No preview URL for ${SHA:0:7} in Cloudflare's comment on #$pr, so its preview isn't checked."
+              exit 0
+            fi
+          fi
+          # Same shape as the resolve-url action's validator: the URL is passed to
+          # `gh workflow run`, so only URL-safe characters pass.
+          [[ "$url" =~ ^https?://[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~%/-]*)?$ ]] || { echo "::error::Invalid URL format: $url"; exit 1; }
+          echo "Deployed ${SHA:0:7} on $BRANCH to $url"
+          {
+            echo "url=$url"
+            echo "branch=$BRANCH"
+            echo "production=$([ "$BRANCH" = "$DEFAULT_BRANCH" ] && echo true || echo false)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch the URL-driven checks
+        if: steps.target.outputs.url != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          URL: ${{ steps.target.outputs.url }}
+          BRANCH: ${{ steps.target.outputs.branch }}
+          PRODUCTION: ${{ steps.target.outputs.production }}
+          SHA: ${{ github.event.check_run.head_sha }}
+        run: |
+          set -eo pipefail
+          # A dispatch runs on the branch head, not on a commit. If a newer
+          # commit has reached the branch, these results would land on it
+          # while auditing this older deploy, so leave it to that commit's
+          # own deploy.
+          head="$(gh api "repos/$GITHUB_REPOSITORY/commits/$BRANCH" --jq .sha)"
+          if [ "$head" != "$SHA" ]; then
+            echo "::notice::$BRANCH has moved on from ${SHA:0:7} to ${head:0:7}, so this deploy's checks are left to the newer one."
+            exit 0
+          fi
+          checks=(
+            ss-reliability-smoke-tests.yml
+            ss-reliability-e2e-check.yml
+            ss-reliability-accessibility-check.yml
+            ss-reliability-broken-links-check.yml
+            ss-reliability-core-web-vitals.yml
+            ss-reliability-seo-check.yml
+            ss-reliability-llms-txt-check.yml
+            ss-reliability-robots-txt-check.yml
+            ss-reliability-sitemap-check.yml
+            ss-reliability-api-health-check.yml
+            ss-reliability-api-latency-check.yml
+            ss-security-api-headers-check.yml
+            ss-hygiene-openapi-check.yml
+          )
+          [ "$PRODUCTION" = "true" ] && checks+=(ss-security-dast-check.yml)
+          disabled="$(slopstopper profile disabled)"
+          failed=0
+          for wf in "${checks[@]}"; do
+            [ -f ".github/workflows/$wf" ] || continue
+            if printf '%s\n' "$disabled" | grep -Fxq "$wf"; then
+              echo "· $wf is disabled for this repo, so not dispatched"
+              continue
+            fi
+            echo "→ $wf against $URL on $BRANCH"
+            # One refusal (a branch whose copy of the workflow predates the
+            # `url` input, say) must not drop the rest.
+            gh workflow run "$wf" -R "$GITHUB_REPOSITORY" --ref "$BRANCH" -f url="$URL" ||
+              { echo "::warning::$wf was not dispatched; see the error above."; failed=1; }
+          done
+          exit "$failed"

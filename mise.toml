@@ -1,0 +1,15 @@
+# Toolchain pins for the slopstopper quality suite (see docs/ci.md). mise
+# installs these locally and jdx/mise-action installs the same versions in
+# the ss-*.yml workflows. install.sh moves the CLI pin (--upgrade-cli);
+# node is the version the site under website/ needs.
+[tools]
+"node" = "22"
+"task" = "3"
+"pipx:slopstopper-cli" = "0.21.0"
+
+# The browser checks build the site with `npm run build` (the root
+# package.json delegates to website/) and serve it with `slopstopper serve`,
+# which looks for dist/ at the root unless told otherwise.
+[env]
+SERVE_ROOT = "website/dist"
+SS_SERVER_HEADERS = "website/dist/_headers"

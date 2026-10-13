@@ -215,7 +215,7 @@ the project root, `KEY=value` per line, is read for every environment:
 <!-- learn -->
 ```sh
 echo "user=dave" > apic-demo/.env
-apic describe login -C apic-demo | grep user
+apic describe login -C apic-demo | grep ' user '
 ```
 
 ```
@@ -230,7 +230,7 @@ are treated as secrets, hence the `***`.
 
 <!-- learn -->
 ```sh
-apic describe login -C apic-demo --var user=erin | grep user
+apic describe login -C apic-demo --var user=erin | grep ' user '
 ```
 
 ```
@@ -242,7 +242,7 @@ passes a secret in without writing a file:
 
 <!-- learn -->
 ```sh
-APIC_VAR_user=frank apic describe login -C apic-demo | grep user
+APIC_VAR_user=frank apic describe login -C apic-demo | grep ' user '
 rm apic-demo/.env
 ```
 

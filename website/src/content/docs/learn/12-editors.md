@@ -187,8 +187,8 @@ apic run login -C apic-demo --json | grep -o '"status":200'
 
 ## Exercise
 
-In VS Code with the apic extension, write a new file `mine.http` in the
-demo project with two requests: `health`, and `me` with `# @ref login` and
+In VS Code with the apic extension, write a new file `editor.http` in the
+demo project with two requests: `editor-health`, and `me` with `# @ref login` and
 `# @auth bearer {{token}}`. Run the file as a flow from the CodeLens.
 
 <details>
@@ -196,7 +196,7 @@ demo project with two requests: `health`, and `me` with `# @ref login` and
 
 ```http
 ### Is the API up?
-# @name health
+# @name editor-health
 # @assert status == 200
 GET {{baseUrl}}/health
 
@@ -211,9 +211,9 @@ GET {{baseUrl}}/me
 
 The directive lines are highlighted as you type them; save the file
 and the Requests view shows `me` with the ready icon, because `# @ref`
-covers the token. **Run file as flow** at the top runs `health`, then
+covers the token. **Run file as flow** at the top runs `editor-health`, then
 `login` on behalf of `me`, then `me`, and the panel shows three green
-rows. From the terminal the same file is `apic run mine.http -C apic-demo`.
+rows. From the terminal the same file is `apic run editor.http -C apic-demo`.
 
 </details>
 

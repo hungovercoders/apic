@@ -284,7 +284,7 @@ If you skipped Spotify, the GitHub file is the same check:
 
 Add a fourth example project for an API you use, with one flow and one
 feature. Start it with `apic init`, which writes the config, the env
-files, the `.gitignore` lines and a first request; point it at the demo
+files, the `.gitignore` lines, a first request and the Agent Skill; point it at the demo
 API first if the real one needs credentials you do not have to hand.
 
 <details>
@@ -303,6 +303,10 @@ wrote my-api/http-client.private.env.json
 wrote my-api/api.http
 wrote my-api/features/smoke.feature
 wrote my-api/.gitignore
+wrote my-api/.claude/skills/apic/SKILL.md
+wrote my-api/.claude/skills/apic/references/cheatsheet.md
+wrote my-api/.agents/skills/apic/SKILL.md
+wrote my-api/.agents/skills/apic/references/cheatsheet.md
 
 next:
   cd my-api

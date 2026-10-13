@@ -152,8 +152,9 @@ assertion fails (1), a request cannot be built (2) or the network fails
 
 For the machine with no apic, or a bug report, `apic curl` prints the
 command again with every variable filled in, so it runs as printed. With
-`--redact`, credentials become shell placeholders such as `$TOKEN` and the
-other values are masked, for pasting into a ticket or a log:
+`--redact`, header, body and query values are masked (a `# @auth`
+credential becomes a shell placeholder such as `$TOKEN`), for pasting into
+a ticket or a log:
 
 <!-- learn -->
 ```sh
@@ -180,7 +181,8 @@ PowerShell, Python, JavaScript and Go.
   JSON object per request for `jq`.
 - **curl's own output flags** (`-o`, `-w`, `-v`, `--trace`). apic has
   `-v`, `--json`, `--body-only` and `--output <file>`; the importer notes
-  each flag it drops.
+  the flags that change behaviour, such as `-o`, `-w` and `--trace`, and
+  drops `-s`, `-v`, `-i` and `-f` silently.
 - **Protocols other than HTTP.** apic does not do FTP, SMTP or the rest
   of what curl speaks.
 

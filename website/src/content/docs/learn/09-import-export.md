@@ -177,6 +177,8 @@ apic run health -C todos-api || echo "exit $?"
 GET {{baseUrl}}/health
 error: api.http:6: missing variable
   {{baseUrl}}: pass --var baseUrl=... or add it to http-client.env.json
+  hint: Pass it with --var name=value, add it to an env file, or run the request that captures it first.
+  E101 missing variable · see https://apic.sh/errors/#e101
 exit 2
 ```
 
@@ -230,7 +232,7 @@ exit 1
 The spec never mentioned authentication, which is common: security
 schemes are the part of an OpenAPI document most often left out or left
 vague. This is the tidy-up every import needs, and it is the same four
-directives the course has used since lesson 3. Add a login request that
+directives the course has used since lessons 3 and 6. Add a login request that
 captures the token:
 
 <!-- learn -->
@@ -529,7 +531,8 @@ true
 ```
 
 (Without `jq`: `apic run todos.http -C todos-api --json | grep -c '"ok":true'`
-prints `4`, the login that `# @ref` ran and the three requests.)
+prints `4`, one per request in the file, `finish-todo` from step 5
+included.)
 
 ## Exercise
 

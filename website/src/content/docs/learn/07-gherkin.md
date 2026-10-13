@@ -242,8 +242,8 @@ F- 2
 
 --- Failed steps:
 
-  Scenario: Needs a token but never logged in # features/iso.feature:2
-    When I list the todos # features/iso.feature:3
+  Scenario: Needs a token but never logged in # /home/you/apic-demo/features/iso.feature:2
+    When I list the todos # /home/you/apic-demo/features/iso.feature:3
       Error: todos.http:8: missing variable
   {{token}}: it is captured by request "login"; run `apic run login` first, or pass --var token=...
 
@@ -252,6 +252,7 @@ F- 2
 2.0ms
 error: todos.http:8: missing variable
   {{token}}: it is captured by request "login"; run `apic run login` first, or pass --var token=...
+  E101 missing variable · see https://apic.sh/errors/#e101
 exit 2
 ```
 

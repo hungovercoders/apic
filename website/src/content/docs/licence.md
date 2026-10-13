@@ -17,9 +17,9 @@ travel inside it. Each keeps its own licence, and all of them are permissive:
 
 | Licence | Modules |
 |---|---|
-| MIT | the majority, including cobra's dependency tree, godog, gjson, lipgloss, termenv and `gopkg.in/yaml.v3` |
+| MIT | the majority, including godog, gjson, lipgloss, termenv and `gopkg.in/yaml.v3` |
 | BSD-3-Clause | `golang.org/x/...`, `github.com/google/uuid`, `spf13/pflag`, `yosida95/uritemplate` |
-| Apache-2.0 | `spf13/cobra`, `modelcontextprotocol/go-sdk` |
+| Apache-2.0 | `spf13/cobra`, `modelcontextprotocol/go-sdk`, and `inconshreveable/mousetrap` (cobra's, in the Windows builds) |
 | MPL-2.0 | the HashiCorp modules godog pulls in (`go-memdb`, `go-immutable-radix`, `golang-lru`) |
 
 Nothing in the tree is copyleft in a way that reaches your use of apic: MPL-2.0

@@ -5,9 +5,10 @@ description: "Move Hurl files to apic: how sections become # @ directives, what 
 Hurl and apic are close cousins: one binary each, plain-text files,
 captures and assertions. The move is mostly mechanical. A Hurl entry's
 sections become `# @` directives above an `.http` request, and the files
-become ones VS Code, JetBrains and Neovim can send with a click. Two
-things change for the better on the way: captures persist between runs,
-and a single named request can be run on its own.
+become ones VS Code, JetBrains and Neovim can send with a click. One
+thing changes for the better on the way: captures persist between runs,
+so a single named request can run on its own with the token kept from an
+earlier run.
 
 ## How the concepts map
 
@@ -105,7 +106,7 @@ apic run todos.http -C from-hurl --env local --var password=s3cret | tail -4
 Hurl adds `Content-Type: application/json` to a JSON body by itself; in a
 `.http` file, write the header, since editors send exactly what the file
 says. Then, because the token was captured into the session, the second
-request runs on its own, which a Hurl file cannot do:
+request runs on its own, with no login in the same run:
 
 <!-- learn -->
 ```sh

@@ -1,5 +1,6 @@
 ---
 title: "Lesson 3: Capture, the session and flows"
+description: "Lesson 3: capture a value from a response, reuse it from the session in any later command, and run a whole file as a flow with # @ref."
 ---
 **Goal.** Capture a value from a response, reuse it in any later command,
 and run a whole file as a flow.

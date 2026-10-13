@@ -1,5 +1,6 @@
 ---
 title: "CLI reference"
+description: "Every apic command with what it does, its --json output and its exit codes, plus every flag generated from the binary."
 ---
 ```
 apic [command] [flags]

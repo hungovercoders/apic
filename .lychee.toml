@@ -43,8 +43,8 @@ exclude = [
   '^https://raw\.githubusercontent\.com/hungovercoders/apic',
   '^https://github\.com/hungovercoders/homebrew-tap',
   # The extension's own listings exist once it is published.
-  '^https://marketplace\.visualstudio\.com/items\?itemName=dataGriff\.',
-  '^https://open-vsx\.org/extension/dataGriff/',
+  '^https://marketplace\.visualstudio\.com/items\?itemName=hungovercoders\.',
+  '^https://open-vsx\.org/extension/hungovercoders/',
 ]
 
 exclude_path = ["website/node_modules", "website/dist", "editors/vscode/node_modules", "node_modules"]

@@ -1,5 +1,6 @@
 ---
 title: "Lesson 4: Assertions, validation and polling"
+description: "Lesson 4: assert on status, headers and JSON with selectors and operators, read a failure, validate a project, and poll with # @retry."
 ---
 **Goal.** Assert on the status, headers and JSON of a response, read a
 failure, validate a project before running it, and wait for an API to

@@ -1,5 +1,6 @@
 ---
 title: "FAQ"
+description: "Short answers to the questions that come up: missing variables, environments, the session, assertions, auth, output and editors."
 ---
 Short answers to the things that come up. Anything longer lives in the
 guides these link to. Every error apic prints has a code (`E101`, `E301`,

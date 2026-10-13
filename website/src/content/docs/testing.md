@@ -1,5 +1,6 @@
 ---
 title: "Testing with Gherkin features"
+description: "apic test runs Gherkin .feature files against your .http requests with a built-in step vocabulary, no Cucumber runtime, and JUnit and cucumber reports."
 ---
 `apic test` runs Cucumber-style `.feature` files against the requests in
 your `.http` files. There is no Cucumber runtime to install and no step

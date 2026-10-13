@@ -1,5 +1,6 @@
 ---
 title: "Lesson 0: What apic is and why"
+description: "Lesson 0: the problem apic solves, what it is and is not, and what the course builds."
 ---
 **Goal.** Understand what apic is, what it is not, and what this course
 builds, so that lesson 1 is worth your time.

@@ -1,5 +1,6 @@
 ---
 title: "Lesson 6: Authentication"
+description: "Lesson 6: attach credentials with # @auth per request and per project: bearer, basic, API keys, OAuth2, AWS SigV4 and exec."
 ---
 **Goal.** Attach credentials to requests with `# @auth`, per request and
 per project, and know what apic shows and what it hides.

@@ -1,5 +1,6 @@
 ---
 title: "Lesson 1: Install apic and send your first request"
+description: "Lesson 1: install apic, try apic ui --demo, read the anatomy of a .http file, and use run, list, describe and the exit codes."
 ---
 **Goal.** Install apic, run a request from a `.http` file against the demo
 API, and read the file that described it.

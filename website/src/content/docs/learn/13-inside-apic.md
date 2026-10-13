@@ -1,5 +1,6 @@
 ---
 title: "Lesson 13: How apic works inside, and your first contribution"
+description: "Lesson 13: follow a request through the packages, the three contracts every change is checked against, and a first contribution end to end."
 ---
 **Goal.** Follow a request through the packages, know the three contracts
 every change is checked against, and add a small directive end to end

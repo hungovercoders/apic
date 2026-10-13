@@ -1,7 +1,8 @@
 ---
 title: "From zero to apic"
+description: "From zero to apic, a course in fourteen short lessons that takes you from nothing installed to running, testing and automating an API from .http files."
 ---
-A course in fourteen short lessons, each with a matching YouTube episode.
+A course in fourteen short lessons, each with a YouTube episode to follow.
 You start with nothing installed and finish able to describe an API in
 `.http` files, run it from the terminal, CI and an AI agent, and test it
 with Gherkin. Every lesson runs against `apic demo`, the fake API that

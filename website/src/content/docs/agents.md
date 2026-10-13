@@ -1,5 +1,6 @@
 ---
 title: "Using apic from an AI agent"
+description: "Drive an API from an AI agent with apic: the shell contract, stable --json output, exit codes, the error catalogue, the MCP server and the Agent Skill."
 ---
 apic is designed so an agent can drive an API with the same files a human
 uses in their editor. Two integration styles are available.
@@ -198,7 +199,23 @@ not optional. Point the client at `http://<host>:<port>/`:
 ## Writing requests as an agent
 
 The format is plain text, so an agent can add requests too. Keep to the
-subset in [format.md](format.md), give every request a `# @name`, add an
+subset in [the format guide](format.md), give every request a `# @name`, add an
 `# @assert status == 200` and run `apic validate` afterwards. `apic init`
 writes a correct skeleton to start from, and the
 [cheat sheet](cheatsheet.md) fits in a prompt.
+
+## Reading these docs as an agent
+
+Every page here is also available as plain text, so an agent can read the
+documentation without parsing HTML:
+
+- [llms.txt](https://apic.sh/llms.txt) lists every page with a one-line
+  summary, in reading order. Fetch it first and follow only the links the
+  task needs.
+- [llms-full.txt](https://apic.sh/llms-full.txt) is every page in one
+  Markdown document, for an agent that would rather load the whole manual
+  once.
+
+Inside a project, `apic skill` prints the same briefing the Agent Skill
+installs, and `apic <command> --help` is always current for the binary on
+the machine, whichever docs version the agent read.

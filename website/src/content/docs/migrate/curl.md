@@ -1,5 +1,6 @@
 ---
 title: "Migrating from curl and Taskfile"
+description: "Turn curl commands in a Taskfile, Makefile or wiki into named .http requests, with Task kept as the front door."
 ---
 This is the move apic was made for: requests that live as curl commands in
 a Taskfile, a Makefile, a wiki page or shell history, with the token

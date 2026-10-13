@@ -1,5 +1,6 @@
 ---
-title: "The `.http` format apic understands"
+title: "The .http format apic understands"
+description: "The .http request format apic runs: structure, # @directives, variables and their precedence, selectors, assertion operators, flows, dependencies, retries and cookies."
 ---
 apic runs the common subset of the `.http` request format shared by VS Code
 REST Client, JetBrains HTTP Client, kulala.nvim and httpyac. Everything apic

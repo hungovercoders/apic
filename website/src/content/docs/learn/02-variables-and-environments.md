@@ -1,5 +1,6 @@
 ---
 title: "Lesson 2: Variables and environments"
+description: "Lesson 2: every place a {{variable}} can come from, environment files, secrets, --var and APIC_VAR_, and the precedence order."
 ---
 **Goal.** Know every place a `{{variable}}` can come from, and which one
 wins when two of them have a value.

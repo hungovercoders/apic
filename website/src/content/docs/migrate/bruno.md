@@ -1,5 +1,6 @@
 ---
 title: "Migrating from Bruno"
+description: "Move a Bruno collection to apic: how the concepts map, block by block, with a worked example."
 ---
 Bruno and apic agree on the important thing: requests are plain files in
 git. Moving across is a translation of one text format into another, block

@@ -1,5 +1,6 @@
 ---
 title: "Lesson 11: Real APIs and the Taskfile front door"
+description: "Lesson 11: run the three example projects against real services, keep credentials out of git, and make task the way the team runs it."
 ---
 **Goal.** Run apic against three real services with the three example
 projects, keep the credentials out of git, and make `task` the way your

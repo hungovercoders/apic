@@ -1,5 +1,6 @@
 ---
 title: "Cookbook"
+description: "Worked recipes for the jobs that come up most: real APIs, tokens, CRUD flows, polling, uploads and downloads, redirects, secrets in CI, agents and imports."
 ---
 Worked recipes for the jobs that come up most. Each one is self-contained;
 copy the parts you need. Recipes that use the fake API from `apic demo` can

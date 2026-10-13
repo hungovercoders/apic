@@ -1,5 +1,6 @@
 ---
 title: "Lesson 5: The terminal UI tour"
+description: "Lesson 5: drive a whole project from apic ui, with every key that has a purpose: run, read, check, edit, reload."
 ---
 **Goal.** Drive a whole project from `apic ui` without touching the
 command line: run, read, check, edit, reload.

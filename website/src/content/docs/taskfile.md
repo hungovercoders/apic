@@ -1,5 +1,6 @@
 ---
 title: "Using apic with Taskfile"
+description: "Make Task the front door for an apic project: tasks that run requests, flows and features with the environment and secrets handled in one place."
 ---
 If your team already runs things with [Task](https://taskfile.dev), keep
 it. apic is a plain CLI with clean exit codes, so Task becomes the front

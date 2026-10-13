@@ -27,6 +27,11 @@ export default defineConfig({
 				'apic is epic: run .http request files from the terminal, CI or an AI agent, on any platform.',
 			logo: { src: './src/assets/logo.svg' },
 			favicon: '/favicon.svg',
+			// Point agents and tools at the plain-text maps (src/pages/llms*.txt.ts).
+			head: [
+				{ tag: 'link', attrs: { rel: 'alternate', type: 'text/plain', title: 'llms.txt', href: '/llms.txt' } },
+				{ tag: 'link', attrs: { rel: 'alternate', type: 'text/plain', title: 'llms-full.txt', href: '/llms-full.txt' } },
+			],
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/hungovercoders/apic' },
 			],

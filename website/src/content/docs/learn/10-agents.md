@@ -1,5 +1,6 @@
 ---
 title: "Lesson 10: Agents and MCP"
+description: "Lesson 10: let an AI agent discover, describe and run your requests through the shell contract, --json and the MCP server, without handing it a secret."
 ---
 **Goal.** Let an AI agent discover, describe and run your requests, from
 the shell through the JSON contract and over MCP as tools, without ever

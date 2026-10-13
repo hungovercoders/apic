@@ -1,5 +1,6 @@
 ---
 title: "Lesson 12: Editors"
+description: "Lesson 12: send the same request from VS Code, a JetBrains IDE, Neovim and apic run, and know what each one ignores in the file."
 ---
 **Goal.** Send the same request from VS Code, from a JetBrains IDE, from
 Neovim and from `apic run`, and know what each one ignores in the file.

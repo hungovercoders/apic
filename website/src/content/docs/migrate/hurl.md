@@ -1,5 +1,6 @@
 ---
 title: "Migrating from Hurl"
+description: "Move Hurl files to apic: how sections become # @ directives, what changes for the better, and what does not carry across."
 ---
 Hurl and apic are close cousins: one binary each, plain-text files,
 captures and assertions. The move is mostly mechanical. A Hurl entry's

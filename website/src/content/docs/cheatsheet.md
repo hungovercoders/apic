@@ -1,5 +1,6 @@
 ---
 title: "Cheat sheet"
+description: "Every directive, variable source, selector, assertion operator, auth type, command and exit code apic understands, on one page."
 ---
 Everything apic understands, on one page. Each section links to the full
 explanation.

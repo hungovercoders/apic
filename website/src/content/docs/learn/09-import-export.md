@@ -1,5 +1,6 @@
 ---
 title: "Lesson 9: From OpenAPI to a project, and back to curl"
+description: "Lesson 9: turn an OpenAPI document, a Postman collection or a curl command into a project, tidy it, and export a curl command back out."
 ---
 **Goal.** Turn an OpenAPI document, a Postman collection or a curl command
 into a project, tidy the draft into something that runs green, and get a

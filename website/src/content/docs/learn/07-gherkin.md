@@ -1,5 +1,6 @@
 ---
 title: "Lesson 7: Behaviour tests with Gherkin"
+description: "Lesson 7: declare # @step phrases on requests, write a .feature file with the built-in vocabulary, run it and read the report."
 ---
 **Goal.** Write a feature file that exercises the demo API using the
 built-in steps and the phrases you declare on requests, and read its

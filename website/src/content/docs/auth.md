@@ -1,5 +1,6 @@
 ---
 title: "Authentication"
+description: "Attach credentials with # @auth or auth.default: bearer, basic, API key, OAuth2 with caching and refresh, AWS SigV4 and any CLI that prints a token."
 ---
 apic can attach credentials to a request with a `# @auth` directive, or to
 every request in a project with `auth.default` in `apic.yaml`. Like every

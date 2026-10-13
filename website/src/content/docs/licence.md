@@ -1,5 +1,6 @@
 ---
 title: "Licence"
+description: "apic is MIT licensed; what that lets you do, and the licences of the modules it ships with."
 ---
 apic is released under the **MIT Licence**. The full text lives in
 [`LICENSE`](https://github.com/hungovercoders/apic/blob/main/LICENSE) in the

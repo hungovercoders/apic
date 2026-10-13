@@ -1,0 +1,5 @@
+# Served by Cloudflare Workers static assets (and by slopstopper's local
+# server during the browser checks). The share image is embedded by other
+# sites, so it needs an explicit cross-origin resource policy.
+/og-image.png
+  Cross-Origin-Resource-Policy: cross-origin

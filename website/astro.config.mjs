@@ -18,6 +18,9 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'apic',
+			// Share tags for every page (src/routeData.ts); robots.txt and
+			// llms.txt are generated under src/pages/.
+			routeMiddleware: './src/routeData.ts',
 			description:
 				'apic is epic: run .http request files from the terminal, CI or an AI agent, on any platform.',
 			logo: { src: './src/assets/logo.svg' },

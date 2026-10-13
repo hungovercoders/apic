@@ -143,7 +143,7 @@ func (p *program) loop(ctx context.Context) error {
 			}
 			continue
 		case <-tick.C:
-			if !p.m.Running() {
+			if !p.m.Live() {
 				continue
 			}
 			if p.dispatch(p.m.Update(tickMsg{})) {

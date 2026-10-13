@@ -198,7 +198,6 @@ func (m *Model) renderList(width, height int) string {
 	} else if m.filter != "" {
 		title = t.Bold.Render(fmt.Sprintf("requests (%d)", m.countRequests(v))) + t.Dim.Render(" /"+m.filter)
 	}
-	lines := []string{ansi.Truncate(title, width, "…")}
 	rows := height - 1
 	if rows < 1 {
 		rows = 1
@@ -207,6 +206,10 @@ func (m *Model) renderList(width, height int) string {
 	if m.cursor >= rows {
 		start = m.cursor - rows + 1
 	}
+	if !m.filtering {
+		title = alignRight(ansi.Truncate(title, width, "…"), m.renderHidden(start, start+rows, len(v)), width)
+	}
+	lines := []string{ansi.Truncate(title, width, "…")}
 	if len(v) == 0 {
 		if len(m.items) == 0 {
 			// Nothing to browse at all: say what gives this directory
@@ -236,6 +239,22 @@ func (m *Model) renderList(width, height int) string {
 		lines[i] = pad(lines[i])
 	}
 	return strings.Join(lines, "\n")
+}
+
+// renderHidden counts the rows above and below the window, so a list
+// taller than the pane says so the way the tab strip does for the pane.
+func (m *Model) renderHidden(start, end, total int) string {
+	var parts []string
+	if start > 0 {
+		parts = append(parts, "↑"+strconv.Itoa(start))
+	}
+	if end < total {
+		parts = append(parts, "↓"+strconv.Itoa(total-end))
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return m.theme.Dim.Render(strings.Join(parts, " "))
 }
 
 func (m *Model) countRequests(v []item) int {
@@ -269,7 +288,7 @@ func (m *Model) renderRow(it item, cursor bool, width int, rolls map[string]roll
 		// Kept out of runs of the file and of everything; r still sends it.
 		id = t.Dim.Render(id)
 	}
-	head := prefix + m.rowMark(r) + " " + t.Method(fmt.Sprintf("%-6s", r.Method)) + " " + id
+	head := prefix + m.rowMark(r) + " " + t.Method(fmt.Sprintf("%-*s", m.methodWidth(), r.Method)) + " " + id
 
 	badge, room := m.rowLayout(r, ansi.StringWidth(head), width)
 	if r.Description != "" && room >= minDesc {
@@ -283,7 +302,20 @@ func (m *Model) renderRow(it item, cursor bool, width int, rolls map[string]roll
 const (
 	rowGap  = 2  // blank columns between a row's text and its right-hand badge
 	minDesc = 10 // the narrowest description budget worth spending a row on
+	minMeth = 6  // the method column fits DELETE; OPTIONS widens it for the whole list
 )
+
+// methodWidth is the method column: wide enough for the longest method in
+// the project, so an OPTIONS request does not push its id out of line.
+func (m *Model) methodWidth() int {
+	w := minMeth
+	for _, it := range m.items {
+		if it.req != nil && len(it.req.Method) > w {
+			w = len(it.req.Method)
+		}
+	}
+	return w
+}
 
 // rowLayout decides how much of a row survives its width. A description
 // that would be cut to a stub is worth less than the timing beside it, and

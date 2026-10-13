@@ -39,6 +39,15 @@ func TestDecodeKey(t *testing.T) {
 	if k, used, ok := decodeKey([]byte("\x1b[<0;1;1M")); ok || used != 9 {
 		t.Errorf("mouse report: %q,%d,%v", k.String(), used, ok)
 	}
+	// Alt and a key arrives as ESC then the key: neither a binding nor an
+	// escape, which would cancel a run.
+	if k, used, ok := decodeKey([]byte("\x1bj")); ok || used != 2 {
+		t.Errorf("alt+j: %q,%d,%v", k.String(), used, ok)
+	}
+	// ESC then a control character is still the escape key on its own.
+	if k, used, ok := decodeKey([]byte("\x1b\x1b")); !ok || used != 1 || k.String() != "esc" {
+		t.Errorf("esc esc: %q,%d,%v", k.String(), used, ok)
+	}
 	// Incomplete sequences ask for more bytes; readKeys resolves a lone ESC.
 	for _, in := range []string{"\x1b", "\x1b[", "\x1b[5"} {
 		if _, used, ok := decodeKey([]byte(in)); ok || used != 0 {

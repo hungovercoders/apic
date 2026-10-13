@@ -156,14 +156,14 @@ func TestFilter(t *testing.T) {
 	f := newFixture(t, runner.Options{})
 	f.press("/", "t", "o", "d", "o", "enter")
 	v := f.view()
-	if strings.Contains(v, "POST   login") || !strings.Contains(v, "list-todos") || !strings.Contains(v, "/todo") {
+	if strings.Contains(v, "POST    login") || !strings.Contains(v, "list-todos") || !strings.Contains(v, "/todo") {
 		t.Fatalf("filter should hide login and keep todos:\n%s", v)
 	}
 	if f.m.Selected().ID() != "list-todos" {
 		t.Fatalf("cursor should move to the first match, got %s", f.m.Selected().ID())
 	}
 	f.press("esc")
-	if !strings.Contains(f.view(), "POST   login") {
+	if !strings.Contains(f.view(), "POST    login") {
 		t.Fatal("esc should clear the filter")
 	}
 }
@@ -211,7 +211,7 @@ func TestFlowRunsWholeFileLive(t *testing.T) {
 	// Resolve just the first step and check the list shows it before the rest run.
 	first := f.step(cmd)
 	v := f.view()
-	if !strings.Contains(v, "✓ POST   login") || !strings.Contains(v, "running whoami (2/5)") {
+	if !strings.Contains(v, "✓ POST    login") || !strings.Contains(v, "running whoami (2/5)") {
 		t.Fatalf("after the first step the list should show login passed and whoami running:\n%s", v)
 	}
 	f.drain(first)
@@ -234,7 +234,7 @@ func TestPressWatchYieldsAFramePerRequest(t *testing.T) {
 	if len(views) != 6 {
 		t.Fatalf("got %d frames, want 6", len(views))
 	}
-	if !strings.Contains(views[0], "✓ POST   login") || strings.Contains(views[0], "last: 5 passed") {
+	if !strings.Contains(views[0], "✓ POST    login") || strings.Contains(views[0], "last: 5 passed") {
 		t.Fatalf("first frame should show only login landed:\n%s", views[0])
 	}
 	if !strings.Contains(views[5], "last: 5 passed") || f.m.Running() {
@@ -301,7 +301,7 @@ func TestRunAllReportsFailures(t *testing.T) {
 	f := newFixture(t, runner.Options{})
 	f.drain(f.press("a"))
 	v := f.view()
-	if !strings.Contains(v, "1 failed, 23 passed") || !strings.Contains(v, "✗ GET    not-found") {
+	if !strings.Contains(v, "1 failed, 23 passed") || !strings.Contains(v, "✗ GET     not-found") {
 		t.Fatalf("expected the deliberate failure in the summary and list:\n%s", v)
 	}
 }
@@ -556,6 +556,101 @@ func TestStatusClearsOnlyOnItsOwnTimer(t *testing.T) {
 	}
 }
 
+// The session tab counts a cached token's expiry down: the model says it
+// is live, and each tick redraws it against the clock.
+func TestSessionTabCountsTokenExpiryDown(t *testing.T) {
+	f := newFixture(t, runner.Options{})
+	start := time.Date(2026, 10, 13, 12, 0, 0, 0, time.UTC)
+	f.m.now = func() time.Time { return start }
+	token := fmt.Sprintf(`{"access_token":"at","expires_at":%q}`, start.Add(90*time.Second).Format(time.RFC3339))
+	f.m.runner.Session.Set("local", map[string]string{"$oauth2:abc": token})
+	f.m.refreshSession()
+	if f.m.Live() {
+		t.Fatal("the preview tab has no clock")
+	}
+	f.press("4")
+	if !f.m.Live() {
+		t.Fatal("the session tab with a cached token is live")
+	}
+	if v := f.view(); !strings.Contains(v, "token, expires in 1m30s") {
+		t.Fatalf("expected the expiry at the start:\n%s", v)
+	}
+	f.m.now = func() time.Time { return start.Add(30 * time.Second) }
+	f.m.Update(tickMsg{})
+	if v := f.view(); !strings.Contains(v, "token, expires in 1m0s") {
+		t.Fatalf("a tick should redraw the countdown:\n%s", v)
+	}
+	f.press("?")
+	if f.m.Live() {
+		t.Fatal("the help overlay covers the clock")
+	}
+}
+
+// The method column widens for a long method, so OPTIONS does not push
+// its id out of line, and stays at its usual width otherwise.
+func TestMethodColumnFitsTheLongestMethod(t *testing.T) {
+	f := newFixture(t, runner.Options{})
+	// The demo project has a GRAPHQL request, so its column is seven wide.
+	if v := f.view(); !strings.Contains(v, "POST    login") || !strings.Contains(v, "GET     whoami") {
+		t.Fatalf("the column should fit GRAPHQL:\n%s", v)
+	}
+	f.press("/")
+	for _, r := range "graphql" {
+		f.press(string(r))
+	}
+	f.press("enter")
+	if v := f.view(); !strings.Contains(v, "GRAPHQL "+f.m.Selected().ID()) {
+		t.Fatalf("GRAPHQL should sit in the same column as the rest:\n%s", v)
+	}
+	// A project with nothing longer than DELETE keeps the usual six.
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "a.http"), []byte("### a\n# @name a\nGET http://127.0.0.1:1/\n\n### b\n# @name b\nDELETE http://127.0.0.1:1/\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	p, err := project.Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := runner.New(p, runner.Options{Session: session.NewMemory()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := New(Config{Root: dir, Runner: r, Theme: output.Default()})
+	m.Update(sizeMsg{width: 100, height: 30})
+	if v := m.View(); !strings.Contains(v, "GET    a") || !strings.Contains(v, "DELETE b") {
+		t.Fatalf("the usual column is six wide:\n%s", v)
+	}
+}
+
+// A list taller than its pane says how many rows are above and below.
+func TestListCountsHiddenRows(t *testing.T) {
+	f := newFixture(t, runner.Options{})
+	f.m.Update(sizeMsg{width: 80, height: 20}) // 18 rows for the requests and their file headings
+	hidden := len(f.m.visible()) - 18
+	if hidden < 1 {
+		t.Fatalf("the demo project should overflow 18 rows, has %d", len(f.m.visible()))
+	}
+	top := strings.Split(f.view(), "\n")[0]
+	if !strings.Contains(top, fmt.Sprintf("↓%d", hidden)) || strings.Contains(top, "↑") {
+		t.Fatalf("at the top, %d rows are below: %q", hidden, top)
+	}
+	f.press("G")
+	top = strings.Split(f.view(), "\n")[0]
+	if !strings.Contains(top, fmt.Sprintf("↑%d", hidden)) || strings.Contains(top, "↓") {
+		t.Fatalf("at the bottom, %d rows are above: %q", hidden, top)
+	}
+	f.m.Update(sizeMsg{width: 80, height: 40})
+	top = strings.Split(f.view(), "\n")[0]
+	if strings.Contains(top, "↑") || strings.Contains(top, "↓") {
+		t.Fatalf("everything fits, so nothing is hidden: %q", top)
+	}
+	f.press("/")
+	top = strings.Split(f.view(), "\n")[0]
+	if strings.Contains(top, "↑") || strings.Contains(top, "↓") {
+		t.Fatalf("the filter prompt is not decorated: %q", top)
+	}
+}
+
 func TestHelpOverlay(t *testing.T) {
 	f := newFixture(t, runner.Options{})
 	f.press("?")
@@ -589,7 +684,7 @@ func TestPreviewShowsMissingVariableHint(t *testing.T) {
 	if strings.Contains(v, "not ready") || !strings.Contains(v, "captured by login, which # @ref runs first") {
 		t.Fatalf("preview should say login runs first:\n%s", v)
 	}
-	if !strings.Contains(v, "● GET    whoami") {
+	if !strings.Contains(v, "● GET     whoami") {
 		t.Fatalf("list should mark whoami as ready:\n%s", v)
 	}
 	f.press("/")
@@ -601,7 +696,7 @@ func TestPreviewShowsMissingVariableHint(t *testing.T) {
 	if !strings.Contains(v, "not ready") || !strings.Contains(v, "captured by create-job") {
 		t.Fatalf("preview should explain the missing jobId:\n%s", v)
 	}
-	if !strings.Contains(v, "○ GET    get-job") {
+	if !strings.Contains(v, "○ GET     get-job") {
 		t.Fatalf("list should mark get-job as not ready:\n%s", v)
 	}
 }
@@ -614,7 +709,7 @@ func TestRunStoresWhatRefRanFirst(t *testing.T) {
 		t.Fatalf("whoami should pass after login ran first: %+v", res)
 	}
 	v := f.view()
-	for _, want := range []string{"✓ POST   login", "✓ GET    whoami", "last: ✓ whoami"} {
+	for _, want := range []string{"✓ POST    login", "✓ GET     whoami", "last: ✓ whoami"} {
 		if !strings.Contains(v, want) {
 			t.Errorf("missing %q in view:\n%s", want, v)
 		}
@@ -737,7 +832,7 @@ func TestDisabledStaysOutOfFlows(t *testing.T) {
 	f.drain(f.press("r"))
 	f.drain(f.press("a"))
 	v := f.view()
-	if !strings.Contains(v, "1 failed, 24 passed") || !strings.Contains(v, "✓ GET    up") || !strings.Contains(v, "- GET    off") {
+	if !strings.Contains(v, "1 failed, 24 passed") || !strings.Contains(v, "✓ GET     up") || !strings.Contains(v, "- GET     off") {
 		t.Fatalf("the run of everything should skip off:\n%s", v)
 	}
 	f.press("G")

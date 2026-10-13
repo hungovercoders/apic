@@ -165,6 +165,12 @@ func decodeEscape(b []byte) (Key, int, bool) {
 		}
 		return Key{}, 0, false // incomplete sequence
 	}
+	if b[1] >= 0x20 && b[1] <= 0x7e {
+		// Alt and a key, which most terminals send as ESC then the key:
+		// not a binding, and not the escape key either, which would
+		// cancel a run.
+		return Key{}, 2, false
+	}
 	// ESC followed by something else: treat the ESC alone.
 	return Key{Type: KeyEsc}, 1, true
 }

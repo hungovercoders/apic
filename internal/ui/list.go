@@ -134,6 +134,34 @@ func (m *Model) moveTo(first bool) {
 	m.selected = m.selectedReq()
 }
 
+// focus puts the cursor on req when the list shows it, and in every case
+// keeps the pane on the request under the cursor: the cursor is the one
+// source of what is selected, so enter, o and the right pane never
+// disagree.
+func (m *Model) focus(req *httpfile.Request) {
+	for i, it := range m.visible() {
+		if it.req == req {
+			m.cursor = i
+			break
+		}
+	}
+	m.selected = m.selectedReq()
+}
+
+// allVisible reports whether the filter leaves every one of reqs on screen.
+func (m *Model) allVisible(reqs []*httpfile.Request) bool {
+	shown := map[*httpfile.Request]bool{}
+	for _, it := range m.visible() {
+		shown[it.req] = true
+	}
+	for _, r := range reqs {
+		if !shown[r] {
+			return false
+		}
+	}
+	return true
+}
+
 // fileRequests returns every request in the file of the selected request.
 func (m *Model) fileRequests() []*httpfile.Request {
 	sel := m.selectedReq()

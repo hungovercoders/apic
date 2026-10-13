@@ -133,7 +133,10 @@ then the environment, so the key hint and anything in flight stay in view.
   in flight says so rather than queueing; <kbd>esc</kbd> cancels.
 - **Flows update live.** Running a file sends its requests one after
   another, and each row turns green or red as its response arrives, so a long
-  flow shows progress instead of a frozen screen.
+  flow shows progress instead of a frozen screen. The cursor moves to each
+  request as its response lands, so the pane shows the latest response
+  while the next request is out, and a filter that would hide any of them
+  is cleared when the flow starts, so the pane and the list always agree.
 - **Retries happen inside the run.** A request with `# @retry` is sent
   until its assertions pass; the status line of its response then says how
   many attempts it took. The row is "running" until then, so a long poll
@@ -151,7 +154,10 @@ then the environment, so the key hint and anything in flight stay in view.
   from somewhere else.
 - **Editing is round-tripped.** <kbd>o</kbd> opens `$VISUAL`, then `$EDITOR`
   (`vi`, or `notepad` on Windows), at the request's line; the project is
-  reloaded when the editor exits. <kbd>r</kbd> reloads without editing, which
+  reloaded when the editor exits. VS Code, Cursor and VSCodium are given
+  `--wait` so that moment is the tab closing, not the window opening. While
+  the editor runs the UI stops reading the keyboard, so everything typed
+  goes to the editor. <kbd>r</kbd> reloads without editing, which
   picks up files written by anything else.
 - **Redaction is honoured.** With `--redact`, bodies, header values, query
   values and captured values are masked on screen exactly as they are in

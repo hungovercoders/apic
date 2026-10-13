@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -59,20 +60,29 @@ func Run(ctx context.Context, m *Model, in *os.File, out io.Writer) error {
 	if err != nil {
 		return fmt.Errorf("raw mode: %w (on Windows use Windows Terminal, or winpty in Git Bash)", err)
 	}
-	p := &program{m: m, in: in, out: out, state: state, msgs: make(chan Msg, 64), done: make(chan struct{})}
+	src, err := newKeySource(in)
+	if err != nil {
+		_ = term.Restore(in.Fd(), state)
+		return fmt.Errorf("input: %w", err)
+	}
+	p := &program{m: m, in: in, out: out, src: src, state: state, msgs: make(chan Msg, 64), done: make(chan struct{})}
 	defer p.restore()
-	return p.loop(ctx)
+	err = p.loop(ctx)
+	p.stopKeys()
+	return err
 }
 
 type program struct {
 	m     *Model
 	in    *os.File
 	out   io.Writer
+	src   keySource
 	state *term.State
 	msgs  chan Msg
 	done  chan struct{}
 
 	keys     chan Key
+	stopped  chan struct{} // closed when the key reader has returned; nil while it is not running
 	lastSize sizeMsg
 	frame    string
 	restored bool
@@ -86,13 +96,21 @@ func (p *program) restore() {
 	}
 	p.restored = true
 	p.write(showCursor + altScreenOff)
-	_ = term.Restore(p.in.Fd(), p.state)
+	p.restoreTerminal()
+}
+
+// restoreTerminal puts the terminal modes back; a program built without
+// them (tests) has nothing to restore.
+func (p *program) restoreTerminal() {
+	if p.state != nil {
+		_ = term.Restore(p.in.Fd(), p.state)
+	}
 }
 
 func (p *program) loop(ctx context.Context) error {
 	p.write(altScreenOn + hideCursor + clearScreen)
 	p.keys = make(chan Key, 16)
-	go readKeys(p.in, p.keys, p.done)
+	p.startKeys()
 	defer close(p.done)
 
 	size := time.NewTicker(250 * time.Millisecond)
@@ -111,6 +129,11 @@ func (p *program) loop(ctx context.Context) error {
 				return nil
 			}
 		case msg := <-p.msgs:
+			if pm, ok := msg.(panicMsg); ok {
+				// Raised here rather than on the worker so Run's deferred
+				// restore puts the terminal back before the crash prints.
+				panic(pm)
+			}
 			if p.dispatch(p.m.Update(msg)) {
 				return nil
 			}
@@ -146,9 +169,16 @@ func (p *program) dispatch(cmd Cmd) bool {
 		return false
 	case Cmd:
 		return p.dispatch(msg)
+	case batchMsg:
+		for _, c := range msg {
+			if p.dispatch(c) {
+				return true
+			}
+		}
+		return false
 	case asyncMsg:
 		go func() {
-			out := msg.run()
+			out := guard(msg.run)
 			select {
 			case p.msgs <- out:
 			case <-p.done:
@@ -175,18 +205,52 @@ func (p *program) dispatch(cmd Cmd) bool {
 	}
 }
 
+// startKeys begins decoding keys from the terminal on a goroutine of their
+// own.
+func (p *program) startKeys() {
+	p.src.Resume()
+	stopped := make(chan struct{})
+	p.stopped = stopped
+	go func() {
+		defer close(stopped)
+		readKeys(p.src, p.keys, p.done)
+	}()
+}
+
+// stopKeys interrupts the key reader and waits for it to return, so that
+// no read is outstanding on the terminal while another program has it.
+// Keys still queued are dropped: they were typed before the editor
+// opened, and acting on them once it closes would be a surprise.
+func (p *program) stopKeys() {
+	if p.stopped == nil {
+		return
+	}
+	p.src.Cancel()
+	for {
+		select {
+		case <-p.keys:
+		case <-p.stopped:
+			p.stopped = nil
+			return
+		}
+	}
+}
+
 // exec suspends the UI, runs a command attached to the terminal, and
-// restores the UI afterwards.
+// restores the UI afterwards. The key reader is stopped first, so every
+// byte typed while the command runs reaches it and not the UI.
 func (p *program) exec(e execMsg) {
+	p.stopKeys()
 	p.write(showCursor + altScreenOff)
-	_ = term.Restore(p.in.Fd(), p.state)
-	e.cmd.Stdin, e.cmd.Stdout, e.cmd.Stderr = p.in, os.Stdout, os.Stderr
+	p.restoreTerminal()
+	e.cmd.Stdin, e.cmd.Stdout, e.cmd.Stderr = p.in, p.out, os.Stderr
 	err := e.cmd.Run()
 	if state, rerr := term.MakeRaw(p.in.Fd()); rerr == nil {
 		p.state = state
 	}
 	p.write(altScreenOn + hideCursor + clearScreen)
 	p.frame = ""
+	p.startKeys()
 	if e.done != nil {
 		select {
 		case p.msgs <- e.done(err):
@@ -229,6 +293,36 @@ func (p *program) render() {
 	}
 	b.WriteString(eraseBelow)
 	p.write(b.String())
+}
+
+// batchMsg carries several commands to run in order.
+type batchMsg []Cmd
+
+// batch runs several commands, so one key can both start a run and set a
+// status.
+func batch(cmds ...Cmd) Cmd {
+	return func() Msg { return batchMsg(cmds) }
+}
+
+// panicMsg is a panic caught on a worker goroutine, carried to the loop
+// so that the terminal is restored before it is raised again. A panic that
+// escaped the worker would end the process with the terminal still in raw
+// mode on the alternate screen.
+type panicMsg struct {
+	value any
+	stack []byte
+}
+
+func (pm panicMsg) String() string { return fmt.Sprintf("%v\n\n%s", pm.value, pm.stack) }
+
+// guard runs fn, turning a panic into a panicMsg.
+func guard(fn func() Msg) (out Msg) {
+	defer func() {
+		if v := recover(); v != nil {
+			out = panicMsg{value: v, stack: debug.Stack()}
+		}
+	}()
+	return fn()
 }
 
 // asyncMsg carries work that must not block the event loop.

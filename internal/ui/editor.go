@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
 // editorCommand builds the command that opens file at line in editor.
-// Editors that understand +line get it; VS Code gets -g file:line.
+// Editors that understand +line get it; VS Code and its relatives get
+// -g file:line, and --wait unless the user already passes it, since they
+// otherwise return at once and the reload that follows sees no edit.
 func editorCommand(editor, file string, line int) (*exec.Cmd, error) {
 	parts := strings.Fields(editor)
 	if len(parts) == 0 {
@@ -19,6 +22,9 @@ func editorCommand(editor, file string, line int) (*exec.Cmd, error) {
 	base := strings.TrimSuffix(filepath.Base(parts[0]), ".exe")
 	switch base {
 	case "code", "code-insiders", "codium", "cursor":
+		if !slices.Contains(args, "--wait") && !slices.Contains(args, "-w") {
+			args = append(args, "--wait")
+		}
 		args = append(args, "-g", fmt.Sprintf("%s:%d", file, line))
 	case "notepad":
 		args = append(args, file)

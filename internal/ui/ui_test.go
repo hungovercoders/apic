@@ -241,6 +241,61 @@ func TestPressWatchYieldsAFramePerRequest(t *testing.T) {
 	}
 }
 
+// paneRequest is the request named in the tab strip, which is what the
+// right pane is about.
+func paneRequest(v string) string {
+	strip := strings.Split(v, "\n")[0]
+	fields := strings.Fields(strip[strings.Index(strip, "5 history")+len("5 history"):])
+	if len(fields) == 0 {
+		return ""
+	}
+	return fields[0]
+}
+
+// A flow started under a filter that hides some of its requests clears the
+// filter, and the cursor follows each step, so the pane and the cursor
+// never name different requests.
+func TestFlowKeepsPaneAndCursorTogether(t *testing.T) {
+	f := newFixture(t, runner.Options{})
+	f.press("/")
+	for _, r := range "list-todos" {
+		f.press(string(r))
+	}
+	f.press("enter")
+	if f.m.Selected().ID() != "list-todos" {
+		t.Fatalf("filter should land on list-todos, got %s", f.m.Selected().ID())
+	}
+	cmd := f.press("f")
+	if f.m.filter != "" || !strings.Contains(f.m.Status(), "filter cleared") {
+		t.Fatalf("a flow over hidden requests should clear the filter, filter=%q status=%q", f.m.filter, f.m.Status())
+	}
+	if got := f.m.Selected().ID(); got != "list-todos" || paneRequest(f.view()) != got {
+		t.Fatalf("before the first step: cursor=%s pane=%s", got, paneRequest(f.view()))
+	}
+	f.drain(cmd)
+	if got := f.m.Selected().ID(); got != "redirect-raw" || paneRequest(f.view()) != got {
+		t.Fatalf("after the flow: cursor=%s pane=%s", got, paneRequest(f.view()))
+	}
+	// The same without a filter: a run of everything from the last row
+	// moves the cursor to the first request as it starts.
+	f.press("G")
+	cmd = f.press("a")
+	if got := f.m.Selected().ID(); got != "login" || paneRequest(f.view()) != got {
+		t.Fatalf("a should start at the first request: cursor=%s pane=%s", got, paneRequest(f.view()))
+	}
+	f.drain(cmd)
+	// A filter that shows every request of the file stays.
+	f.press("/")
+	for _, r := range "auth" {
+		f.press(string(r))
+	}
+	f.press("enter")
+	f.drain(f.press("f"))
+	if f.m.filter != "auth" {
+		t.Fatalf("a filter that hides nothing in the file should stay, got %q", f.m.filter)
+	}
+}
+
 func TestRunAllReportsFailures(t *testing.T) {
 	f := newFixture(t, runner.Options{})
 	f.drain(f.press("a"))
@@ -353,6 +408,15 @@ func TestEditorCommand(t *testing.T) {
 	cmd, err = editorCommand("code --wait", "auth.http", 7)
 	if err != nil || strings.Join(cmd.Args[1:], " ") != "--wait -g auth.http:7" {
 		t.Fatalf("code: %v %v", cmd.Args, err)
+	}
+	// Without --wait, VS Code returns at once and the reload sees no edit.
+	cmd, err = editorCommand("code", "auth.http", 7)
+	if err != nil || strings.Join(cmd.Args[1:], " ") != "--wait -g auth.http:7" {
+		t.Fatalf("code without --wait: %v %v", cmd.Args, err)
+	}
+	cmd, err = editorCommand("cursor -w", "auth.http", 7)
+	if err != nil || strings.Join(cmd.Args[1:], " ") != "-w -g auth.http:7" {
+		t.Fatalf("cursor -w: %v %v", cmd.Args, err)
 	}
 	if _, err := editorCommand("", "x", 1); err == nil {
 		t.Fatal("empty editor should error")

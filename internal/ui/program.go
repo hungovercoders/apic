@@ -56,6 +56,7 @@ func Run(ctx context.Context, m *Model, in *os.File, out io.Writer) error {
 	if !term.IsTerminal(in.Fd()) {
 		return errors.New("stdin is not a terminal")
 	}
+	defer enableVT()()
 	state, err := term.MakeRaw(in.Fd())
 	if err != nil {
 		return fmt.Errorf("raw mode: %w (on Windows use Windows Terminal, or winpty in Git Bash)", err)

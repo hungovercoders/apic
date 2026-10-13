@@ -97,9 +97,12 @@ runs:
         set -eo pipefail
         fail() { echo "::error::$1" >&2; exit 1; }
         # Called directly (never inside `$(...)` or left of `||`), so a
-        # failure here ends the step rather than a subshell.
+        # failure here ends the step rather than a subshell. The value is
+        # spliced into `run:` lines by every consumer, so only a scheme, a
+        # host, an optional port and a path of URL-safe characters pass:
+        # no query, no quotes, nothing a shell would expand.
         require_http() {
-          [[ "$1" =~ ^https?://[^[:space:][:cntrl:]]+$ ]] || fail "Invalid URL format: $1"
+          [[ "$1" =~ ^https?://[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~%/-]*)?$ ]] || fail "Invalid URL format: $1"
         }
         emit() { # url skip use_local prod
           {

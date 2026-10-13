@@ -114,22 +114,6 @@ jobs:
           retention-days: 30
           if-no-files-found: ignore
 
-      - name: Comment on deployment commit (if applicable)
-        if: github.event_name == 'deployment_status' && always()
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          URL: ${{ steps.url.outputs.url }}
-          STATUS: ${{ job.status }}
-        run: |
-          status_marker=$([ "$STATUS" = "success" ] && echo "✅ PASSED" || echo "❌ FAILED")
-          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          gh api -X POST "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/comments" \
-            -f body="## Smoke Test Results ${status_marker}
-
-          Tested URL: ${URL}
-
-          [View detailed results](${run_url})"
-
       - name: Emit issue on smoke failure
         if: failure() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:

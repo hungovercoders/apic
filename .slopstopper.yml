@@ -1,0 +1,69 @@
+# .slopstopper.yml: slopstopper's per-repo config.
+#
+# This is the starter install.sh seeds: the handful of keys most repos
+# actually set. Every other knob has a sensible default and is documented,
+# with its default, in the schema reference:
+#   https://github.com/hungovercoders/slopstopper/blob/main/.slopstopper.yml.example
+# Copy a block from there when you need it. Re-running install.sh never
+# overwrites this file.
+#
+# That link tracks main; .ss/.installed-from names the commit you installed
+# from (put it in place of `main` to see that version). A knob the CLI reads
+# takes effect once the slopstopper-cli pinned in mise.toml has it.
+
+# apic is a Go CLI, but website/ is apic.sh, a Starlight site deployed by
+# Cloudflare Workers Builds, so the browser checks apply: `ui`. The site
+# builds from website/ (the root package.json's `build` script) and
+# mise.toml exports SERVE_ROOT=website/dist for the bundled static server.
+profile: ui
+
+# Where the deployed app lives. production is what scheduled and post-deploy
+# runs audit (and the API checks on a push to main); preview is where your
+# PRs deploy. The browser checks build and serve the repo on PRs and pushes;
+# the API checks and DAST's API mode (api.openapi.spec) hit preview on a PR,
+# and skip there without it. Workers Builds gives every pull request its own
+# preview URL, which ss-cloudflare-deployed.yml reads from Cloudflare's PR
+# comment, so preview stays blank.
+urls:
+  production: https://apic.sh
+  preview:
+
+# Paths each browser check audits, comma-separated. Starlight serves every
+# page with a trailing slash.
+pages:
+  smoke:         /,/getting-started/,/cli/,/learn/,/tui/
+  e2e:           /,/getting-started/,/learn/
+  accessibility: /,/getting-started/,/cli/,/learn/,/tui/,/cheatsheet/
+  seo:           /,/getting-started/,/learn/,/comparison/
+  broken_links:  /,/getting-started/,/cheatsheet/,/learn/
+
+# website/public/og-image.png, with its cross-origin resource policy set in
+# website/public/_headers.
+smoke:
+  og_image_path: /og-image.png
+
+# Starlight writes a sitemap index rather than a flat sitemap.xml.
+reliability:
+  sitemap:
+    sitemap_path: /sitemap-index.xml
+
+# apic.sh is static assets on a Worker with no headers file, so there is no
+# CSP to check for drift. Point this at website/public/_headers if one is
+# added (format: cloudflare-text).
+headers:
+  source: null
+
+hygiene:
+  complexity:
+    # lizard counts every `case`, and apic's parsers, importers and the
+    # runner are switch-driven by design, so the ceiling is golangci-lint's
+    # gocyclo default (30) rather than slopstopper's 15.
+    max_ccn: 30
+
+# Any check you don't want, by workflow filename. A profile drops whole
+# sets; this is for one-offs. `enabled` takes a single check back from a
+# profile. The Cloudflare config lives in website/wrangler.jsonc, where the
+# installer does not look, so the post-deploy workflow is enabled by hand.
+workflows:
+  disabled: []
+  enabled: [ss-cloudflare-deployed.yml]

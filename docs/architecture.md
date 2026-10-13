@@ -3,7 +3,7 @@
 How a request flows through apic, which package does what, and the three
 contracts that every change is checked against. Read this before
 changing the runner or adding a directive; the last lesson of
-[the course](learn/index.md) walks the same ground with a keyboard.
+[the course](https://apic.sh/learn/) walks the same ground with a keyboard.
 
 ## The lifecycle of a request
 
@@ -59,8 +59,8 @@ flowchart LR
    selectors pull values out of it and `# @assert` expressions are
    evaluated. A failed assertion or capture is exit 1.
 7. **Persist** (`internal/session`, `internal/history`). Captures are
-   committed to the run and to `.apic/session.json` for the environment,
-   and the cookie jar to `.apic/cookies.json`, so the next invocation
+   committed to the run and to the session file under `.apic/` for the
+   environment, and the cookie jar beside it, so the next invocation
    continues where this one stopped. With `history:` set, the result is
    also kept in `.apic/history`, in its `--json` form, for `apic history`.
 8. **Render** (`internal/output`). One set of renderers produces the
@@ -72,7 +72,7 @@ flowchart LR
 | Contract | Where it is enforced |
 |---|---|
 | **The `.http` dialect** stays what VS Code REST Client and JetBrains send. Everything apic adds is a `# @directive` comment. | `internal/httpfile/testdata/sample.http` (the golden parse), `TestGrammarMatchesKnownDirectives` (the VS Code grammar lists every directive the parser knows), `apic validate` warning on unknown directives rather than failing. |
-| **`--json` and exit codes** are stable: keys are only added, and 0/1/2/3 keep their meanings. | `runner.ExitCode` uses `errors.As`, so a wrapped `TransportError` cannot turn a 3 into a 2 (`errorlint` is on for this); `TestExitCodeUnwraps`; the JSON shapes in `internal/runner` are typed and the VS Code extension reads them from `types.ts`. Error codes (E101…) come from `runner.Catalogue`, which also generates [errors.md](errors.md); `TestEveryCodeIsProduced` runs a real command for each. |
+| **`--json` and exit codes** are stable: keys are only added, and 0/1/2/3 keep their meanings. | `runner.ExitCode` uses `errors.As`, so a wrapped `TransportError` cannot turn a 3 into a 2 (`errorlint` is on for this); `TestExitCodeUnwraps`; the JSON shapes in `internal/runner` are typed and the VS Code extension reads them from `types.ts`. Error codes (E101…) come from `runner.Catalogue`, which also generates the site's [errors.md](../website/src/content/docs/errors.md); `TestEveryCodeIsProduced` runs a real command for each. |
 | **Every command is non-interactive** and honours `--json`; `apic ui` is the one exception and exits 2 without a terminal. | `apic test` and the CLI tests run with no TTY; device-code and exec prompts write to stderr and never block on stdin. |
 
 ## Packages
@@ -85,7 +85,7 @@ flowchart LR
 - `internal/template`: `{{placeholder}}` substitution
 - `internal/selector`: `status`, `header.x`, `cookie.x`, `body.$.path` selectors
 - `internal/assert`: assertion parser and evaluator
-- `internal/session`: `.apic/session.json` persistence of captured values and cached tokens, and the cookie jar in `cookies.go`
+- `internal/session`: persistence of captured values and cached tokens in the project's `.apic/` directory, and the cookie jar in `cookies.go`
 - `internal/history`: the last N responses of each named request per environment in `.apic/history`, and the comparison `apic history diff` and the UI's history tab show (JSON by structure, text by line)
 - `internal/auth`: `# @auth` spec parsing and application for bearer, basic, AWS SigV4 (own signer in `sigv4.go`, credentials in `awscreds.go`; no AWS SDK), OAuth2 grants and exec
 - `internal/runner`: variable precedence, request execution, TLS settings (`tls.go`), captures, asserts, retries, `# @ref` dependencies, flows, `describe`

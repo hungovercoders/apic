@@ -15,9 +15,10 @@ import (
 // (comments, unknown directives, editor script blocks) is kept verbatim:
 //
 //   - one blank line between blocks, `### Title` on its own line;
-//   - directives in a fixed order (name, description, step, auth, ref,
-//     forceRef, retry, timeout, no-redirect, no-session, no-cookies,
-//     assert, capture, then unknown ones as written), each `# @key value`;
+//   - directives in a fixed order (DirectiveOrder: name, description,
+//     disabled, step, auth, ref, forceRef, sleep, retry, timeout,
+//     no-redirect, no-session, no-cookies, assert, capture, then unknown
+//     ones as written), each `# @key value`;
 //     comments keep their place among the directives;
 //   - `@name = value` file variables with single spaces;
 //   - the request line with single spaces, query continuations indented
@@ -70,6 +71,17 @@ func Format(src string) string {
 var directiveRank = map[string]int{
 	"name": 0, "description": 1, "disabled": 2, "step": 3, "auth": 4, "ref": 5, "forceRef": 6, "sleep": 7,
 	"retry": 8, "timeout": 9, "no-redirect": 10, "no-session": 11, "no-cookies": 12, "assert": 13, "capture": 14,
+}
+
+// DirectiveOrder is the order Format writes the known directives in, so
+// the help and the docs that list it can be checked against the formatter.
+func DirectiveOrder() []string {
+	names := make([]string, 0, len(directiveRank))
+	for name := range directiveRank {
+		names = append(names, name)
+	}
+	sort.Slice(names, func(i, j int) bool { return directiveRank[names[i]] < directiveRank[names[j]] })
+	return names
 }
 
 var reBodyFile = regexp.MustCompile(`^<@?\s+`)

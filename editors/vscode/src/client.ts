@@ -7,8 +7,8 @@ import * as vscode from "vscode";
 import { LanguageClient, type LanguageClientOptions, type ServerOptions } from "vscode-languageclient/node";
 import { compareVersions, type Apic } from "./apic";
 
-/** The first apic release with `apic lsp`. */
-export const LSP_MIN_VERSION = "0.2.0";
+/** The first apic release with `apic lsp`: it shipped in v0.1.0. */
+export const LSP_MIN_VERSION = "0.1.0";
 
 /** Whether the setting asks for the language server. */
 export function languageServerEnabled(): boolean {

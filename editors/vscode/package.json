@@ -196,7 +196,7 @@
         "apic.languageServer.enable": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Take diagnostics, completion and hover from `apic lsp` (apic 0.2.0 or later), so problems show as you type rather than on save. The code lenses, the formatter, the response panel, the views and the Test Explorer are unchanged. Reload the window after changing it."
+          "markdownDescription": "Take diagnostics, completion and hover from `apic lsp` (in every apic release), so problems show as you type rather than on save. The code lenses, the formatter, the response panel, the views and the Test Explorer are unchanged. Reload the window after changing it."
         },
         "apic.format.enable": {
           "type": "boolean",

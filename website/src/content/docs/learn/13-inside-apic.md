@@ -101,7 +101,7 @@ Every review asks the same three questions, and the tree enforces each:
 |---|---|
 | **The dialect is REST Client's and JetBrains'.** Everything apic adds is a `# @` comment. | The golden file; `TestGrammarMatchesKnownDirectives`, which fails when the VS Code grammar and the parser disagree on the directive list; `validate` warning rather than failing on an unknown directive. |
 | **`--json` and the exit codes are stable.** Keys are only added; 0, 1, 2 and 3 keep their meanings. | `runner.ExitCode` uses `errors.As`, `errorlint` is on so a wrapped `TransportError` cannot become a 2, and `TestExitCodeUnwraps` pins it. |
-| **Every command is non-interactive.** `apic ui` is the one exception. | Every CLI test runs with no terminal; the device-code and authorization-code prompts go to stderr and never block on stdin, and neither starts without a terminal. |
+| **Every command is non-interactive.** `apic ui` is the one exception. | Every CLI test runs with no terminal; the device-code and authorization-code prompts go to stderr and never block on stdin, and the authorization-code grant refuses to start without a terminal. |
 
 `task check` is what CI runs: lint (with `errorlint`, `gosec`,
 `bodyclose` and friends), tests, the race detector, the licence check and

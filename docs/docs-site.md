@@ -9,8 +9,10 @@ the prose checks. The site's content is not reference for working on apic;
 
 - Astro with Starlight, pages in `src/content/docs/` (Markdown;
   `getting-started.mdx` and `index.mdx` are MDX for the tab components), the
-  sidebar in `astro.config.mjs`, apic's colours in `src/styles/custom.css`.
-  Every page needs a `title:` in its front matter, not an H1. Asides are
+  sidebar in `src/sidebar.mjs` (which `astro.config.mjs`, `llms.txt` and
+  `llms-full.txt` all read), apic's colours in `src/styles/custom.css`.
+  Every page needs a `title:` and a one-line `description:` in its front
+  matter, not an H1. Asides are
   `:::tip[Title]` … `:::`; collapsible blocks are `<details>` with a
   `<summary>`. A lesson stays Markdown (`<!-- learn -->` is an HTML comment,
   which MDX rejects and `scripts/learncheck` needs).

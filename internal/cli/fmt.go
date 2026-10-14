@@ -22,9 +22,9 @@ func (a *App) fmtCmd() *cobra.Command {
 		Use:   "fmt [path...]",
 		Short: "Rewrite .http files in their canonical form",
 		Long: `fmt rewrites request files in place: one blank line between blocks,
-directives in a fixed order (name, description, step, auth, ref, forceRef,
-retry, timeout, no-redirect, no-session, no-cookies, assert, capture, then
-the rest as written), header names in canonical case, query continuations
+directives in a fixed order (name, description, disabled, step, auth, ref,
+forceRef, sleep, retry, timeout, no-redirect, no-session, no-cookies,
+assert, capture, then the rest as written), header names in canonical case, query continuations
 indented, JSON bodies pretty-printed when they hold no {{placeholders}},
 trailing whitespace removed. Comments, unknown directives, editor script
 blocks and file bodies are kept as they are, and formatting twice changes

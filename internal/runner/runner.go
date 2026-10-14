@@ -1687,31 +1687,9 @@ func (r *Runner) Describe(req *httpfile.Request) *Description {
 		}
 	}
 	if req.IsGraphQL() {
-		// What goes on the wire: a POST with the JSON envelope, the
-		// placeholders still to be filled in.
-		d.Method = "POST"
-		for k := range d.Headers {
-			if strings.EqualFold(k, httpfile.GraphQLHeader) {
-				delete(d.Headers, k)
-			}
-		}
-		if _, has := req.Header("Content-Type"); !has {
-			d.Headers["Content-Type"] = "application/json"
-		}
-		if req.BodyFile == "" {
-			if q, v, err := req.GraphQL(); err == nil {
-				quoted, _ := json.Marshal(q)
-				d.Body = `{"query": ` + string(quoted)
-				if v != "" {
-					d.Body += `, "variables": ` + v
-				}
-				d.Body += "}"
-			}
-		}
+		describeGraphQL(d, req)
 	}
-	seen := map[string]bool{}
-	var texts []string
-	texts = append(texts, req.URL)
+	texts := []string{req.URL}
 	for _, h := range req.Headers {
 		texts = append(texts, h.Value)
 	}
@@ -1737,54 +1715,15 @@ func (r *Runner) Describe(req *httpfile.Request) *Description {
 			texts = append(texts, spec.Texts()...)
 		}
 	}
+	seen := map[string]bool{}
 	for _, t := range texts {
 		for _, e := range template.Exprs(t) {
 			if seen[e] {
 				continue
 			}
 			seen[e] = true
-			if strings.HasPrefix(e, "$auth.") {
-				// Say which configuration runs; fetching a token is for
-				// sending, not describing.
-				info := r.describeAuth(e)
-				if info.Missing {
-					d.Ready = false
-				}
-				d.Variables = append(d.Variables, info)
-				continue
-			}
-			if strings.HasPrefix(e, "$") || strings.Contains(e, ".response.") {
-				v, ok, secret, err := r.resolveExprMeta(req, e, 0)
-				info := VarInfo{Name: e, Source: "built-in", Value: v, Secret: secret, Missing: !ok || err != nil}
-				if name, _, isRef := strings.Cut(e, ".response."); isRef {
-					info.Source = "response reference (flow only)"
-					if !ok && err == nil && refRuns[name] {
-						// `# @ref` runs the request first, as for a
-						// captured variable.
-						info.RefRuns = true
-					}
-				}
-				if err != nil {
-					info.Source += ": " + err.Error()
-				}
-				if (!ok || err != nil) && !info.RefRuns {
-					d.Ready = false
-				}
-				d.Variables = append(d.Variables, info)
-				continue
-			}
-			info, ok, err := r.lookup(req, e, 0)
-			if err != nil {
-				info.Source = info.Source + ": " + err.Error()
-				info.Missing = true
-			}
-			if info.Missing && err == nil && refRuns[info.CapturedBy] {
-				// A `# @ref` supplies it before the request goes out, so
-				// it does not make the request unready.
-				info.RefRuns = true
-			} else if !ok || err != nil {
-				d.Ready = false
-			}
+			info, ready := r.describeVar(req, e, refRuns)
+			d.Ready = d.Ready && ready
 			d.Variables = append(d.Variables, info)
 		}
 	}
@@ -1796,6 +1735,77 @@ func (r *Runner) Describe(req *httpfile.Request) *Description {
 	d.TLS = r.tlsInfoForURL(rendered)
 	d.Proxy = r.ProxyInfo(rendered)
 	return d
+}
+
+// describeGraphQL shows what goes on the wire for a GraphQL request: a
+// POST with the JSON envelope, the placeholders still to be filled in.
+func describeGraphQL(d *Description, req *httpfile.Request) {
+	d.Method = "POST"
+	for k := range d.Headers {
+		if strings.EqualFold(k, httpfile.GraphQLHeader) {
+			delete(d.Headers, k)
+		}
+	}
+	if _, has := req.Header("Content-Type"); !has {
+		d.Headers["Content-Type"] = "application/json"
+	}
+	if req.BodyFile != "" {
+		return
+	}
+	if q, v, err := req.GraphQL(); err == nil {
+		quoted, _ := json.Marshal(q)
+		d.Body = `{"query": ` + string(quoted)
+		if v != "" {
+			d.Body += `, "variables": ` + v
+		}
+		d.Body += "}"
+	}
+}
+
+// describeVar says where one placeholder's value comes from, and whether
+// the request is ready as far as it goes. refRuns holds the ids of the
+// requests a `# @ref` runs first.
+func (r *Runner) describeVar(req *httpfile.Request, e string, refRuns map[string]bool) (VarInfo, bool) {
+	if strings.HasPrefix(e, "$auth.") {
+		// Say which configuration runs; fetching a token is for
+		// sending, not describing.
+		info := r.describeAuth(e)
+		return info, !info.Missing
+	}
+	if strings.HasPrefix(e, "$") || strings.Contains(e, ".response.") {
+		return r.describeBuiltin(req, e, refRuns)
+	}
+	info, ok, err := r.lookup(req, e, 0)
+	if err != nil {
+		info.Source = info.Source + ": " + err.Error()
+		info.Missing = true
+	}
+	if info.Missing && err == nil && refRuns[info.CapturedBy] {
+		// A `# @ref` supplies it before the request goes out, so
+		// it does not make the request unready.
+		info.RefRuns = true
+		return info, true
+	}
+	return info, ok && err == nil
+}
+
+// describeBuiltin describes a built-in ($uuid, $env, …) or a response
+// reference.
+func (r *Runner) describeBuiltin(req *httpfile.Request, e string, refRuns map[string]bool) (VarInfo, bool) {
+	v, ok, secret, err := r.resolveExprMeta(req, e, 0)
+	info := VarInfo{Name: e, Source: "built-in", Value: v, Secret: secret, Missing: !ok || err != nil}
+	if name, _, isRef := strings.Cut(e, ".response."); isRef {
+		info.Source = "response reference (flow only)"
+		if !ok && err == nil && refRuns[name] {
+			// `# @ref` runs the request first, as for a
+			// captured variable.
+			info.RefRuns = true
+		}
+	}
+	if err != nil {
+		info.Source += ": " + err.Error()
+	}
+	return info, (ok && err == nil) || info.RefRuns
 }
 
 // tlsInfoForURL reports the non-default TLS setup for a request URL's host.

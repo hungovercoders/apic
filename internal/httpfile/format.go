@@ -85,65 +85,99 @@ func formatBlock(title string, lines []string, implicit bool) []string {
 			out = append(out, "###")
 		}
 	}
-	i := 0
-	// Preamble: comments, directives and file variables up to the request
-	// line, with blank lines dropped. A directive carries the comment lines
-	// written just above it, so the two move together when directives are
-	// reordered; a file variable, or a comment with no directive after it,
-	// stays where it is.
-	type item struct {
-		lines     []string // the comments above, then the directive itself
-		directive bool
-		rank      int
+	preamble, i := formatPreamble(lines)
+	out = append(out, preamble...)
+	if i >= len(lines) {
+		return trimTrailingBlank(out)
 	}
-	var preamble []item
+	reqLines, i := formatRequestLine(lines, i)
+	out = append(out, reqLines...)
+	headers, i, sawBlank := formatHeaders(lines, i)
+	out = append(out, headers...)
+	if !sawBlank {
+		return trimTrailingBlank(out)
+	}
+	body := trimBlankLines(lines[i:])
+	if len(body) == 0 {
+		return trimTrailingBlank(out)
+	}
+	return append(out, formatBody(body, headers)...)
+}
+
+// preambleItem is a line of the preamble, or a directive with the comment
+// lines written just above it.
+type preambleItem struct {
+	lines     []string // the comments above, then the directive itself
+	directive bool
+	rank      int
+}
+
+// formatPreamble formats the comments, directives and file variables up
+// to the request line, with blank lines dropped, and returns the index of
+// the line after them. A directive carries the comment lines written just
+// above it, so the two move together when directives are reordered; a
+// file variable, or a comment with no directive after it, stays where it
+// is.
+func formatPreamble(lines []string) ([]string, int) {
+	var preamble []preambleItem
 	var comments []string
+	flush := func() {
+		for _, c := range comments {
+			preamble = append(preamble, preambleItem{lines: []string{c}})
+		}
+		comments = nil
+	}
+	i := 0
 	for ; i < len(lines); i++ {
 		t := strings.TrimSpace(lines[i])
 		if t == "" {
 			continue
 		}
 		if m := reFileVar.FindStringSubmatch(t); m != nil {
-			for _, c := range comments {
-				preamble = append(preamble, item{lines: []string{c}})
-			}
+			flush()
+			preamble = append(preamble, preambleItem{lines: []string{"@" + m[1] + " = " + strings.TrimSpace(m[2])}})
+			continue
+		}
+		m := reComment.FindStringSubmatch(t)
+		if m == nil {
+			break
+		}
+		if d := reDirective.FindStringSubmatch(strings.TrimSpace(m[1])); d != nil {
+			preamble = append(preamble, directiveItem(comments, d[1], strings.TrimSpace(d[2])))
 			comments = nil
-			preamble = append(preamble, item{lines: []string{"@" + m[1] + " = " + strings.TrimSpace(m[2])}})
 			continue
 		}
-		if m := reComment.FindStringSubmatch(t); m != nil {
-			text := strings.TrimSpace(m[1])
-			if d := reDirective.FindStringSubmatch(text); d != nil {
-				key, value := d[1], strings.TrimSpace(d[2])
-				line := "# @" + key
-				if value != "" {
-					line += " " + value
-				}
-				rank, known := directiveRank[key]
-				if !known {
-					rank = len(directiveRank)
-				}
-				preamble = append(preamble, item{lines: append(comments, line), directive: true, rank: rank})
-				comments = nil
-				continue
-			}
-			comments = append(comments, strings.TrimRight(lines[i], " \t"))
-			continue
-		}
-		break
+		comments = append(comments, strings.TrimRight(lines[i], " \t"))
 	}
-	for _, c := range comments {
-		preamble = append(preamble, item{lines: []string{c}})
+	flush()
+	return sortDirectives(preamble), i
+}
+
+// directiveItem is a directive in its canonical spelling, carrying the
+// comments above it.
+func directiveItem(comments []string, key, value string) preambleItem {
+	line := "# @" + key
+	if value != "" {
+		line += " " + value
 	}
-	// Directives are sorted among themselves and put back into the slots
-	// they occupied; the other items keep their places.
-	var directives []item
+	rank, known := directiveRank[key]
+	if !known {
+		rank = len(directiveRank)
+	}
+	return preambleItem{lines: append(comments, line), directive: true, rank: rank}
+}
+
+// sortDirectives sorts the directives among themselves and puts them back
+// into the slots they occupied; the other items keep their places.
+func sortDirectives(preamble []preambleItem) []string {
+	var directives []preambleItem
 	for _, it := range preamble {
 		if it.directive {
 			directives = append(directives, it)
 		}
 	}
 	sort.SliceStable(directives, func(a, b int) bool { return directives[a].rank < directives[b].rank })
+	var out []string
 	next := 0
 	for _, it := range preamble {
 		if it.directive {
@@ -153,11 +187,12 @@ func formatBlock(title string, lines []string, implicit bool) []string {
 		}
 		out = append(out, it.lines...)
 	}
-	if i >= len(lines) {
-		return trimTrailingBlank(out)
-	}
+	return out
+}
 
-	// Request line.
+// formatRequestLine formats the request line at lines[i] and the indented
+// query continuation lines after it.
+func formatRequestLine(lines []string, i int) ([]string, int) {
 	reqLine := strings.TrimSpace(lines[i])
 	if m := reRequestLine.FindStringSubmatch(reqLine); m != nil {
 		reqLine = m[1] + " " + m[2]
@@ -167,27 +202,24 @@ func formatBlock(title string, lines []string, implicit bool) []string {
 	} else {
 		reqLine = strings.Join(strings.Fields(reqLine), " ")
 	}
-	out = append(out, reqLine)
-	i++
-	for i < len(lines) {
+	out := []string{reqLine}
+	for i++; i < len(lines); i++ {
 		t := strings.TrimSpace(lines[i])
-		if (strings.HasPrefix(t, "?") || strings.HasPrefix(t, "&")) && lines[i] != t {
-			out = append(out, "    "+t)
-			i++
-			continue
+		if (!strings.HasPrefix(t, "?") && !strings.HasPrefix(t, "&")) || lines[i] == t {
+			break
 		}
-		break
+		out = append(out, "    "+t)
 	}
+	return out, i
+}
 
-	// Headers until the first blank line; comments among them stay.
-	var headers []string
-	sawBlank := false
+// formatHeaders formats the headers until the first blank line, keeping
+// the comments among them, and returns the index after that blank line.
+func formatHeaders(lines []string, i int) (headers []string, next int, sawBlank bool) {
 	for ; i < len(lines); i++ {
 		t := strings.TrimSpace(lines[i])
 		if t == "" {
-			sawBlank = true
-			i++
-			break
+			return headers, i + 1, true
 		}
 		if reComment.MatchString(t) {
 			headers = append(headers, t)
@@ -199,28 +231,27 @@ func formatBlock(title string, lines []string, implicit bool) []string {
 		}
 		headers = append(headers, strings.TrimRight(lines[i], " \t")) // the parser will report it
 	}
-	out = append(out, headers...)
-	if !sawBlank {
-		return trimTrailingBlank(out)
-	}
+	return headers, i, false
+}
 
-	// Body: everything else, byte for byte, with only the blank lines
-	// around it dropped (the parser drops those too); a plain JSON
-	// document is pretty-printed.
-	body := lines[i:]
+// trimBlankLines drops the blank lines around a body (the parser drops
+// those too).
+func trimBlankLines(body []string) []string {
 	for len(body) > 0 && strings.TrimSpace(body[len(body)-1]) == "" {
 		body = body[:len(body)-1]
 	}
 	for len(body) > 0 && strings.TrimSpace(body[0]) == "" {
 		body = body[1:]
 	}
-	if len(body) == 0 {
-		return trimTrailingBlank(out)
-	}
-	// `>> file` lines at the end say where the response goes; they are
-	// not body text, so the JSON before them is still pretty-printed and
-	// they follow it after one blank line.
-	var saves []string
+	return body
+}
+
+// formatBody keeps the body byte for byte, except that a plain JSON
+// document is pretty-printed. `>> file` lines at the end say where the
+// response goes; they are not body text, so the JSON before them is still
+// pretty-printed and they follow it after one blank line.
+func formatBody(body, headers []string) []string {
+	var out, saves []string
 	for len(body) > 0 {
 		t := strings.TrimSpace(body[len(body)-1])
 		if t == "" {
@@ -235,8 +266,7 @@ func formatBlock(title string, lines []string, implicit bool) []string {
 	}
 	if len(body) > 0 {
 		out = append(out, "")
-		joined := strings.Join(body, "\n")
-		if pretty, ok := prettyJSON(joined, headers); ok {
+		if pretty, ok := prettyJSON(strings.Join(body, "\n"), headers); ok {
 			out = append(out, strings.Split(pretty, "\n")...)
 		} else {
 			out = append(out, body...)

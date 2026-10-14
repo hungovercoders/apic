@@ -235,6 +235,59 @@ func (a *App) fmtRel(file string) string {
 func unifiedDiff(name, a, b string) string {
 	al, noNewlineA := diffLines(a)
 	bl, noNewlineB := diffLines(b)
+	ops := diffOps(al, bl)
+	d := hunkWriter{ops: ops, n: len(al), m: len(bl), noNewlineA: noNewlineA, noNewlineB: noNewlineB}
+	fmt.Fprintf(&d.out, "--- %s\n+++ %s\n", name, name)
+	for k := 0; k < len(ops); {
+		if ops[k].kind == ' ' {
+			k++
+			continue
+		}
+		start := max(k-diffContext, 0)
+		end := hunkEnd(ops, k)
+		d.write(start, end)
+		k = end
+	}
+	return d.out.String()
+}
+
+// diffContext is how many unchanged lines a hunk shows around a change.
+const diffContext = 3
+
+// diffOp is one line of the diff: kept (' '), deleted ('-') or inserted
+// ('+').
+type diffOp struct {
+	kind byte
+	text string
+}
+
+// diffOps walks the longest common subsequence of a and b into the edit
+// script, deletions before insertions, the way diff -u prints them.
+func diffOps(al, bl []string) []diffOp {
+	n, m := len(al), len(bl)
+	lcs := lcsTable(al, bl)
+	var ops []diffOp
+	i, j := 0, 0
+	for i < n || j < m {
+		switch {
+		case i < n && j < m && al[i] == bl[j]:
+			ops = append(ops, diffOp{' ', al[i]})
+			i++
+			j++
+		case i < n && (j >= m || lcs[i+1][j] >= lcs[i][j+1]):
+			ops = append(ops, diffOp{'-', al[i]})
+			i++
+		default:
+			ops = append(ops, diffOp{'+', bl[j]})
+			j++
+		}
+	}
+	return ops
+}
+
+// lcsTable holds, at [i][j], the length of the longest common
+// subsequence of al[i:] and bl[j:].
+func lcsTable(al, bl []string) [][]int {
 	n, m := len(al), len(bl)
 	lcs := make([][]int, n+1)
 	for i := range lcs {
@@ -242,105 +295,95 @@ func unifiedDiff(name, a, b string) string {
 	}
 	for i := n - 1; i >= 0; i-- {
 		for j := m - 1; j >= 0; j-- {
-			if al[i] == bl[j] {
+			switch {
+			case al[i] == bl[j]:
 				lcs[i][j] = lcs[i+1][j+1] + 1
-			} else if lcs[i+1][j] >= lcs[i][j+1] {
+			case lcs[i+1][j] >= lcs[i][j+1]:
 				lcs[i][j] = lcs[i+1][j]
-			} else {
+			default:
 				lcs[i][j] = lcs[i][j+1]
 			}
 		}
 	}
-	type op struct {
-		kind byte // ' ', '-', '+'
-		text string
-	}
-	var ops []op
-	i, j := 0, 0
-	for i < n || j < m {
-		switch {
-		case i < n && j < m && al[i] == bl[j]:
-			ops = append(ops, op{' ', al[i]})
-			i++
-			j++
-		case i < n && (j >= m || lcs[i+1][j] >= lcs[i][j+1]):
-			// Deletions before insertions, the way diff -u prints them.
-			ops = append(ops, op{'-', al[i]})
-			i++
-		default:
-			ops = append(ops, op{'+', bl[j]})
-			j++
-		}
-	}
-	var out strings.Builder
-	fmt.Fprintf(&out, "--- %s\n+++ %s\n", name, name)
-	const context = 3
-	for k := 0; k < len(ops); {
-		if ops[k].kind == ' ' {
-			k++
+	return lcs
+}
+
+// hunkEnd finds where the hunk holding the change at k ends: it takes in
+// every change less than 2*diffContext unchanged lines from the last, then
+// diffContext lines of trailing context.
+func hunkEnd(ops []diffOp, k int) int {
+	end := k
+	for end < len(ops) {
+		if ops[end].kind != ' ' {
+			end++
 			continue
 		}
-		start := k - context
-		if start < 0 {
-			start = 0
+		next := end
+		for next < len(ops) && ops[next].kind == ' ' {
+			next++
 		}
-		end := k
-		for end < len(ops) {
-			if ops[end].kind != ' ' {
-				end++
-				continue
-			}
-			// Stop when the next change is more than 2*context away.
-			next := end
-			for next < len(ops) && ops[next].kind == ' ' {
-				next++
-			}
-			if next >= len(ops) || next-end > 2*context {
-				end += context
-				if end > len(ops) {
-					end = len(ops)
-				}
-				break
-			}
-			end = next
+		if next >= len(ops) || next-end > 2*diffContext {
+			return min(end+diffContext, len(ops))
 		}
-		aStart, bStart, aCount, bCount := 0, 0, 0, 0
-		for _, o := range ops[:start] {
-			if o.kind != '+' {
-				aStart++
-			}
-			if o.kind != '-' {
-				bStart++
-			}
-		}
-		for _, o := range ops[start:end] {
-			if o.kind != '+' {
-				aCount++
-			}
-			if o.kind != '-' {
-				bCount++
-			}
-		}
-		fmt.Fprintf(&out, "@@ -%d,%d +%d,%d @@\n", aStart+1, aCount, bStart+1, bCount)
-		aSeen, bSeen := aStart, bStart
-		for _, o := range ops[start:end] {
-			out.WriteByte(o.kind)
-			out.WriteString(strings.TrimSuffix(o.text, noNewline))
-			out.WriteByte('\n')
-			if o.kind != '+' {
-				aSeen++
-			}
-			if o.kind != '-' {
-				bSeen++
-			}
-			// The marker diff -u prints after a last line that has no newline.
-			if (o.kind == '-' && noNewlineA && aSeen == n) || (o.kind == '+' && noNewlineB && bSeen == m) || (o.kind == ' ' && noNewlineA && noNewlineB && aSeen == n) {
-				out.WriteString("\\ No newline at end of file\n")
-			}
-		}
-		k = end
+		end = next
 	}
-	return out.String()
+	return end
+}
+
+// lineCounts counts the lines of a and of b among ops.
+func lineCounts(ops []diffOp) (a, b int) {
+	for _, o := range ops {
+		if o.kind != '+' {
+			a++
+		}
+		if o.kind != '-' {
+			b++
+		}
+	}
+	return a, b
+}
+
+// hunkWriter writes the hunks of one file's diff.
+type hunkWriter struct {
+	out                    strings.Builder
+	ops                    []diffOp
+	n, m                   int // lines in a and in b
+	noNewlineA, noNewlineB bool
+}
+
+// write writes ops[start:end] as one hunk.
+func (d *hunkWriter) write(start, end int) {
+	aStart, bStart := lineCounts(d.ops[:start])
+	aCount, bCount := lineCounts(d.ops[start:end])
+	fmt.Fprintf(&d.out, "@@ -%d,%d +%d,%d @@\n", aStart+1, aCount, bStart+1, bCount)
+	aSeen, bSeen := aStart, bStart
+	for _, o := range d.ops[start:end] {
+		d.out.WriteByte(o.kind)
+		d.out.WriteString(strings.TrimSuffix(o.text, noNewline))
+		d.out.WriteByte('\n')
+		if o.kind != '+' {
+			aSeen++
+		}
+		if o.kind != '-' {
+			bSeen++
+		}
+		if d.lastWithoutNewline(o.kind, aSeen, bSeen) {
+			d.out.WriteString("\\ No newline at end of file\n")
+		}
+	}
+}
+
+// lastWithoutNewline reports whether the line just written is the last of
+// a text that has no final newline, which diff -u marks.
+func (d *hunkWriter) lastWithoutNewline(kind byte, aSeen, bSeen int) bool {
+	switch kind {
+	case '-':
+		return d.noNewlineA && aSeen == d.n
+	case '+':
+		return d.noNewlineB && bSeen == d.m
+	default:
+		return d.noNewlineA && d.noNewlineB && aSeen == d.n
+	}
 }
 
 // noNewline marks the last line of a text that does not end with a

@@ -1356,33 +1356,10 @@ func (r *Runner) attempt(ctx context.Context, req *httpfile.Request, resolved *R
 	var trace traceTimes
 	ctx = httptrace.WithClientTrace(ctx, trace.trace())
 
-	var body io.Reader
-	if b := resolved.BodyBytes(); len(b) > 0 {
-		body = bytes.NewReader(b)
-	}
-	httpReq, err := http.NewRequestWithContext(ctx, resolved.Method, resolved.URL, body)
+	httpReq, err := r.buildRequest(ctx, req, resolved)
 	if err != nil {
-		return nil, usagef(CodeBuild, "%s:%d: %v", req.File.Path, req.Line, err)
+		return nil, err
 	}
-	httpReq.Header.Set("User-Agent", "apic/"+Version)
-	for _, h := range resolved.Headers {
-		if strings.EqualFold(h.Name, "Host") {
-			httpReq.Host = h.Value
-			continue
-		}
-		httpReq.Header.Add(h.Name, h.Value)
-	}
-
-	if resolved.AuthSpec != nil {
-		env, err := r.authEnv()
-		if err != nil {
-			return nil, err
-		}
-		if err := auth.Apply(ctx, resolved.AuthSpec, httpReq, resolved.BodyBytes(), env); err != nil {
-			return nil, usagef(CodeAuth, "%s:%d: auth: %v", req.File.Path, req.Line, err)
-		}
-	}
-
 	want, err := wantFor(req)
 	if err != nil {
 		return nil, usagef(CodeDirective, "%s:%d: %v", req.File.Path, req.Line, err)
@@ -1408,15 +1385,7 @@ func (r *Runner) attempt(ctx context.Context, req *httpfile.Request, resolved *R
 	trace.mu.Unlock()
 	httpResp, err := client.Do(httpReq)
 	if err != nil {
-		te := r.transportError(err)
-		if want == protoHTTP2 && te.ErrorCode() == CodeTransport {
-			// Refused ALPN reads as a plain failure; say what it was.
-			te.Code = CodeProtocol
-		}
-		if want == protoHTTP2 {
-			te.Err = fmt.Errorf("%w (the request line asks for HTTP/2; the server may not offer it)", te.Err)
-		}
-		return nil, te
+		return nil, r.sendError(err, want)
 	}
 	defer func() { _ = httpResp.Body.Close() }()
 	if want == protoHTTP2 && httpResp.ProtoMajor != 2 {
@@ -1438,43 +1407,98 @@ func (r *Runner) attempt(ctx context.Context, req *httpfile.Request, resolved *R
 	raw := &selector.Response{Status: httpResp.StatusCode, StatusText: statusText(httpResp.Status), Headers: httpResp.Header, Body: data, Duration: dur}
 	result := &Result{OK: true, Redact: r.Opts.Redact, raw: raw, req: req}
 	if digest != nil {
-		switch {
-		case digest.Challenged:
-			result.authNote = fmt.Sprintf("digest: 401 challenge answered (%d requests)", digest.Rounds)
-		case digest.Answered:
-			result.authNote = "digest: answered from an earlier challenge"
-		default:
-			result.authNote = "digest: the server sent no challenge"
-		}
+		result.authNote = digestNote(digest)
 	}
 	view, encoding := jsonOrString(data)
 	result.Response = &Response{Status: raw.Status, StatusText: raw.StatusText, Headers: flatHeaders(httpResp.Header), Body: view, BodyEncoding: encoding, DurationMs: dur.Milliseconds(), Size: len(data), Proto: httpResp.Proto, Timings: trace.timings(dur)}
+	result.evaluate(captures, asserts, schemas)
+	return result, nil
+}
 
+// buildRequest builds the outgoing request from the resolved one, with
+// its headers and its auth applied.
+func (r *Runner) buildRequest(ctx context.Context, req *httpfile.Request, resolved *Resolved) (*http.Request, error) {
+	var body io.Reader
+	if b := resolved.BodyBytes(); len(b) > 0 {
+		body = bytes.NewReader(b)
+	}
+	httpReq, err := http.NewRequestWithContext(ctx, resolved.Method, resolved.URL, body)
+	if err != nil {
+		return nil, usagef(CodeBuild, "%s:%d: %v", req.File.Path, req.Line, err)
+	}
+	httpReq.Header.Set("User-Agent", "apic/"+Version)
+	for _, h := range resolved.Headers {
+		if strings.EqualFold(h.Name, "Host") {
+			httpReq.Host = h.Value
+			continue
+		}
+		httpReq.Header.Add(h.Name, h.Value)
+	}
+	if resolved.AuthSpec == nil {
+		return httpReq, nil
+	}
+	env, err := r.authEnv()
+	if err != nil {
+		return nil, err
+	}
+	if err := auth.Apply(ctx, resolved.AuthSpec, httpReq, resolved.BodyBytes(), env); err != nil {
+		return nil, usagef(CodeAuth, "%s:%d: auth: %v", req.File.Path, req.Line, err)
+	}
+	return httpReq, nil
+}
+
+// sendError is the error for a request that got no response.
+func (r *Runner) sendError(err error, want protoWant) *TransportError {
+	te := r.transportError(err)
+	if want == protoHTTP2 && te.ErrorCode() == CodeTransport {
+		// Refused ALPN reads as a plain failure; say what it was.
+		te.Code = CodeProtocol
+	}
+	if want == protoHTTP2 {
+		te.Err = fmt.Errorf("%w (the request line asks for HTTP/2; the server may not offer it)", te.Err)
+	}
+	return te
+}
+
+// digestNote says how digest auth went for the result.
+func digestNote(digest *auth.DigestTransport) string {
+	switch {
+	case digest.Challenged:
+		return fmt.Sprintf("digest: 401 challenge answered (%d requests)", digest.Rounds)
+	case digest.Answered:
+		return "digest: answered from an earlier challenge"
+	default:
+		return "digest: the server sent no challenge"
+	}
+}
+
+// evaluate runs the captures and the assertions against the response.
+func (r *Result) evaluate(captures []httpfile.Capture, asserts []preparedAssert, schemas assert.Options) {
+	raw := r.raw
 	for _, c := range captures {
 		v, ok, err := selector.Select(raw, c.Selector)
 		if err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("capture %s: %v", c.Name, err))
-			result.OK = false
+			r.Errors = append(r.Errors, fmt.Sprintf("capture %s: %v", c.Name, err))
+			r.OK = false
 			continue
 		}
 		if !ok {
-			result.Errors = append(result.Errors, fmt.Sprintf("capture %s: nothing at %s", c.Name, c.Selector))
-			result.OK = false
+			r.Errors = append(r.Errors, fmt.Sprintf("capture %s: nothing at %s", c.Name, c.Selector))
+			r.OK = false
 			continue
 		}
-		if result.Captures == nil {
-			result.Captures = map[string]string{}
+		if r.Captures == nil {
+			r.Captures = map[string]string{}
 		}
-		result.Captures[c.Name] = v
+		r.Captures[c.Name] = v
 	}
 	for _, a := range asserts {
 		ar := assert.EvalWith(a.expr, a.expected, raw, schemas)
 		if !ar.Pass {
-			result.OK = false
+			r.OK = false
 		}
-		result.Asserts = append(result.Asserts, ar)
+		r.Asserts = append(r.Asserts, ar)
 	}
-	return result, nil
 }
 
 type preparedAssert struct {

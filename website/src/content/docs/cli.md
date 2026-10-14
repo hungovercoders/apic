@@ -1338,7 +1338,7 @@ apic run <request|file.http|file.http#name>... [flags]
 
 ### apic select
 
-Read a value from a request's last recorded response, without sending it again.
+Read a value out of a request's last recorded response, without sending it again.
 
 ```
 apic select <request> <selector> [flags]

@@ -1,11 +1,14 @@
 ---
 title: "Writing a lesson"
+description: "Lesson N: one sentence on what the reader can do after it."
 ---
 This page is the template every lesson in the course is copied from, and
 the rules a lesson follows. Copy it to
 `website/src/content/docs/learn/<NN>-<slug>.md`, keep the `title:` front
-matter (a lesson has no H1), replace each section, and add the page to
-the **Learn** group of the sidebar in `website/astro.config.mjs`. Asides are
+matter (a lesson has no H1), rewrite the `description:` as one sentence
+starting `Lesson N:` (it is the page's meta description and its summary in
+`llms.txt`), replace each section, and add the page to
+the **Learn** group of the sidebar in `website/src/sidebar.mjs`. Asides are
 `:::tip[Title]` … `:::` and collapsible blocks are `<details>` with a
 `<summary>`; the lessons already there show both.
 

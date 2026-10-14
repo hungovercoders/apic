@@ -40,7 +40,7 @@ nfpms:
     formats: [deb, rpm, apk]
     vendor: hungovercoders
     homepage: https://apic.sh/
-    maintainer: dataGriff <16266964+dataGriff@users.noreply.github.com>
+    maintainer: hungovercoders <griff182uk@googlemail.com>
     description: |-
       Run .http request files from the terminal, CI or an AI agent.
       apic runs the files VS Code REST Client and JetBrains send, with

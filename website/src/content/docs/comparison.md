@@ -1,5 +1,6 @@
 ---
 title: "How apic compares"
+description: "How apic compares with Taskfile and curl, REST Client and the JetBrains HTTP Client, ijhttp, Kulala.nvim, httpyac, Bruno, Hurl and Postman, honestly, with links to the migration guides."
 ---
 apic is deliberately narrow: run `.http` files anywhere, for humans and
 agents, from one static binary. This page is an honest look at where that

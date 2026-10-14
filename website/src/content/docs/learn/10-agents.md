@@ -1,5 +1,6 @@
 ---
 title: "Lesson 10: Agents and MCP"
+description: "Lesson 10: let an AI agent discover, describe and run your requests through the shell contract, --json and the MCP server, without handing it a secret."
 ---
 **Goal.** Let an AI agent discover, describe and run your requests, from
 the shell through the JSON contract and over MCP as tools, without ever
@@ -186,7 +187,7 @@ The client then sees nine tools:
 | `list_environments` | environments and the variables in effect, secrets masked |
 | `clear_session {all?}` | forget captured values and cookies |
 | `validate_project {}` | check every `.http` file, with file, line, column and code, without sending anything |
-| `curl_request {name, raw?}` | the equivalent curl command, masked unless `raw` |
+| `curl_request {name, lang?, raw?}` | the equivalent curl command, or HTTPie, PowerShell, Python, JavaScript or Go with `lang`, masked unless `raw` |
 
 and every `.http` file as a resource it can read, so it can look at a
 request's definition before calling it, or write a new one in the same
@@ -313,10 +314,11 @@ A good agent reads `todos.http` (as a resource, or with `cat`), runs
 
 ```http
 # @assert header.x-total-count >= 1
-# @assert body.$.# <= 5
+# @assert body.$.# <= 20
 ```
 
-then runs `apic validate --json` and `apic run list-todos --json` and
+(20 is the API's default page size, since `list-todos` sends no
+`limit`), then runs `apic validate --json` and `apic run list-todos --json` and
 reports the `asserts` array. The demo's `list-open-todos` already
 carries these, so the agent can also be judged on whether it looked
 next door first. If it wrote an assertion with a selector that does

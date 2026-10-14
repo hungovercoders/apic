@@ -3,7 +3,7 @@
   "displayName": "apic",
   "description": "Run .http request files with apic from the editor: CodeLens to run, describe and copy as curl, a response panel, problems from apic validate, environments, captured variables, assertions and Gherkin tests, from one static binary.",
   "version": "0.1.0",
-  "publisher": "dataGriff",
+  "publisher": "hungovercoders",
   "license": "MIT",
   "repository": {
     "type": "git",

@@ -1,5 +1,6 @@
 ---
 title: "Lesson 3: Capture, the session and flows"
+description: "Lesson 3: capture a value from a response, reuse it from the session in any later command, and run a whole file as a flow with # @ref."
 ---
 **Goal.** Capture a value from a response, reuse it in any later command,
 and run a whole file as a flow.
@@ -17,11 +18,13 @@ apic demo --out apic-demo
 
 ### 1. The error you get without a token
 
-Start clean, then ask for the todo list, which needs a token:
+Start clean, then ask for the todo list, which needs a token. `--all`
+forgets every environment, including the `staging` token from lesson 2's
+exercise:
 
 <!-- learn -->
 ```sh
-apic session clear -C apic-demo
+apic session clear --all -C apic-demo
 apic run list-todos -C apic-demo || echo "exit $?"
 ```
 
@@ -30,6 +33,7 @@ session cleared
 GET {{baseUrl}}/todos
 error: todos.http:8: missing variable
   {{token}}: it is captured by request "login"; run `apic run login` first, or pass --var token=...
+  E101 missing variable · see https://apic.sh/errors/#e101
 exit 2
 ```
 

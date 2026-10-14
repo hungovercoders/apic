@@ -1,5 +1,6 @@
 ---
 title: "Verifying a release"
+description: "Check an apic release before you trust it: the checksums, the cosign signatures on checksums.txt and the container image, the per-archive SBOMs and the licence notices."
 ---
 Every apic release ships three things that let you check a download before you
 trust it:

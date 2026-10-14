@@ -1,7 +1,7 @@
 # apic for VS Code
 
-[![Visual Studio Marketplace](https://img.shields.io/visual-studio-marketplace/v/dataGriff.apic?label=Marketplace)](https://marketplace.visualstudio.com/items?itemName=dataGriff.apic)
-[![Open VSX](https://img.shields.io/open-vsx/v/dataGriff/apic?label=Open%20VSX)](https://open-vsx.org/extension/dataGriff/apic)
+[![Visual Studio Marketplace](https://img.shields.io/visual-studio-marketplace/v/hungovercoders.apic?label=Marketplace)](https://marketplace.visualstudio.com/items?itemName=hungovercoders.apic)
+[![Open VSX](https://img.shields.io/open-vsx/v/hungovercoders/apic?label=Open%20VSX)](https://open-vsx.org/extension/hungovercoders/apic)
 
 Run the `.http` files you already have with [apic](https://apic.sh/):
 environments, captured variables that persist, assertions, AWS and OAuth2

@@ -1,5 +1,6 @@
 ---
 title: "Lesson 13: How apic works inside, and your first contribution"
+description: "Lesson 13: follow a request through the packages, the three contracts every change is checked against, and a first contribution end to end."
 ---
 **Goal.** Follow a request through the packages, know the three contracts
 every change is checked against, and add a small directive end to end
@@ -100,7 +101,7 @@ Every review asks the same three questions, and the tree enforces each:
 |---|---|
 | **The dialect is REST Client's and JetBrains'.** Everything apic adds is a `# @` comment. | The golden file; `TestGrammarMatchesKnownDirectives`, which fails when the VS Code grammar and the parser disagree on the directive list; `validate` warning rather than failing on an unknown directive. |
 | **`--json` and the exit codes are stable.** Keys are only added; 0, 1, 2 and 3 keep their meanings. | `runner.ExitCode` uses `errors.As`, `errorlint` is on so a wrapped `TransportError` cannot become a 2, and `TestExitCodeUnwraps` pins it. |
-| **Every command is non-interactive.** `apic ui` is the one exception. | Every CLI test runs with no terminal; the device-code and `exec` prompts go to stderr and never block on stdin. |
+| **Every command is non-interactive.** `apic ui` is the one exception. | Every CLI test runs with no terminal; the device-code and authorization-code prompts go to stderr and never block on stdin, and the authorization-code grant refuses to start without a terminal. |
 
 `task check` is what CI runs: lint (with `errorlint`, `gosec`,
 `bodyclose` and friends), tests, the race detector, the licence check and
@@ -134,11 +135,11 @@ at the end of the file:
 GET {{baseUrl}}/health
 ```
 
-At the end, not in the middle: `TestParseSample` pins the line numbers
-of the multipart parts in the last request, so two lines inserted above
-them would fail it. It also counts the requests, so the count goes from
-6 to 7, and one assertion that `f.Requests[6]` carries two `tag`
-directives pins the new case.
+At the end, not in the middle: `TestParseSample` pins line numbers and
+request positions throughout the file, the multipart parts among them,
+so two lines inserted in the middle would fail it. It also counts the
+requests, so the count goes from 9 to 10, and one assertion that
+`f.Requests[9]` carries two `tag` directives pins the new case.
 
 **Tell the grammar.** `editors/vscode/syntaxes/apic-directives.injection.json`
 lists the known directives in one alternation; add `tag` to it, or

@@ -1,5 +1,6 @@
 ---
 title: "Editors"
+description: "What VS Code, JetBrains IDEs and Neovim give you for .http files, and what the apic extension and apic lsp add on top."
 ---
 apic runs the `.http` format that editors already understand, and
 everything it adds is a comment. So the same file is clickable in VS Code,
@@ -14,9 +15,9 @@ Two extensions, and they cooperate:
 - **REST Client** (`humao.rest-client`) provides the `http` language, the
   highlighting, and "Send Request" above each request. apic's `# @` lines
   are comments to it, so a file with assertions and captures still sends.
-- **apic** (`dataGriff.apic`, on the
-  [Marketplace](https://marketplace.visualstudio.com/items?itemName=dataGriff.apic)
-  and [Open VSX](https://open-vsx.org/extension/dataGriff/apic)) layers
+- **apic** (`hungovercoders.apic`, on the
+  [Marketplace](https://marketplace.visualstudio.com/items?itemName=hungovercoders.apic)
+  and [Open VSX](https://open-vsx.org/extension/hungovercoders/apic)) layers
   apic on top. **Run**, **Describe** and **Copy as curl** sit above every
   request, and **Run file as flow** at the top of a file; a run goes
   through apic's runner, assertions, captures and `# @ref` dependencies

@@ -1,5 +1,6 @@
 ---
 title: "Migrating from httpyac"
+description: "Run an httpyac project under apic: what runs unchanged, and how to replace script blocks, ?? tests and the directives apic does not have."
 ---
 httpyac and apic read the same files: `.http` requests separated by
 `###`, `# @name`, `http-client.env.json` with `$shared`, `.env`, and the

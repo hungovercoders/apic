@@ -1,5 +1,6 @@
 ---
 title: "Lesson 1: Install apic and send your first request"
+description: "Lesson 1: install apic, try apic ui --demo, read the anatomy of a .http file, and use run, list, describe and the exit codes."
 ---
 **Goal.** Install apic, run a request from a `.http` file against the demo
 API, and read the file that described it.
@@ -100,7 +101,15 @@ apic demo --out apic-demo
 ```
 
 ```
-apic demo: serving http://localhost:8089, project written to apic-demo
+wrote apic-demo/apic.yaml
+wrote apic-demo/auth.http
+wrote apic-demo/explore.http
+wrote apic-demo/features/todos.feature
+wrote apic-demo/http-client.private.env.json
+wrote apic-demo/jobs.http
+wrote apic-demo/todos.http
+wrote apic-demo/http-client.env.json
+demo api listening on http://localhost:8089
 try: apic run login whoami -C apic-demo --env local
 ```
 
@@ -155,6 +164,9 @@ variables
   ✓ baseUrl   http://localhost:8089  http-client.env.json [local]
   ✓ user      alice  auth.http:1 @user
   ✓ password  ***  http-client.private.env.json [local]
+
+steps
+  I am logged in
 
 captures
   ↳ token = body.$.access_token

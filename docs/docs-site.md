@@ -9,8 +9,10 @@ the prose checks. The site's content is not reference for working on apic;
 
 - Astro with Starlight, pages in `src/content/docs/` (Markdown;
   `getting-started.mdx` and `index.mdx` are MDX for the tab components), the
-  sidebar in `astro.config.mjs`, apic's colours in `src/styles/custom.css`.
-  Every page needs a `title:` in its front matter, not an H1. Asides are
+  sidebar in `src/sidebar.mjs` (which `astro.config.mjs`, `llms.txt` and
+  `llms-full.txt` all read), apic's colours in `src/styles/custom.css`.
+  Every page needs a `title:` and a one-line `description:` in its front
+  matter, not an H1. Asides are
   `:::tip[Title]` … `:::`; collapsible blocks are `<details>` with a
   `<summary>`. A lesson stays Markdown (`<!-- learn -->` is an HTML comment,
   which MDX rejects and `scripts/learncheck` needs).
@@ -38,9 +40,11 @@ the prose checks. The site's content is not reference for working on apic;
   `public/_headers` is the template for the response headers Cloudflare
   sends (a Content-Security-Policy, frame and sniffing protection);
   `plugins/security-headers.mjs` writes the built copy with a hash of every
-  inline script, so the policy allows Starlight's own scripts and nothing else. `robots.txt` and
-  `llms.txt` are generated under `src/pages/` from the site URL and the
-  docs collection, so neither can drift from the pages. slopstopper's
+  inline script, so the policy allows Starlight's own scripts and nothing else. `robots.txt`,
+  `llms.txt` and `llms-full.txt` (every page as one Markdown document) are
+  generated under `src/pages/` from the site URL and the docs collection,
+  so none can drift from the pages; every page's `description:` is its
+  summary in `llms.txt` and its meta description, so a new page needs one. slopstopper's
   reliability checks assert all of this against the built site; see `ci.md`.
 
 ## Deploys

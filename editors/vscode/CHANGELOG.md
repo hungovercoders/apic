@@ -1,14 +1,16 @@
 # Changelog
 
-## Unreleased
+## 0.1.0
+
+The first release. Everything runs through the apic binary's `--json`
+contract; the extension never parses `.http` files itself.
 
 - `apic.languageServer.enable` (off by default) takes the diagnostics,
-  completion and hover from `apic lsp`, the language server in apic 0.2.0
-  and later, instead of the extension's own providers: problems follow the
+  completion and hover from `apic lsp`, the language server every apic
+  release ships, instead of the extension's own providers: problems follow the
   buffer as you type instead of appearing on save, and the same server
   serves Neovim, Helix and JetBrains. The code lenses, formatting, the
-  response panel, the views and the Test Explorer are unchanged. An older
-  binary leaves the extension's providers in place, with a note.
+  response panel, the views and the Test Explorer are unchanged.
 
 - Errors from apic read the `--json` error object on stderr (apic's error
   catalogue), and the message offers "What is E101?", which opens the
@@ -27,11 +29,6 @@
   called out, a tag expression per run or for every run, and
   `apic.test.showOutput` for apic's own pretty output. A lens above each
   `# @step` line counts the scenarios that use the phrase and opens them.
-
-## 0.1.0
-
-The first release. Everything runs through the apic binary's `--json`
-contract; the extension never parses `.http` files itself.
 
 - CodeLens above every request: **Run**, **Describe**, **Copy as curl**,
   and **Run file as flow** at the top of a file; `ctrl+alt+shift+r` runs

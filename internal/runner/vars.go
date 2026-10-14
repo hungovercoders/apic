@@ -293,94 +293,123 @@ func randomBuiltin(expr string) (string, error) {
 	if m == nil {
 		return "", fmt.Errorf("%s: expected `$random.<kind>(args)`", expr)
 	}
-	kind := m[1]
-	var args []string
+	c := randomCall{kind: m[1], raw: m[2]}
 	if strings.TrimSpace(m[2]) != "" {
 		for _, a := range strings.Split(m[2], ",") {
-			args = append(args, strings.TrimSpace(a))
+			c.args = append(c.args, strings.TrimSpace(a))
 		}
 	}
-	length := func(def int) (int, error) {
-		if len(args) == 0 {
-			return def, nil
-		}
-		n, err := strconv.Atoi(args[0])
-		if err != nil || n < 0 || len(args) > 1 {
-			return 0, fmt.Errorf("$random.%s takes one length, got (%s)", kind, m[2])
-		}
-		return n, nil
+	if f, ok := randomKinds[c.kind]; ok {
+		return f(c)
 	}
-	pick := func(alphabet string, n int) string {
-		b := make([]byte, n)
-		for i := range b {
-			b[i] = alphabet[rand.IntN(len(alphabet))] //nolint:gosec // sample data, not a secret
-		}
-		return string(b)
+	return "", fmt.Errorf("unknown built-in $random.%s; the kinds are integer, float, alphabetic, alphanumeric, hexadecimal, email and uuid", c.kind)
+}
+
+// randomCall is one `$random.<kind>(args)`: the kind, the trimmed
+// arguments, and the text between the parentheses for messages.
+type randomCall struct {
+	kind string
+	args []string
+	raw  string
+}
+
+const randomLetters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+// randomKinds maps each `$random` kind to what renders it.
+var randomKinds = map[string]func(randomCall) (string, error){
+	"integer":      randomInteger,
+	"float":        randomFloat,
+	"alphabetic":   randomString(randomLetters),
+	"alphanumeric": randomString(randomLetters + "0123456789"),
+	"hexadecimal":  randomString("0123456789abcdef"),
+	"email":        randomEmail,
+	"uuid":         randomUUID,
+}
+
+// length is the call's one length argument, or def when it has none.
+func (c randomCall) length(def int) (int, error) {
+	if len(c.args) == 0 {
+		return def, nil
 	}
-	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	switch kind {
-	case "integer":
-		lo, hi := int64(0), int64(1000)
-		if len(args) != 0 {
-			var err1, err2 error
-			if len(args) != 2 {
-				return "", fmt.Errorf("$random.integer takes (min, max), got (%s)", m[2])
-			}
-			lo, err1 = strconv.ParseInt(args[0], 10, 64)
-			hi, err2 = strconv.ParseInt(args[1], 10, 64)
-			if err1 != nil || err2 != nil || hi <= lo {
-				return "", fmt.Errorf("$random.integer needs two integers with max greater than min, got (%s)", m[2])
-			}
-		}
-		span := hi - lo
-		if span <= 0 { // overflowed
-			return "", fmt.Errorf("$random.integer: the range (%s) is too wide", m[2])
-		}
-		return strconv.FormatInt(lo+rand.Int64N(span), 10), nil //nolint:gosec // sample data, not a secret
-	case "float":
-		lo, hi := 0.0, 1000.0
-		if len(args) != 0 {
-			var err1, err2 error
-			if len(args) != 2 {
-				return "", fmt.Errorf("$random.float takes (min, max), got (%s)", m[2])
-			}
-			lo, err1 = strconv.ParseFloat(args[0], 64)
-			hi, err2 = strconv.ParseFloat(args[1], 64)
-			if err1 != nil || err2 != nil || math.IsNaN(lo) || math.IsNaN(hi) || math.IsInf(lo, 0) || math.IsInf(hi, 0) || hi <= lo {
-				return "", fmt.Errorf("$random.float needs two finite numbers with max greater than min, got (%s)", m[2])
-			}
-		}
-		return strconv.FormatFloat(lo+rand.Float64()*(hi-lo), 'f', 3, 64), nil //nolint:gosec // sample data, not a secret
-	case "alphabetic":
-		n, err := length(10)
+	n, err := strconv.Atoi(c.args[0])
+	if err != nil || n < 0 || len(c.args) > 1 {
+		return 0, fmt.Errorf("$random.%s takes one length, got (%s)", c.kind, c.raw)
+	}
+	return n, nil
+}
+
+// randomPick is n bytes drawn from alphabet.
+func randomPick(alphabet string, n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = alphabet[rand.IntN(len(alphabet))] //nolint:gosec // sample data, not a secret
+	}
+	return string(b)
+}
+
+// randomString renders `(length)` characters of alphabet, ten by default.
+func randomString(alphabet string) func(randomCall) (string, error) {
+	return func(c randomCall) (string, error) {
+		n, err := c.length(10)
 		if err != nil {
 			return "", err
 		}
-		return pick(letters, n), nil
-	case "alphanumeric":
-		n, err := length(10)
-		if err != nil {
-			return "", err
-		}
-		return pick(letters+"0123456789", n), nil
-	case "hexadecimal":
-		n, err := length(10)
-		if err != nil {
-			return "", err
-		}
-		return pick("0123456789abcdef", n), nil
-	case "email":
-		if len(args) != 0 {
-			return "", fmt.Errorf("$random.email takes no arguments")
-		}
-		return strings.ToLower(pick(letters, 8)) + "@example.com", nil
-	case "uuid":
-		if len(args) != 0 {
-			return "", fmt.Errorf("$random.uuid takes no arguments")
-		}
-		return uuid.NewString(), nil
+		return randomPick(alphabet, n), nil
 	}
-	return "", fmt.Errorf("unknown built-in $random.%s; the kinds are integer, float, alphabetic, alphanumeric, hexadecimal, email and uuid", kind)
+}
+
+// randomInteger renders `$random.integer(min, max)`, 0 to 1000 by default.
+func randomInteger(c randomCall) (string, error) {
+	lo, hi := int64(0), int64(1000)
+	if len(c.args) != 0 {
+		var err1, err2 error
+		if len(c.args) != 2 {
+			return "", fmt.Errorf("$random.integer takes (min, max), got (%s)", c.raw)
+		}
+		lo, err1 = strconv.ParseInt(c.args[0], 10, 64)
+		hi, err2 = strconv.ParseInt(c.args[1], 10, 64)
+		if err1 != nil || err2 != nil || hi <= lo {
+			return "", fmt.Errorf("$random.integer needs two integers with max greater than min, got (%s)", c.raw)
+		}
+	}
+	span := hi - lo
+	if span <= 0 { // overflowed
+		return "", fmt.Errorf("$random.integer: the range (%s) is too wide", c.raw)
+	}
+	return strconv.FormatInt(lo+rand.Int64N(span), 10), nil //nolint:gosec // sample data, not a secret
+}
+
+// randomFloat renders `$random.float(min, max)`, 0 to 1000 by default.
+func randomFloat(c randomCall) (string, error) {
+	lo, hi := 0.0, 1000.0
+	if len(c.args) != 0 {
+		var err1, err2 error
+		if len(c.args) != 2 {
+			return "", fmt.Errorf("$random.float takes (min, max), got (%s)", c.raw)
+		}
+		lo, err1 = strconv.ParseFloat(c.args[0], 64)
+		hi, err2 = strconv.ParseFloat(c.args[1], 64)
+		if err1 != nil || err2 != nil || math.IsNaN(lo) || math.IsNaN(hi) || math.IsInf(lo, 0) || math.IsInf(hi, 0) || hi <= lo {
+			return "", fmt.Errorf("$random.float needs two finite numbers with max greater than min, got (%s)", c.raw)
+		}
+	}
+	return strconv.FormatFloat(lo+rand.Float64()*(hi-lo), 'f', 3, 64), nil //nolint:gosec // sample data, not a secret
+}
+
+// randomEmail renders `$random.email`, eight lower-case letters at example.com.
+func randomEmail(c randomCall) (string, error) {
+	if len(c.args) != 0 {
+		return "", fmt.Errorf("$random.email takes no arguments")
+	}
+	return strings.ToLower(randomPick(randomLetters, 8)) + "@example.com", nil
+}
+
+// randomUUID renders `$random.uuid`, a version 4 UUID.
+func randomUUID(c randomCall) (string, error) {
+	if len(c.args) != 0 {
+		return "", fmt.Errorf("$random.uuid takes no arguments")
+	}
+	return uuid.NewString(), nil
 }
 
 // responseRef resolves `<name>.response.<selector>` against a request already

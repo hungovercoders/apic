@@ -196,6 +196,21 @@ func TestImportRefusesV1AndNonCollections(t *testing.T) {
 	}
 }
 
+func TestImportBaseURLSkipsEmptySharedVariables(t *testing.T) {
+	dir := t.TempDir()
+	col := filepath.Join(dir, "c.json")
+	_ = os.WriteFile(col, []byte(`{"info": {"name": "c", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
+		"item": [{"name": "ping", "request": "{{url}}/ping"}],
+		"variable": [{"key": "baseUrl", "value": ""}, {"key": "url", "value": "https://api.example.com"}]}`), 0o644)
+	res, err := Import(col, Options{OutDir: dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.BaseURL != "https://api.example.com" {
+		t.Errorf("an empty baseUrl should fall through to url, got %q", res.BaseURL)
+	}
+}
+
 func TestTranslateTests(t *testing.T) {
 	got := translateTests([]string{
 		`pm.test("status", function () {`,

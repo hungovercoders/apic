@@ -216,10 +216,11 @@ func (g *generator) writeEnvs(collectionVars []Variable, opts Options) ([]string
 	return envNames, nil
 }
 
-// baseURL picks the shared variable most likely to be the base URL.
+// baseURL picks the shared variable most likely to be the base URL,
+// passing over one that is set but empty.
 func baseURL(shared map[string]string) string {
 	for _, key := range []string{"baseUrl", "base_url", "baseURL", "url", "host"} {
-		if v, ok := shared[key]; ok {
+		if v := shared[key]; v != "" {
 			return v
 		}
 	}

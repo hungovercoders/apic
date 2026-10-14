@@ -16,7 +16,16 @@ API, and read the file that described it.
 
 One static binary, no runtime. Pick your platform:
 
-#### Linux / macOS
+#### Homebrew (macOS and Linux)
+
+```sh
+brew install hungovercoders/tap/apic
+```
+
+The cask installs the binary, the man pages and shell completions, and
+`brew upgrade` follows new releases.
+
+#### Linux / macOS without Homebrew
 
 
 ```sh
@@ -44,7 +53,7 @@ verifies the release checksum, and adds the directory to your user
 
 
 ```sh
-go install github.com/hungovercoders/apic/cmd/apic@latest   # Go 1.25 or newer
+go install github.com/hungovercoders/apic/cmd/apic@latest   # Go 1.25.7 or newer
 ```
 
 This builds from source into `$(go env GOPATH)/bin`.
@@ -60,7 +69,7 @@ apic version
 ```
 
 ```
-apic v0.2.0 · 1a2b3c4 · go1.25.7 linux/amd64
+apic v0.1.3 · 1a2b3c4 · go1.25.7 linux/amd64
 apic is epic · https://apic.sh/
 ```
 
@@ -328,7 +337,7 @@ GET http://localhost:8089/health
   "service": "apic-demo",
   "status": "ok",
   "uptime_seconds": 12,
-  "version": "v0.2.0"
+  "version": "v0.1.3"
 }
 
 ✓ status == 200

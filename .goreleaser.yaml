@@ -195,6 +195,9 @@ sboms:
 # latest; a snapshot builds it locally without pushing.
 dockers_v2:
   - images: [ghcr.io/hungovercoders/apic]
+    # The image ships the licence and the notices as the archives do; the
+    # before hook has written THIRD_PARTY_NOTICES.md by now.
+    extra_files: [LICENSE, THIRD_PARTY_NOTICES.md]
     tags:
       - "{{ .Version }}"
       - "v{{ .Version }}"
@@ -206,7 +209,10 @@ dockers_v2:
       org.opencontainers.image.description: Run .http request files from the terminal, CI or an AI agent.
       org.opencontainers.image.source: https://github.com/hungovercoders/apic
       org.opencontainers.image.url: https://apic.sh/
-      org.opencontainers.image.licenses: MIT
+      # What the image contains, as an SPDX expression: apic is MIT, and the
+      # Go modules and the CA bundle inside it bring the rest (see
+      # /usr/share/doc/apic in the image).
+      org.opencontainers.image.licenses: MIT AND BSD-3-Clause AND Apache-2.0 AND MPL-2.0
       org.opencontainers.image.version: "{{ .Version }}"
       org.opencontainers.image.revision: "{{ .FullCommit }}"
       org.opencontainers.image.created: "{{ .Date }}"

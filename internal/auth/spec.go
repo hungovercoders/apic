@@ -105,7 +105,7 @@ func (s *Spec) checkAWS() error {
 	if len(s.Args) > 0 {
 		return fmt.Errorf("@auth aws takes only key=value options (service, region, profile)")
 	}
-	for k := range s.Options {
+	for _, k := range s.optionKeys() {
 		if k != "service" && k != "region" && k != "profile" {
 			return fmt.Errorf("@auth aws: unknown option %q", k)
 		}
@@ -133,7 +133,7 @@ func (s *Spec) checkOAuth2() error {
 	if err := s.checkGrant(); err != nil {
 		return err
 	}
-	for k := range s.Options {
+	for _, k := range s.optionKeys() {
 		if !oauth2Options[k] {
 			return fmt.Errorf("@auth oauth2: unknown option %q", k)
 		}
@@ -285,8 +285,8 @@ func (s *Spec) Render(fn func(string) (string, error)) (*Spec, error) {
 		}
 		out.Args = append(out.Args, v)
 	}
-	for k, a := range s.Options {
-		v, err := fn(a)
+	for _, k := range s.optionKeys() {
+		v, err := fn(s.Options[k])
 		if err != nil {
 			return nil, err
 		}
@@ -295,11 +295,26 @@ func (s *Spec) Render(fn func(string) (string, error)) (*Spec, error) {
 	return out, nil
 }
 
-// Texts returns every string in the spec that may contain placeholders.
+// Texts returns every string in the spec that may contain placeholders:
+// the arguments in order, then the options by name, so describe lists
+// their variables the same way every run.
 func (s *Spec) Texts() []string {
 	out := append([]string(nil), s.Args...)
-	for _, v := range s.Options {
-		out = append(out, v)
+	for _, k := range s.optionKeys() {
+		out = append(out, s.Options[k])
 	}
 	return out
+}
+
+// optionKeys is the option names in sorted order. Go randomises map
+// order, and anything a user sees (a variable list, which unknown option
+// an error names, which placeholder a render fails on) must not change
+// from run to run.
+func (s *Spec) optionKeys() []string {
+	keys := make([]string, 0, len(s.Options))
+	for k := range s.Options {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }

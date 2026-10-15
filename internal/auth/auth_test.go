@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -49,6 +50,46 @@ func TestParse(t *testing.T) {
 	for _, raw := range bad {
 		if _, err := Parse(raw); err == nil {
 			t.Errorf("%q should fail", raw)
+		}
+	}
+}
+
+// Go randomises map order; nothing a user sees from a spec's options may
+// change from run to run, so each case is repeated enough times to catch a
+// map walk.
+func TestSpecOptionsInAStableOrder(t *testing.T) {
+	spec, err := Parse("oauth2 tokenUrl={{tok}} clientId={{id}} clientSecret={{secret}} scope={{scope}} audience={{aud}}")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "{{aud}} {{id}} {{secret}} {{scope}} {{tok}}"
+	for i := 0; i < 50; i++ {
+		if got := strings.Join(spec.Texts(), " "); got != want {
+			t.Fatalf("Texts() = %q, want the options by name: %q", got, want)
+		}
+	}
+
+	failing := errors.New("missing")
+	for i := 0; i < 50; i++ {
+		_, err := spec.Render(func(v string) (string, error) {
+			if v == "{{id}}" || v == "{{tok}}" {
+				return "", fmt.Errorf("%s: %w", v, failing)
+			}
+			return v, nil
+		})
+		if err == nil || !strings.HasPrefix(err.Error(), "{{id}}") {
+			t.Fatalf("Render should fail on clientId, the first failing option by name, got %v", err)
+		}
+	}
+
+	for i := 0; i < 50; i++ {
+		_, err := Parse("aws service=s3 zone=a bucket=b")
+		if err == nil || !strings.Contains(err.Error(), `"bucket"`) {
+			t.Fatalf("aws should name the first unknown option by name, got %v", err)
+		}
+		_, err = Parse("oauth2 tokenUrl=t clientId=c zeta=1 alpha=2")
+		if err == nil || !strings.Contains(err.Error(), `"alpha"`) {
+			t.Fatalf("oauth2 should name the first unknown option by name, got %v", err)
 		}
 	}
 }

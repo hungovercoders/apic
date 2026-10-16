@@ -130,7 +130,9 @@ jobs:
 
       - name: Walk the journeys
         id: e2e
-        run: task ss:reliability:e2e -- ${{ steps.url.outputs.url }} --ci
+        env:
+          TARGET_URL: ${{ steps.url.outputs.url }}
+        run: task ss:reliability:e2e -- "$TARGET_URL" --ci
 
       - name: Stop local server
         if: steps.url.outputs.use_local == 'true' && always()

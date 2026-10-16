@@ -88,11 +88,13 @@ jobs:
 
       - name: Run llms.txt audit
         id: audit
+        env:
+          TARGET_URL: ${{ steps.url.outputs.url }}
         # Links inside llms.txt point at the production domain / GitHub, so
         # HEAD-verifying them from a localhost build tests reachability of
         # the real targets, so keep it on. Schedule / deployment_status runs
         # audit the deployed URL directly.
-        run: task ss:reliability:llms-txt -- ${{ steps.url.outputs.url }} --check-links
+        run: task ss:reliability:llms-txt -- "$TARGET_URL" --check-links
 
       - name: Stop local server
         if: steps.url.outputs.use_local == 'true' && always()

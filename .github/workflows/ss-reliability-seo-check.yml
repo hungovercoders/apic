@@ -119,9 +119,10 @@ jobs:
           # and deployment_status runs verify reachability against the
           # real deployed URL.
           SEO_VERIFY_OG_IMAGE: ${{ steps.url.outputs.use_local == 'true' && '0' || '1' }}
+          TARGET_URL: ${{ steps.url.outputs.url }}
         # slopstopper-cli 0.21.0 reads only the flag, not the variable; the
         # flag is passed here until the pin in mise.toml moves past it.
-        run: task ss:reliability:seo -- ${{ steps.url.outputs.url }} ${{ steps.url.outputs.use_local == 'true' && '--no-verify-og-image' || '' }}
+        run: task ss:reliability:seo -- "$TARGET_URL" ${{ steps.url.outputs.use_local == 'true' && '--no-verify-og-image' || '' }}
 
       - name: Stop local server
         if: steps.url.outputs.use_local == 'true' && always()

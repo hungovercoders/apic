@@ -137,7 +137,8 @@ jobs:
         env:
           ACCESSIBILITY_IMPACT: ${{ github.event.inputs.impact || 'serious' }}
           ACCESSIBILITY_THRESHOLD: ${{ github.event.inputs.threshold || '0' }}
-        run: task ss:reliability:accessibility -- ${{ steps.url.outputs.url }} --ci
+          TARGET_URL: ${{ steps.url.outputs.url }}
+        run: task ss:reliability:accessibility -- "$TARGET_URL" --ci
 
       - name: Stop local server
         if: steps.url.outputs.use_local == 'true' && always()

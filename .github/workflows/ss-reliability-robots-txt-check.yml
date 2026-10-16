@@ -89,11 +89,13 @@ jobs:
 
       - name: Run robots.txt audit
         id: audit
+        env:
+          TARGET_URL: ${{ steps.url.outputs.url }}
         # The Sitemap: URLs inside robots.txt point at the production
         # domain, so HEAD-verifying them from a localhost build tests
         # reachability of the real targets and is worth keeping on. Schedule /
         # deployment_status runs audit the deployed URL directly.
-        run: task ss:reliability:robots-txt -- ${{ steps.url.outputs.url }} --check-links
+        run: task ss:reliability:robots-txt -- "$TARGET_URL" --check-links
 
       - name: Stop local server
         if: steps.url.outputs.use_local == 'true' && always()

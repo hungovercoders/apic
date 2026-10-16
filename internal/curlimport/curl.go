@@ -54,173 +54,235 @@ func Parse(command string) (*Request, error) {
 	if len(tokens) > 0 && (tokens[0] == "curl" || strings.HasSuffix(tokens[0], "/curl")) {
 		tokens = tokens[1:]
 	}
-	r := &Request{}
-	var data []string
-	var dataFile string
-	var get, head bool
-	var contentTypeSet bool
-	var positional []string
-	warn := func(format string, args ...any) { r.Warnings = append(r.Warnings, fmt.Sprintf(format, args...)) }
+	p := &parser{r: &Request{}}
+	if err := p.readTokens(tokens); err != nil {
+		return nil, err
+	}
+	if err := p.resolveURL(); err != nil {
+		return nil, err
+	}
+	p.resolveBody()
+	p.resolveMethodAndContentType()
+	return p.r, nil
+}
+
+// parser is the state Parse builds up while it reads the flags, before it
+// settles the URL, the body, the method and the content type.
+type parser struct {
+	r              *Request
+	data           []string
+	dataFile       string
+	get, head      bool
+	contentTypeSet bool
+	positional     []string
+}
+
+func (p *parser) warn(format string, args ...any) {
+	p.r.Warnings = append(p.r.Warnings, fmt.Sprintf(format, args...))
+}
+
+// readTokens walks the arguments: positional ones are kept for the URL,
+// flags are looked up and applied, a bundle of boolean short flags (-sSL)
+// is split into its letters.
+func (p *parser) readTokens(tokens []string) error {
 	for i := 0; i < len(tokens); i++ {
 		tok := tokens[i]
 		if tok == "--" {
-			positional = append(positional, tokens[i+1:]...)
-			break
+			p.positional = append(p.positional, tokens[i+1:]...)
+			return nil
 		}
 		if !strings.HasPrefix(tok, "-") || tok == "-" {
-			positional = append(positional, tok)
+			p.positional = append(p.positional, tok)
 			continue
 		}
 		name, value, attached := splitFlag(tok)
 		spec, known := flags[name]
 		if !known {
-			// A bundle of boolean short flags: -sSL.
-			if !strings.HasPrefix(tok, "--") && len(tok) > 2 && allBoolean(tok[1:]) {
-				var single []string
-				for _, c := range tok[1:] {
-					single = append(single, "-"+string(c))
-				}
-				tokens = append(tokens[:i], append(single, tokens[i+1:]...)...)
+			if bundle := splitBundle(tok); bundle != nil {
+				tokens = append(tokens[:i], append(bundle, tokens[i+1:]...)...)
 				i--
 				continue
 			}
-			warn("unknown flag %s (ignored)", tok)
+			p.warn("unknown flag %s (ignored)", tok)
 			continue
 		}
 		if spec.takesValue && !attached {
 			if i+1 >= len(tokens) {
-				return nil, fmt.Errorf("%s needs a value", tok)
+				return fmt.Errorf("%s needs a value", tok)
 			}
 			i++
 			value = tokens[i]
 		}
-		switch spec.name {
-		case "request":
-			r.Method = strings.ToUpper(value)
-		case "header":
-			k, v, ok := strings.Cut(value, ":")
-			k = strings.TrimSpace(k)
-			if !ok {
-				if strings.HasSuffix(k, ";") { // curl's spelling of an empty header
-					r.Headers = append(r.Headers, Header{Name: strings.TrimSuffix(k, ";")})
-				} else {
-					warn("header %q is not `Name: value` (ignored)", value)
-				}
-				continue
-			}
-			if strings.EqualFold(k, "Content-Type") {
-				contentTypeSet = true
-			}
-			r.Headers = append(r.Headers, Header{Name: k, Value: strings.TrimSpace(v)})
-		case "data", "data-binary", "data-ascii":
-			if strings.HasPrefix(value, "@") {
-				if dataFile != "" || len(data) > 0 {
-					warn("more than one body: %s dropped", value)
-					continue
-				}
-				dataFile = strings.TrimPrefix(value, "@")
-				continue
-			}
-			data = append(data, value)
-		case "data-raw":
-			data = append(data, value)
-		case "data-urlencode":
-			data = append(data, urlencodeData(value, warn))
-		case "form", "form-string":
-			p, ok := parseForm(value, spec.name == "form-string")
-			if !ok {
-				warn("form field %q is not name=value (ignored)", value)
-				continue
-			}
-			r.Parts = append(r.Parts, p)
-		case "user":
-			r.User = value
-		case "url":
-			positional = append(positional, value)
-		case "json":
-			data = append(data, value)
-			if !contentTypeSet {
-				r.Headers = append(r.Headers, Header{Name: "Content-Type", Value: "application/json"})
-				contentTypeSet = true
-			}
-			r.Headers = append(r.Headers, Header{Name: "Accept", Value: "application/json"})
-		case "oauth2-bearer":
-			r.Headers = append(r.Headers, Header{Name: "Authorization", Value: "Bearer " + value})
-		case "get":
-			get = true
-		case "head":
-			head = true
-		case "cookie":
-			if !strings.Contains(value, "=") {
-				warn("-b %s names a cookie file, which apic does not read; switch the jar on with --cookies instead", value)
-				continue
-			}
-			r.Headers = append(r.Headers, Header{Name: "Cookie", Value: value})
-		case "user-agent":
-			r.Headers = append(r.Headers, Header{Name: "User-Agent", Value: value})
-		case "referer":
-			r.Headers = append(r.Headers, Header{Name: "Referer", Value: value})
-		case "insecure":
-			r.Insecure = true
-		case "location":
-			r.Follow = true
-		case "compressed":
-			// apic decompresses gzip responses on its own.
-		case "http1.1":
-			r.HTTPVersion = "HTTP/1.1"
-		case "http2":
-			r.HTTPVersion = "HTTP/2"
-		case "quiet":
-		case "tls":
-			warn("%s: configure tls: in apic.yaml, or pass %s to apic itself", tok, tok)
-		case "ignored":
-			warn("%s is about curl's own output or transport and has no place in a request file (ignored)", tok)
+		if apply := handlers[spec.name]; apply != nil {
+			apply(p, tok, value)
 		}
 	}
-	// The URL is the argument that looks like one; when none does, the
-	// first, with curl's own http:// default. Anything else is reported.
-	for _, p := range positional {
-		if strings.Contains(p, "://") && r.URL == "" {
-			r.URL = p
+	return nil
+}
+
+// splitBundle turns -sSL into -s -S -L when every letter is a boolean flag
+// curl knows, and returns nil otherwise.
+func splitBundle(tok string) []string {
+	if strings.HasPrefix(tok, "--") || len(tok) <= 2 || !allBoolean(tok[1:]) {
+		return nil
+	}
+	single := make([]string, 0, len(tok)-1)
+	for _, c := range tok[1:] {
+		single = append(single, "-"+string(c))
+	}
+	return single
+}
+
+// handlers applies each flag meaning (flagSpec.name) to the request being
+// built. A meaning with no entry, such as "quiet", is read and dropped.
+var handlers = map[string]func(p *parser, tok, value string){
+	"request":        func(p *parser, _, v string) { p.r.Method = strings.ToUpper(v) },
+	"header":         (*parser).header,
+	"data":           (*parser).dataOrFile,
+	"data-binary":    (*parser).dataOrFile,
+	"data-ascii":     (*parser).dataOrFile,
+	"data-raw":       func(p *parser, _, v string) { p.data = append(p.data, v) },
+	"data-urlencode": func(p *parser, _, v string) { p.data = append(p.data, urlencodeData(v, p.warn)) },
+	"form":           func(p *parser, _, v string) { p.form(v, false) },
+	"form-string":    func(p *parser, _, v string) { p.form(v, true) },
+	"user":           func(p *parser, _, v string) { p.r.User = v },
+	"url":            func(p *parser, _, v string) { p.positional = append(p.positional, v) },
+	"json":           (*parser).json,
+	"oauth2-bearer":  func(p *parser, _, v string) { p.addHeader("Authorization", "Bearer "+v) },
+	"get":            func(p *parser, _, _ string) { p.get = true },
+	"head":           func(p *parser, _, _ string) { p.head = true },
+	"cookie":         (*parser).cookie,
+	"user-agent":     func(p *parser, _, v string) { p.addHeader("User-Agent", v) },
+	"referer":        func(p *parser, _, v string) { p.addHeader("Referer", v) },
+	"insecure":       func(p *parser, _, _ string) { p.r.Insecure = true },
+	"location":       func(p *parser, _, _ string) { p.r.Follow = true },
+	// apic decompresses gzip responses on its own, so --compressed needs nothing.
+	"http1.1": func(p *parser, _, _ string) { p.r.HTTPVersion = "HTTP/1.1" },
+	"http2":   func(p *parser, _, _ string) { p.r.HTTPVersion = "HTTP/2" },
+	"tls": func(p *parser, tok, _ string) {
+		p.warn("%s: configure tls: in apic.yaml, or pass %s to apic itself", tok, tok)
+	},
+	"ignored": func(p *parser, tok, _ string) {
+		p.warn("%s is about curl's own output or transport and has no place in a request file (ignored)", tok)
+	},
+}
+
+func (p *parser) addHeader(name, value string) {
+	p.r.Headers = append(p.r.Headers, Header{Name: name, Value: value})
+}
+
+func (p *parser) header(_, value string) {
+	k, v, ok := strings.Cut(value, ":")
+	k = strings.TrimSpace(k)
+	if !ok {
+		if strings.HasSuffix(k, ";") { // curl's spelling of an empty header
+			p.r.Headers = append(p.r.Headers, Header{Name: strings.TrimSuffix(k, ";")})
+		} else {
+			p.warn("header %q is not `Name: value` (ignored)", value)
+		}
+		return
+	}
+	if strings.EqualFold(k, "Content-Type") {
+		p.contentTypeSet = true
+	}
+	p.addHeader(k, strings.TrimSpace(v))
+}
+
+func (p *parser) dataOrFile(_, value string) {
+	if !strings.HasPrefix(value, "@") {
+		p.data = append(p.data, value)
+		return
+	}
+	if p.dataFile != "" || len(p.data) > 0 {
+		p.warn("more than one body: %s dropped", value)
+		return
+	}
+	p.dataFile = strings.TrimPrefix(value, "@")
+}
+
+func (p *parser) form(value string, literal bool) {
+	part, ok := parseForm(value, literal)
+	if !ok {
+		p.warn("form field %q is not name=value (ignored)", value)
+		return
+	}
+	p.r.Parts = append(p.r.Parts, part)
+}
+
+func (p *parser) json(_, value string) {
+	p.data = append(p.data, value)
+	if !p.contentTypeSet {
+		p.addHeader("Content-Type", "application/json")
+		p.contentTypeSet = true
+	}
+	p.addHeader("Accept", "application/json")
+}
+
+func (p *parser) cookie(_, value string) {
+	if !strings.Contains(value, "=") {
+		p.warn("-b %s names a cookie file, which apic does not read; switch the jar on with --cookies instead", value)
+		return
+	}
+	p.addHeader("Cookie", value)
+}
+
+// resolveURL picks the URL: the argument that looks like one; when none
+// does, the first, with curl's own http:// default. Anything else is
+// reported.
+func (p *parser) resolveURL() error {
+	for _, arg := range p.positional {
+		if strings.Contains(arg, "://") && p.r.URL == "" {
+			p.r.URL = arg
 		}
 	}
-	for _, p := range positional {
+	for _, arg := range p.positional {
 		switch {
-		case p == r.URL && r.URL != "":
-			r.URL = p // keep
-		case r.URL == "":
-			r.URL = "http://" + p
+		case arg == p.r.URL && p.r.URL != "":
+		case p.r.URL == "":
+			p.r.URL = "http://" + arg
 		default:
-			warn("extra argument %q (ignored)", p)
+			p.warn("extra argument %q (ignored)", arg)
 		}
 	}
-	if r.URL == "" {
-		return nil, errors.New("no URL in the command")
+	if p.r.URL == "" {
+		return errors.New("no URL in the command")
 	}
-	body := strings.Join(data, "&")
+	return nil
+}
+
+// resolveBody joins the data arguments into the body, or, under -G, onto
+// the query string.
+func (p *parser) resolveBody() {
+	body := strings.Join(p.data, "&")
 	switch {
-	case get && (body != "" || dataFile != ""):
-		if dataFile != "" {
-			warn("-G with a body file: the file is not appended to the URL")
+	case p.get && (body != "" || p.dataFile != ""):
+		if p.dataFile != "" {
+			p.warn("-G with a body file: the file is not appended to the URL")
 		}
 		if body != "" {
 			sep := "?"
-			if strings.Contains(r.URL, "?") {
+			if strings.Contains(p.r.URL, "?") {
 				sep = "&"
 			}
-			r.URL += sep + body
+			p.r.URL += sep + body
 		}
-	case dataFile != "":
-		r.BodyFile = dataFile
+	case p.dataFile != "":
+		p.r.BodyFile = p.dataFile
 	default:
-		r.Body = body
+		p.r.Body = body
 	}
+}
+
+// resolveMethodAndContentType fills in what curl would infer: the method
+// from -I, -G and the body, and the content type of a body or a form.
+func (p *parser) resolveMethodAndContentType() {
+	r := p.r
 	hasBody := r.Body != "" || r.BodyFile != "" || len(r.Parts) > 0
 	if r.Method == "" {
 		switch {
-		case head:
+		case p.head:
 			r.Method = "HEAD"
-		case hasBody && !get:
+		case hasBody && !p.get:
 			r.Method = "POST"
 		default:
 			r.Method = "GET"
@@ -228,12 +290,11 @@ func Parse(command string) (*Request, error) {
 	}
 	if len(r.Parts) > 0 {
 		r.Headers = withoutContentType(r.Headers)
-		r.Headers = append(r.Headers, Header{Name: "Content-Type", Value: "multipart/form-data; boundary=WebAppBoundary"})
-	} else if (r.Body != "" || r.BodyFile != "") && !contentTypeSet {
+		p.addHeader("Content-Type", "multipart/form-data; boundary=WebAppBoundary")
+	} else if (r.Body != "" || r.BodyFile != "") && !p.contentTypeSet {
 		// curl's default for -d.
-		r.Headers = append(r.Headers, Header{Name: "Content-Type", Value: "application/x-www-form-urlencoded"})
+		p.addHeader("Content-Type", "application/x-www-form-urlencoded")
 	}
-	return r, nil
 }
 
 type flagSpec struct {
@@ -386,92 +447,127 @@ func tokenize(s string) ([]string, error) {
 	inWord := false
 	for i := 0; i < len(s); i++ {
 		c := s[i]
-		switch {
-		case c == '\\':
-			if i+1 >= len(s) {
-				return nil, errors.New("trailing backslash")
-			}
-			i++
-			if s[i] == '\n' {
-				continue // line continuation
-			}
-			if s[i] == '\r' && i+1 < len(s) && s[i+1] == '\n' {
-				i++
-				continue
-			}
-			cur.WriteByte(s[i])
-			inWord = true
-		case c == '\'':
-			end := strings.IndexByte(s[i+1:], '\'')
-			if end < 0 {
-				return nil, errors.New("unterminated single quote")
-			}
-			cur.WriteString(s[i+1 : i+1+end])
-			i += end + 1
-			inWord = true
-		case c == '"':
-			i++
-			closed := false
-			for ; i < len(s); i++ {
-				if s[i] == '"' {
-					closed = true
-					break
-				}
-				if s[i] == '\\' && i+1 < len(s) && strings.IndexByte("\"\\$`\n", s[i+1]) >= 0 {
-					i++
-					if s[i] == '\n' {
-						continue
-					}
-				}
-				cur.WriteByte(s[i])
-			}
-			if !closed {
-				return nil, errors.New("unterminated double quote")
-			}
-			inWord = true
-		case c == '$' && i+1 < len(s) && s[i+1] == '\'':
-			i += 2
-			closed := false
-			for ; i < len(s); i++ {
-				if s[i] == '\'' {
-					closed = true
-					break
-				}
-				if s[i] == '\\' && i+1 < len(s) {
-					i++
-					switch s[i] {
-					case 'n':
-						cur.WriteByte('\n')
-					case 't':
-						cur.WriteByte('\t')
-					case 'r':
-						cur.WriteByte('\r')
-					default:
-						cur.WriteByte(s[i])
-					}
-					continue
-				}
-				cur.WriteByte(s[i])
-			}
-			if !closed {
-				return nil, errors.New("unterminated $'...' quote")
-			}
-			inWord = true
-		case c == ' ' || c == '\t' || c == '\n' || c == '\r':
+		if c == ' ' || c == '\t' || c == '\n' || c == '\r' {
 			if inWord {
 				out = append(out, cur.String())
 				cur.Reset()
 				inWord = false
 			}
-		default:
+			continue
+		}
+		read := quoteReader(s, i)
+		if read == nil {
 			cur.WriteByte(c)
 			inWord = true
+			continue
 		}
+		last, word, err := read(s, i, &cur)
+		if err != nil {
+			return nil, err
+		}
+		i = last
+		inWord = inWord || word
 	}
 	if inWord {
 		out = append(out, cur.String())
 	}
 	return out, nil
+}
+
+// A quoteRead consumes one shell construct that starts at s[i], writes
+// what it stands for to cur, and returns the index of the last byte it
+// consumed and whether it contributed to a word (a line continuation does
+// not).
+type quoteRead func(s string, i int, cur *strings.Builder) (last int, word bool, err error)
+
+// quoteReader picks the reader for the construct at s[i], or nil for a
+// plain byte.
+func quoteReader(s string, i int) quoteRead {
+	switch {
+	case s[i] == '\\':
+		return readEscape
+	case s[i] == '\'':
+		return readSingleQuoted
+	case s[i] == '"':
+		return readDoubleQuoted
+	case s[i] == '$' && i+1 < len(s) && s[i+1] == '\'':
+		return readANSIQuoted
+	}
+	return nil
+}
+
+// readEscape handles a backslash outside quotes: a line continuation
+// (a backslash before a newline or CRLF) disappears, anything else is
+// taken literally.
+func readEscape(s string, i int, cur *strings.Builder) (int, bool, error) {
+	if i+1 >= len(s) {
+		return 0, false, errors.New("trailing backslash")
+	}
+	i++
+	if s[i] == '\n' {
+		return i, false, nil // line continuation
+	}
+	if s[i] == '\r' && i+1 < len(s) && s[i+1] == '\n' {
+		return i + 1, false, nil
+	}
+	cur.WriteByte(s[i])
+	return i, true, nil
+}
+
+// readSingleQuoted takes everything up to the next single quote literally.
+func readSingleQuoted(s string, i int, cur *strings.Builder) (int, bool, error) {
+	end := strings.IndexByte(s[i+1:], '\'')
+	if end < 0 {
+		return 0, false, errors.New("unterminated single quote")
+	}
+	cur.WriteString(s[i+1 : i+1+end])
+	return i + end + 1, true, nil
+}
+
+// readDoubleQuoted honours the backslash escapes the shell keeps inside
+// double quotes: a backslash before ", another backslash, $, ` or a newline.
+func readDoubleQuoted(s string, i int, cur *strings.Builder) (int, bool, error) {
+	for i++; i < len(s); i++ {
+		if s[i] == '"' {
+			return i, true, nil
+		}
+		if s[i] == '\\' && i+1 < len(s) && strings.IndexByte("\"\\$`\n", s[i+1]) >= 0 {
+			i++
+			if s[i] == '\n' {
+				continue
+			}
+		}
+		cur.WriteByte(s[i])
+	}
+	return 0, false, errors.New("unterminated double quote")
+}
+
+// readANSIQuoted reads bash's $'...' form, with its n, t and r escapes.
+func readANSIQuoted(s string, i int, cur *strings.Builder) (int, bool, error) {
+	for i += 2; i < len(s); i++ {
+		if s[i] == '\'' {
+			return i, true, nil
+		}
+		if s[i] == '\\' && i+1 < len(s) {
+			i++
+			cur.WriteByte(ansiEscape(s[i]))
+			continue
+		}
+		cur.WriteByte(s[i])
+	}
+	return 0, false, errors.New("unterminated $'...' quote")
+}
+
+func ansiEscape(c byte) byte {
+	switch c {
+	case 'n':
+		return '\n'
+	case 't':
+		return '\t'
+	case 'r':
+		return '\r'
+	}
+	return c
 }
 
 var reNonWord = regexp.MustCompile(`[^A-Za-z0-9]+`)

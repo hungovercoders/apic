@@ -3,6 +3,8 @@ package snippet
 import (
 	"strconv"
 	"strings"
+
+	"github.com/hungovercoders/apic/internal/runner"
 )
 
 // python renders a script using the requests library.
@@ -20,10 +22,25 @@ func python(m *request) string {
 		b.WriteString("from requests.auth import HTTPDigestAuth\n")
 	}
 	b.WriteString("\n")
-	var files []string
-	var args []string
-	args = append(args, pyQuote(m.Method), pyQuote(m.URL))
-	var headers []string
+	args := []string{pyQuote(m.Method), pyQuote(m.URL)}
+	args = append(args, pyAuthArgs(m)...)
+	args = append(args, pyPartArgs(m)...)
+	if m.Body != "" {
+		args = append(args, "data="+pyQuote(m.Body)+".encode()")
+	}
+	args = append(args, pyTLSArgs(m.TLS)...)
+	if m.Proxy != "" {
+		args = append(args, "proxies={\"http\": "+pyQuote(m.Proxy)+", \"https\": "+pyQuote(m.Proxy)+"}")
+	}
+	b.WriteString("response = requests.request(\n    " + strings.Join(args, ",\n    ") + ",\n)\n")
+	b.WriteString("print(response.status_code)\nprint(response.text)")
+	return b.String()
+}
+
+// pyAuthArgs is the headers= argument, with a header credential last, then
+// the params= or auth= one a query, basic or digest credential needs.
+func pyAuthArgs(m *request) []string {
+	var args, headers []string
 	for _, h := range m.Headers {
 		headers = append(headers, "        "+pyQuote(h.Name)+": "+pyQuote(h.Value)+",")
 	}
@@ -45,58 +62,65 @@ func python(m *request) string {
 			args = append(args, "auth=("+pair+")")
 		}
 	}
-	if len(m.Parts) > 0 {
-		var data []string
-		for _, p := range m.Parts {
-			if p.File == "" {
-				v := p.Value
-				if m.Redact {
-					v = "***"
-				}
-				data = append(data, "        "+pyQuote(p.Name)+": "+pyQuote(v)+",")
-				continue
+	return args
+}
+
+// pyPartArgs is the data= and files= arguments for a multipart body.
+func pyPartArgs(m *request) []string {
+	var args, data, files []string
+	for _, p := range m.Parts {
+		if p.File == "" {
+			v := p.Value
+			if m.Redact {
+				v = "***"
 			}
-			name := p.Filename
-			if name == "" {
-				name = baseName(p.File)
-			}
-			entry := "(" + pyQuote(name) + ", open(" + pyQuote(p.File) + ", \"rb\")"
-			if p.ContentType != "" {
-				entry += ", " + pyQuote(p.ContentType)
-			}
-			files = append(files, "        "+pyQuote(p.Name)+": "+entry+"),")
+			data = append(data, "        "+pyQuote(p.Name)+": "+pyQuote(v)+",")
+			continue
 		}
-		if len(data) > 0 {
-			args = append(args, "data={\n"+strings.Join(data, "\n")+"\n    }")
-		}
-		if len(files) > 0 {
-			args = append(args, "files={\n"+strings.Join(files, "\n")+"\n    }")
+		files = append(files, "        "+pyQuote(p.Name)+": "+pyFile(p)+"),")
+	}
+	if len(data) > 0 {
+		args = append(args, "data={\n"+strings.Join(data, "\n")+"\n    }")
+	}
+	if len(files) > 0 {
+		args = append(args, "files={\n"+strings.Join(files, "\n")+"\n    }")
+	}
+	return args
+}
+
+// pyFile is a file part's tuple, less its closing parenthesis.
+func pyFile(p runner.FormPart) string {
+	name := p.Filename
+	if name == "" {
+		name = baseName(p.File)
+	}
+	entry := "(" + pyQuote(name) + ", open(" + pyQuote(p.File) + ", \"rb\")"
+	if p.ContentType != "" {
+		entry += ", " + pyQuote(p.ContentType)
+	}
+	return entry
+}
+
+// pyTLSArgs is the verify= and cert= arguments for apic's TLS settings.
+func pyTLSArgs(t *runner.TLSInfo) []string {
+	if t == nil {
+		return nil
+	}
+	var args []string
+	switch {
+	case t.Insecure:
+		args = append(args, "verify=False")
+	case t.CAFile != "":
+		args = append(args, "verify="+pyQuote(t.CAFile))
+	}
+	if t.CertFile != "" {
+		if t.KeyFile != "" && t.KeyFile != t.CertFile {
+			args = append(args, "cert=("+pyQuote(t.CertFile)+", "+pyQuote(t.KeyFile)+")")
+		} else {
+			args = append(args, "cert="+pyQuote(t.CertFile))
 		}
 	}
-	if m.Body != "" {
-		args = append(args, "data="+pyQuote(m.Body)+".encode()")
-	}
-	if t := m.TLS; t != nil {
-		switch {
-		case t.Insecure:
-			args = append(args, "verify=False")
-		case t.CAFile != "":
-			args = append(args, "verify="+pyQuote(t.CAFile))
-		}
-		if t.CertFile != "" {
-			if t.KeyFile != "" && t.KeyFile != t.CertFile {
-				args = append(args, "cert=("+pyQuote(t.CertFile)+", "+pyQuote(t.KeyFile)+")")
-			} else {
-				args = append(args, "cert="+pyQuote(t.CertFile))
-			}
-		}
-	}
-	if m.Proxy != "" {
-		args = append(args, "proxies={\"http\": "+pyQuote(m.Proxy)+", \"https\": "+pyQuote(m.Proxy)+"}")
-	}
-	b.WriteString("response = requests.request(\n    " + strings.Join(args, ",\n    ") + ",\n)\n")
-	b.WriteString("print(response.status_code)\nprint(response.text)")
-	return b.String()
+	return args
 }
 
 // pyQuote is a Python string literal. Go's escapes (\n, \t, \xhh, \uhhhh,

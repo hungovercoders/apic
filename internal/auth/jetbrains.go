@@ -162,13 +162,8 @@ func FromJetBrains(fields map[string]any, render func(string) (string, error)) (
 // describe renders an oauth2 spec as `oauth2 key=value ...` without its
 // secrets, for describe and apic env.
 func (s *Spec) describe() string {
-	keys := make([]string, 0, len(s.Options))
-	for k := range s.Options {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
 	parts := []string{s.Type}
-	for _, k := range keys {
+	for _, k := range s.optionKeys() {
 		v := s.Options[k]
 		if k == "clientSecret" || k == "password" {
 			v = "***"

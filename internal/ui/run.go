@@ -25,124 +25,149 @@ type editorDoneMsg struct{ err error }
 type clearStatusMsg struct{ seq int }
 
 func (m *Model) handleKey(msg Key) Cmd {
-	k := m.keys
 	switch {
 	case m.showHelp:
-		if k.Esc.matches(msg) || k.Help.matches(msg) || k.Quit.matches(msg) {
-			m.showHelp = false
-		}
-		return nil
+		return m.helpKey(msg)
 	case m.confirmClear:
-		m.confirmClear = false
-		if msg.String() == "y" || msg.String() == "Y" {
-			return m.clearSession()
-		}
-		return nil
+		return m.confirmKey(msg)
 	case m.filtering:
-		switch msg.Type {
-		case KeyEnter:
-			m.filtering = false
-		case KeyEsc:
-			m.filtering = false
-			m.filter = ""
-		case KeyBackspace:
-			if r := []rune(m.filter); len(r) > 0 {
-				m.filter = string(r[:len(r)-1])
-			}
-		case KeyCtrlC:
-			return m.quit()
-		case KeyRune:
-			m.filter += string(msg.Rune)
+		return m.filterKey(msg)
+	}
+	for _, a := range m.keyActions() {
+		if a.b.matches(msg) {
+			return a.do()
 		}
-		m.cursor = 0
+	}
+	return nil
+}
+
+// helpKey closes the help overlay on esc, ? or q and swallows the rest.
+func (m *Model) helpKey(msg Key) Cmd {
+	k := m.keys
+	if k.Esc.matches(msg) || k.Help.matches(msg) || k.Quit.matches(msg) {
+		m.showHelp = false
+	}
+	return nil
+}
+
+// confirmKey answers the clear-session prompt: y clears, anything else
+// cancels.
+func (m *Model) confirmKey(msg Key) Cmd {
+	m.confirmClear = false
+	if msg.String() == "y" || msg.String() == "Y" {
+		return m.clearSession()
+	}
+	return nil
+}
+
+// filterKey edits the filter while it is being typed.
+func (m *Model) filterKey(msg Key) Cmd {
+	switch msg.Type {
+	case KeyEnter:
+		m.filtering = false
+	case KeyEsc:
+		m.filtering = false
+		m.filter = ""
+	case KeyBackspace:
+		if r := []rune(m.filter); len(r) > 0 {
+			m.filter = string(r[:len(r)-1])
+		}
+	case KeyCtrlC:
+		return m.quit()
+	case KeyRune:
+		m.filter += string(msg.Rune)
+	}
+	m.cursor = 0
+	m.clampCursor()
+	m.selected = m.selectedReq()
+	return nil
+}
+
+// keyAction is what one binding does in the main view.
+type keyAction struct {
+	b  binding
+	do func() Cmd
+}
+
+// keyActions lists the main view's bindings in the order they are tried;
+// the first that matches the key wins.
+func (m *Model) keyActions() []keyAction {
+	k := m.keys
+	setTab := func(t tab) func() Cmd { return func() Cmd { m.tab = t; return nil } }
+	do := func(f func()) func() Cmd { return func() Cmd { f(); return nil } }
+	return []keyAction{
+		{k.Quit, m.quit},
+		{k.Help, do(func() { m.showHelp = true })},
+		{k.Esc, m.escape},
+		{k.Down, do(func() { m.move(1) })},
+		{k.Up, do(func() { m.move(-1) })},
+		{k.Top, do(func() { m.moveTo(true) })},
+		{k.Bottom, do(func() { m.moveTo(false) })},
+		{k.Filter, do(func() { m.filtering = true })},
+		{k.Run, m.runSelected},
+		{k.RunFile, func() Cmd { return m.runFlow(m.fileRequests()) }},
+		{k.RunAll, func() Cmd { return m.runFlow(m.allRequests()) }},
+		{k.NextTab, do(func() { m.tab = (m.tab + 1) % tabCount })},
+		{k.PrevTab, do(func() { m.tab = (m.tab + tabCount - 1) % tabCount })},
+		{k.Tab1, setTab(tabPreview)},
+		{k.Tab2, setTab(tabResponse)},
+		{k.Tab3, setTab(tabChecks)},
+		{k.Tab4, setTab(tabSession)},
+		{k.Tab5, setTab(tabHistory)},
+		{k.Headers, do(func() { m.showHeaders = !m.showHeaders; m.tab = tabResponse })},
+		{k.Curl, do(func() { m.codeLang = (m.codeLang + 1) % (len(snippet.Languages) + 1); m.tab = tabResponse })},
+		{k.Open, m.openEditor},
+		{k.Env, m.cycleEnv},
+		{k.Reload, m.reload},
+		{k.Clear, m.askClear},
+		{k.LineUp, do(func() { m.vp.scroll(-1) })},
+		{k.LineDown, do(func() { m.vp.scroll(1) })},
+		{k.PageUp, do(m.vp.halfPageUp)},
+		{k.PageDown, do(m.vp.halfPageDown)},
+	}
+}
+
+// escape cancels a run, else clears the filter, else closes the snippet.
+func (m *Model) escape() Cmd {
+	switch {
+	case m.inflight != nil:
+		m.cancelRun()
+		return m.setStatus("run cancelled")
+	case m.filter != "":
+		m.filter = ""
 		m.clampCursor()
 		m.selected = m.selectedReq()
-		return nil
+	case m.codeLang > 0:
+		m.codeLang = 0
 	}
+	return nil
+}
 
-	switch {
-	case k.Quit.matches(msg):
-		return m.quit()
-	case k.Help.matches(msg):
-		m.showHelp = true
-	case k.Esc.matches(msg):
-		switch {
-		case m.inflight != nil:
-			m.cancelRun()
-			return m.setStatus("run cancelled")
-		case m.filter != "":
-			m.filter = ""
-			m.clampCursor()
-			m.selected = m.selectedReq()
-		case m.codeLang > 0:
-			m.codeLang = 0
-		}
-	case k.Down.matches(msg):
-		m.move(1)
-	case k.Up.matches(msg):
-		m.move(-1)
-	case k.Top.matches(msg):
-		m.moveTo(true)
-	case k.Bottom.matches(msg):
-		m.moveTo(false)
-	case k.Filter.matches(msg):
-		m.filtering = true
-	case k.Run.matches(msg):
-		if sel := m.selectedReq(); sel != nil {
-			return m.startRun([]*httpfile.Request{sel}, false)
-		}
-	case k.RunFile.matches(msg):
-		if reqs := m.fileRequests(); len(reqs) > 0 {
-			return m.startRun(reqs, true)
-		}
-	case k.RunAll.matches(msg):
-		if reqs := m.allRequests(); len(reqs) > 0 {
-			return m.startRun(reqs, true)
-		}
-	case k.NextTab.matches(msg):
-		m.tab = (m.tab + 1) % tabCount
-	case k.PrevTab.matches(msg):
-		m.tab = (m.tab + tabCount - 1) % tabCount
-	case k.Tab1.matches(msg):
-		m.tab = tabPreview
-	case k.Tab2.matches(msg):
-		m.tab = tabResponse
-	case k.Tab3.matches(msg):
-		m.tab = tabChecks
-	case k.Tab4.matches(msg):
-		m.tab = tabSession
-	case k.Tab5.matches(msg):
-		m.tab = tabHistory
-	case k.Headers.matches(msg):
-		m.showHeaders = !m.showHeaders
-		m.tab = tabResponse
-	case k.Curl.matches(msg):
-		m.codeLang = (m.codeLang + 1) % (len(snippet.Languages) + 1)
-		m.tab = tabResponse
-	case k.Open.matches(msg):
-		return m.openEditor()
-	case k.Env.matches(msg):
-		return m.cycleEnv()
-	case k.Reload.matches(msg):
-		return m.reload()
-	case k.Clear.matches(msg):
-		if m.inflight != nil {
-			return m.setStatus("busy: wait for the run to finish")
-		}
-		if m.runner.Session == nil {
-			return m.setStatus("session disabled by --no-session")
-		}
-		m.tab = tabSession
-		m.confirmClear = true
-	case k.LineUp.matches(msg):
-		m.vp.scroll(-1)
-	case k.LineDown.matches(msg):
-		m.vp.scroll(1)
-	case k.PageUp.matches(msg):
-		m.vp.halfPageUp()
-	case k.PageDown.matches(msg):
-		m.vp.halfPageDown()
+func (m *Model) runSelected() Cmd {
+	if sel := m.selectedReq(); sel != nil {
+		return m.startRun([]*httpfile.Request{sel}, false)
 	}
+	return nil
+}
+
+func (m *Model) runFlow(reqs []*httpfile.Request) Cmd {
+	if len(reqs) > 0 {
+		return m.startRun(reqs, true)
+	}
+	return nil
+}
+
+// askClear opens the clear-session prompt when there is a session to
+// clear and no run using it.
+func (m *Model) askClear() Cmd {
+	if m.inflight != nil {
+		return m.setStatus("busy: wait for the run to finish")
+	}
+	if m.runner.Session == nil {
+		return m.setStatus("session disabled by --no-session")
+	}
+	m.tab = tabSession
+	m.confirmClear = true
 	return nil
 }
 

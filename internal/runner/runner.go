@@ -533,6 +533,13 @@ func (r *Result) AuthNote() string { return r.authNote }
 // them. It is nil for results built by hand.
 func (r *Result) Req() *httpfile.Request { return r.req }
 
+// fail records a problem found after the response came back, such as a
+// save that could not be written; the request then counts as failed.
+func (r *Result) fail(msg string) {
+	r.Errors = append(r.Errors, msg)
+	r.OK = false
+}
+
 // MarshalJSON masks sensitive request and response headers always, and
 // everything (headers, bodies, query values, captures and assertion values)
 // when Redact is set.
@@ -1033,91 +1040,150 @@ func (r *Runner) refTarget(req *httpfile.Request, ref httpfile.Ref) (*httpfile.R
 // this invocation has already run, so a dependency reached twice runs
 // once. Both are per invocation: the next Run starts afresh.
 func (r *Runner) run(ctx context.Context, req *httpfile.Request, chain []*httpfile.Request, ran map[*httpfile.Request]bool) (*Result, error) {
-	var deps []*Result
-	// failed builds the result of a request that never went out because a
-	// dependency failed, keeping what the dependency produced.
-	// err is the error behind msg, if any; a dependency that failed its
-	// assertions is not an error and has none.
-	failed := func(msg string, err error) *Result {
-		res := &Result{Request: Resolved{Name: req.Name, File: req.File.Path, Line: req.Line, Method: req.Method, URL: req.URL},
-			Errors: []string{msg}, Deps: deps, Redact: r.Opts.Redact, req: req}
-		if err != nil {
-			res.Error = Info(err)
-			res.Error.Message = msg
-		}
-		return res
+	d := &depRun{r: r, ctx: ctx, req: req, chain: chain, ran: ran}
+	resolved, res, err := d.resolve()
+	if res != nil || err != nil {
+		return res, err
 	}
-	runDep := func(ref httpfile.Ref) (*Result, error) {
-		target, err := r.refTarget(req, ref)
-		if err != nil {
-			return failed(err.Error(), err), err
-		}
-		next := make([]*httpfile.Request, len(chain)+1)
-		copy(next, chain)
-		next[len(chain)] = req
-		for _, c := range next {
-			if c == target {
-				return nil, r.cycleError(req, ref, next, target)
-			}
-		}
-		ran[target] = true
-		dep, err := r.run(ctx, target, next, ran)
-		if dep != nil {
-			deps = append(deps, dep)
-		}
-		if err != nil {
-			return failed(fmt.Sprintf("%s %s: %v", refKey(ref), ref.ID, err), err), err
-		}
-		if !dep.OK {
-			return failed(fmt.Sprintf("%s %s failed", refKey(ref), ref.ID), nil), nil
-		}
-		return nil, nil
-	}
-	refs := req.Refs()
-	for _, ref := range refs {
-		if !ref.Force {
-			continue
-		}
-		if res, err := runDep(ref); res != nil || err != nil {
-			return res, err
-		}
-	}
-	resolved, err := r.Resolve(req)
-	if err != nil {
-		return nil, err
-	}
-	if len(resolved.missing) > 0 {
-		pulled := false
-		for _, ref := range refs {
-			if ref.Force {
-				continue
-			}
-			if target, err := r.refTarget(req, ref); err == nil && ran[target] {
-				continue
-			}
-			if res, err := runDep(ref); res != nil || err != nil {
-				return res, err
-			}
-			pulled = true
-		}
-		if pulled {
-			if resolved, err = r.Resolve(req); err != nil {
-				return nil, err
-			}
-		}
-	}
-	if len(resolved.missing) > 0 {
-		return nil, r.MissingError(req, resolved.missing)
-	}
-	result := &Result{Request: *resolved, OK: true, Redact: r.Opts.Redact, Deps: deps, req: req}
+	top := len(chain) == 0
+	result := &Result{Request: *resolved, OK: true, Redact: r.Opts.Redact, Deps: d.deps, req: req}
 	asserts, captures := req.Asserts, req.Captures
-	if len(chain) == 0 {
+	if top {
 		// The ad hoc checks apply to the request that was asked for, not
 		// to what it pulled in.
 		asserts = append(append([]httpfile.Assert(nil), asserts...), r.Opts.Asserts...)
 		captures = append(append([]httpfile.Capture(nil), captures...), r.Opts.Captures...)
 	}
-	preparedAsserts := make([]preparedAssert, 0, len(asserts))
+	preparedAsserts, err := r.prepareAsserts(req, asserts)
+	if err != nil {
+		return nil, err
+	}
+	timeout, policy, err := r.pacing(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	// Each schema is read and resolved once for all the attempts.
+	schemas := assert.Options{Schema: assert.Schemas(func(path string) ([]byte, error) { return r.readBodyFile(req, path, "schema") })}
+	err = r.retry(ctx, req, policy, result, func() (*Result, error) {
+		return r.attempt(ctx, req, resolved, preparedAsserts, captures, schemas, timeout)
+	})
+	if err != nil {
+		return nil, err
+	}
+	r.keep(req, resolved, result, top)
+	return result, nil
+}
+
+// depRun pulls in the requests one request's `# @ref`s name: the forced
+// ones always, the rest only when the request is missing a variable.
+type depRun struct {
+	r     *Runner
+	ctx   context.Context
+	req   *httpfile.Request
+	chain []*httpfile.Request
+	ran   map[*httpfile.Request]bool
+	deps  []*Result
+}
+
+// resolve runs the dependencies the request needs and resolves it. A
+// non-nil result is the request's own, failed because a dependency did.
+func (d *depRun) resolve() (*Resolved, *Result, error) {
+	refs := d.req.Refs()
+	for _, ref := range refs {
+		if !ref.Force {
+			continue
+		}
+		if res, err := d.run(ref); res != nil || err != nil {
+			return nil, res, err
+		}
+	}
+	resolved, err := d.r.Resolve(d.req)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(resolved.missing) > 0 {
+		pulled, res, err := d.pull(refs)
+		if res != nil || err != nil {
+			return nil, res, err
+		}
+		if pulled {
+			if resolved, err = d.r.Resolve(d.req); err != nil {
+				return nil, nil, err
+			}
+		}
+	}
+	if len(resolved.missing) > 0 {
+		return nil, nil, d.r.MissingError(d.req, resolved.missing)
+	}
+	return resolved, nil, nil
+}
+
+// pull runs the plain `# @ref`s this invocation has not run yet.
+func (d *depRun) pull(refs []httpfile.Ref) (bool, *Result, error) {
+	pulled := false
+	for _, ref := range refs {
+		if ref.Force {
+			continue
+		}
+		if target, err := d.r.refTarget(d.req, ref); err == nil && d.ran[target] {
+			continue
+		}
+		if res, err := d.run(ref); res != nil || err != nil {
+			return false, res, err
+		}
+		pulled = true
+	}
+	return pulled, nil, nil
+}
+
+// run runs one dependency. A non-nil result means it failed and the
+// request will not go out.
+func (d *depRun) run(ref httpfile.Ref) (*Result, error) {
+	target, err := d.r.refTarget(d.req, ref)
+	if err != nil {
+		return d.failed(err.Error(), err), err
+	}
+	next := make([]*httpfile.Request, len(d.chain)+1)
+	copy(next, d.chain)
+	next[len(d.chain)] = d.req
+	for _, c := range next {
+		if c == target {
+			return nil, d.r.cycleError(d.req, ref, next, target)
+		}
+	}
+	d.ran[target] = true
+	dep, err := d.r.run(d.ctx, target, next, d.ran)
+	if dep != nil {
+		d.deps = append(d.deps, dep)
+	}
+	if err != nil {
+		return d.failed(fmt.Sprintf("%s %s: %v", refKey(ref), ref.ID, err), err), err
+	}
+	if !dep.OK {
+		return d.failed(fmt.Sprintf("%s %s failed", refKey(ref), ref.ID), nil), nil
+	}
+	return nil, nil
+}
+
+// failed builds the result of a request that never went out because a
+// dependency failed, keeping what the dependency produced.
+// err is the error behind msg, if any; a dependency that failed its
+// assertions is not an error and has none.
+func (d *depRun) failed(msg string, err error) *Result {
+	req := d.req
+	res := &Result{Request: Resolved{Name: req.Name, File: req.File.Path, Line: req.Line, Method: req.Method, URL: req.URL},
+		Errors: []string{msg}, Deps: d.deps, Redact: d.r.Opts.Redact, req: req}
+	if err != nil {
+		res.Error = Info(err)
+		res.Error.Message = msg
+	}
+	return res
+}
+
+// prepareAsserts parses each assertion and renders its expected value
+// once, before the first attempt.
+func (r *Runner) prepareAsserts(req *httpfile.Request, asserts []httpfile.Assert) ([]preparedAssert, error) {
+	prepared := make([]preparedAssert, 0, len(asserts))
 	for _, a := range asserts {
 		expr, err := assert.Parse(a.Expr)
 		if err != nil {
@@ -1134,100 +1200,103 @@ func (r *Runner) run(ctx context.Context, req *httpfile.Request, chain []*httpfi
 				return nil, usagef(CodeDirective, "%s:%d: assert %q: %v", req.File.Path, a.Line, a.Expr, err)
 			}
 		}
-		preparedAsserts = append(preparedAsserts, preparedAssert{expr: expr, expected: expected, raw: a.Expr})
+		prepared = append(prepared, preparedAssert{expr: expr, expected: expected, raw: a.Expr})
 	}
+	return prepared, nil
+}
 
+// pacing reads the request's @timeout and @retry, and waits out its
+// @sleep.
+func (r *Runner) pacing(ctx context.Context, req *httpfile.Request) (time.Duration, retryPolicy, error) {
 	timeout := r.Opts.Timeout
 	if t, ok := req.Directive("timeout"); ok {
 		d, err := time.ParseDuration(t)
 		if err != nil {
-			return nil, usagef(CodeDirective, "%s:%d: bad @timeout %q", req.File.Path, req.Line, t)
+			return 0, retryPolicy{}, usagef(CodeDirective, "%s:%d: bad @timeout %q", req.File.Path, req.Line, t)
 		}
 		timeout = d
 	}
 	policy, err := r.retryPolicy(req)
 	if err != nil {
-		return nil, err
+		return 0, retryPolicy{}, err
 	}
-	// Each schema is read and resolved once for all the attempts.
-	schemas := assert.Options{Schema: assert.Schemas(func(path string) ([]byte, error) { return r.readBodyFile(req, path, "schema") })}
 	pause, err := req.Sleep()
 	if err != nil {
-		return nil, usagef(CodeDirective, "%s:%d: @sleep: %v", req.File.Path, req.Line, err)
+		return 0, retryPolicy{}, usagef(CodeDirective, "%s:%d: @sleep: %v", req.File.Path, req.Line, err)
 	}
 	if pause > 0 {
 		if err := r.sleep(ctx, pause); err != nil {
-			return nil, &TransportError{Err: err}
+			return 0, retryPolicy{}, &TransportError{Err: err}
 		}
 	}
+	return timeout, policy, nil
+}
 
-	for attempt := 1; ; attempt++ {
-		res, err := r.attempt(ctx, req, resolved, preparedAsserts, captures, schemas, timeout)
+// retry makes attempts until one passes or the policy runs out, and folds
+// the attempt that counts into result.
+func (r *Runner) retry(ctx context.Context, req *httpfile.Request, policy retryPolicy, result *Result, attempt func() (*Result, error)) error {
+	for n := 1; ; n++ {
+		res, err := attempt()
 		if err != nil {
 			var ue *UsageError
-			if errors.As(err, &ue) || attempt >= policy.n {
-				return nil, err
+			if errors.As(err, &ue) || n >= policy.n {
+				return err
 			}
-			r.report(Progress{Req: req, Attempt: attempt, Max: policy.n, Failure: err.Error()})
+			r.report(Progress{Req: req, Attempt: n, Max: policy.n, Failure: err.Error()})
 		} else {
 			if policy.n > 1 {
-				res.Attempts = attempt
+				res.Attempts = n
 			}
-			if res.OK || attempt >= policy.n {
+			if res.OK || n >= policy.n {
 				result.Response, result.raw = res.Response, res.raw
 				result.Captures, result.Asserts, result.Attempts = res.Captures, res.Asserts, res.Attempts
 				result.authNote = res.authNote
 				result.Errors = append(result.Errors, res.Errors...)
 				result.OK = result.OK && res.OK
-				break
+				return nil
 			}
-			r.report(Progress{Req: req, Attempt: attempt, Max: policy.n, Failure: res.Problem()})
+			r.report(Progress{Req: req, Attempt: n, Max: policy.n, Failure: res.Problem()})
 		}
 		if err := r.sleep(ctx, policy.interval); err != nil {
-			return nil, &TransportError{Err: err}
+			return &TransportError{Err: err}
 		}
 	}
+}
 
-	// The attempt that counts is the one whose body is saved. --output
-	// replaces the request's own `>>` line for the request it was given
-	// (the top of the chain), as `>>!` would.
-	replaced := r.Opts.Output != "" && len(chain) == 0
+// keep stores what the attempt that counts produced: its body, its
+// captures (for this run and later ones), the cookie jar and, for a
+// dependency, its history. top is the request Run was called for.
+func (r *Runner) keep(req *httpfile.Request, resolved *Resolved, result *Result, top bool) {
+	// --output replaces the request's own `>>` line for the request it was
+	// given (the top of the chain), as `>>!` would.
+	replaced := r.Opts.Output != "" && top
 	if req.SaveTo != nil && result.raw != nil && !replaced {
 		if err := r.saveBody(req, req.SaveTo.Path, req.SaveTo.Overwrite, false, resolved, result); err != nil {
-			result.Errors = append(result.Errors, err.Error())
-			result.OK = false
+			result.fail(err.Error())
 		}
 	}
-
-	// Only the attempt that counts commits its captures, for this run and
-	// for later ones.
 	for k, v := range result.Captures {
 		r.captured[k] = v
 	}
 	if req.Name != "" {
 		r.results[req.Name] = result
 	}
-	if len(result.Captures) > 0 && r.Session != nil {
-		if _, off := req.Directive("no-session"); !off {
-			r.Session.Set(r.Opts.Env, result.Captures)
-			if err := r.Session.Save(); err != nil {
-				result.Errors = append(result.Errors, "session: "+err.Error())
-				result.OK = false
-			}
+	if _, off := req.Directive("no-session"); len(result.Captures) > 0 && r.Session != nil && !off {
+		r.Session.Set(r.Opts.Env, result.Captures)
+		if err := r.Session.Save(); err != nil {
+			result.fail("session: " + err.Error())
 		}
 	}
 	if r.Jar != nil {
 		if err := r.Jar.Save(); err != nil {
-			result.Errors = append(result.Errors, "cookies: "+err.Error())
-			result.OK = false
+			result.fail("cookies: " + err.Error())
 		}
 	}
-	if len(chain) > 0 {
+	if !top {
 		// A dependency is final here; the request Run was called for is
 		// recorded by Run.
 		r.record(req, result)
 	}
-	return result, nil
 }
 
 // record adds a named request's response to its history, in the form
@@ -1287,33 +1356,10 @@ func (r *Runner) attempt(ctx context.Context, req *httpfile.Request, resolved *R
 	var trace traceTimes
 	ctx = httptrace.WithClientTrace(ctx, trace.trace())
 
-	var body io.Reader
-	if b := resolved.BodyBytes(); len(b) > 0 {
-		body = bytes.NewReader(b)
-	}
-	httpReq, err := http.NewRequestWithContext(ctx, resolved.Method, resolved.URL, body)
+	httpReq, err := r.buildRequest(ctx, req, resolved)
 	if err != nil {
-		return nil, usagef(CodeBuild, "%s:%d: %v", req.File.Path, req.Line, err)
+		return nil, err
 	}
-	httpReq.Header.Set("User-Agent", "apic/"+Version)
-	for _, h := range resolved.Headers {
-		if strings.EqualFold(h.Name, "Host") {
-			httpReq.Host = h.Value
-			continue
-		}
-		httpReq.Header.Add(h.Name, h.Value)
-	}
-
-	if resolved.AuthSpec != nil {
-		env, err := r.authEnv()
-		if err != nil {
-			return nil, err
-		}
-		if err := auth.Apply(ctx, resolved.AuthSpec, httpReq, resolved.BodyBytes(), env); err != nil {
-			return nil, usagef(CodeAuth, "%s:%d: auth: %v", req.File.Path, req.Line, err)
-		}
-	}
-
 	want, err := wantFor(req)
 	if err != nil {
 		return nil, usagef(CodeDirective, "%s:%d: %v", req.File.Path, req.Line, err)
@@ -1339,15 +1385,7 @@ func (r *Runner) attempt(ctx context.Context, req *httpfile.Request, resolved *R
 	trace.mu.Unlock()
 	httpResp, err := client.Do(httpReq)
 	if err != nil {
-		te := r.transportError(err)
-		if want == protoHTTP2 && te.ErrorCode() == CodeTransport {
-			// Refused ALPN reads as a plain failure; say what it was.
-			te.Code = CodeProtocol
-		}
-		if want == protoHTTP2 {
-			te.Err = fmt.Errorf("%w (the request line asks for HTTP/2; the server may not offer it)", te.Err)
-		}
-		return nil, te
+		return nil, r.sendError(err, want)
 	}
 	defer func() { _ = httpResp.Body.Close() }()
 	if want == protoHTTP2 && httpResp.ProtoMajor != 2 {
@@ -1369,43 +1407,98 @@ func (r *Runner) attempt(ctx context.Context, req *httpfile.Request, resolved *R
 	raw := &selector.Response{Status: httpResp.StatusCode, StatusText: statusText(httpResp.Status), Headers: httpResp.Header, Body: data, Duration: dur}
 	result := &Result{OK: true, Redact: r.Opts.Redact, raw: raw, req: req}
 	if digest != nil {
-		switch {
-		case digest.Challenged:
-			result.authNote = fmt.Sprintf("digest: 401 challenge answered (%d requests)", digest.Rounds)
-		case digest.Answered:
-			result.authNote = "digest: answered from an earlier challenge"
-		default:
-			result.authNote = "digest: the server sent no challenge"
-		}
+		result.authNote = digestNote(digest)
 	}
 	view, encoding := jsonOrString(data)
 	result.Response = &Response{Status: raw.Status, StatusText: raw.StatusText, Headers: flatHeaders(httpResp.Header), Body: view, BodyEncoding: encoding, DurationMs: dur.Milliseconds(), Size: len(data), Proto: httpResp.Proto, Timings: trace.timings(dur)}
+	result.evaluate(captures, asserts, schemas)
+	return result, nil
+}
 
+// buildRequest builds the outgoing request from the resolved one, with
+// its headers and its auth applied.
+func (r *Runner) buildRequest(ctx context.Context, req *httpfile.Request, resolved *Resolved) (*http.Request, error) {
+	var body io.Reader
+	if b := resolved.BodyBytes(); len(b) > 0 {
+		body = bytes.NewReader(b)
+	}
+	httpReq, err := http.NewRequestWithContext(ctx, resolved.Method, resolved.URL, body)
+	if err != nil {
+		return nil, usagef(CodeBuild, "%s:%d: %v", req.File.Path, req.Line, err)
+	}
+	httpReq.Header.Set("User-Agent", "apic/"+Version)
+	for _, h := range resolved.Headers {
+		if strings.EqualFold(h.Name, "Host") {
+			httpReq.Host = h.Value
+			continue
+		}
+		httpReq.Header.Add(h.Name, h.Value)
+	}
+	if resolved.AuthSpec == nil {
+		return httpReq, nil
+	}
+	env, err := r.authEnv()
+	if err != nil {
+		return nil, err
+	}
+	if err := auth.Apply(ctx, resolved.AuthSpec, httpReq, resolved.BodyBytes(), env); err != nil {
+		return nil, usagef(CodeAuth, "%s:%d: auth: %v", req.File.Path, req.Line, err)
+	}
+	return httpReq, nil
+}
+
+// sendError is the error for a request that got no response.
+func (r *Runner) sendError(err error, want protoWant) *TransportError {
+	te := r.transportError(err)
+	if want == protoHTTP2 && te.ErrorCode() == CodeTransport {
+		// Refused ALPN reads as a plain failure; say what it was.
+		te.Code = CodeProtocol
+	}
+	if want == protoHTTP2 {
+		te.Err = fmt.Errorf("%w (the request line asks for HTTP/2; the server may not offer it)", te.Err)
+	}
+	return te
+}
+
+// digestNote says how digest auth went for the result.
+func digestNote(digest *auth.DigestTransport) string {
+	switch {
+	case digest.Challenged:
+		return fmt.Sprintf("digest: 401 challenge answered (%d requests)", digest.Rounds)
+	case digest.Answered:
+		return "digest: answered from an earlier challenge"
+	default:
+		return "digest: the server sent no challenge"
+	}
+}
+
+// evaluate runs the captures and the assertions against the response.
+func (r *Result) evaluate(captures []httpfile.Capture, asserts []preparedAssert, schemas assert.Options) {
+	raw := r.raw
 	for _, c := range captures {
 		v, ok, err := selector.Select(raw, c.Selector)
 		if err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("capture %s: %v", c.Name, err))
-			result.OK = false
+			r.Errors = append(r.Errors, fmt.Sprintf("capture %s: %v", c.Name, err))
+			r.OK = false
 			continue
 		}
 		if !ok {
-			result.Errors = append(result.Errors, fmt.Sprintf("capture %s: nothing at %s", c.Name, c.Selector))
-			result.OK = false
+			r.Errors = append(r.Errors, fmt.Sprintf("capture %s: nothing at %s", c.Name, c.Selector))
+			r.OK = false
 			continue
 		}
-		if result.Captures == nil {
-			result.Captures = map[string]string{}
+		if r.Captures == nil {
+			r.Captures = map[string]string{}
 		}
-		result.Captures[c.Name] = v
+		r.Captures[c.Name] = v
 	}
 	for _, a := range asserts {
 		ar := assert.EvalWith(a.expr, a.expected, raw, schemas)
 		if !ar.Pass {
-			result.OK = false
+			r.OK = false
 		}
-		result.Asserts = append(result.Asserts, ar)
+		r.Asserts = append(r.Asserts, ar)
 	}
-	return result, nil
 }
 
 type preparedAssert struct {
@@ -1618,31 +1711,9 @@ func (r *Runner) Describe(req *httpfile.Request) *Description {
 		}
 	}
 	if req.IsGraphQL() {
-		// What goes on the wire: a POST with the JSON envelope, the
-		// placeholders still to be filled in.
-		d.Method = "POST"
-		for k := range d.Headers {
-			if strings.EqualFold(k, httpfile.GraphQLHeader) {
-				delete(d.Headers, k)
-			}
-		}
-		if _, has := req.Header("Content-Type"); !has {
-			d.Headers["Content-Type"] = "application/json"
-		}
-		if req.BodyFile == "" {
-			if q, v, err := req.GraphQL(); err == nil {
-				quoted, _ := json.Marshal(q)
-				d.Body = `{"query": ` + string(quoted)
-				if v != "" {
-					d.Body += `, "variables": ` + v
-				}
-				d.Body += "}"
-			}
-		}
+		describeGraphQL(d, req)
 	}
-	seen := map[string]bool{}
-	var texts []string
-	texts = append(texts, req.URL)
+	texts := []string{req.URL}
 	for _, h := range req.Headers {
 		texts = append(texts, h.Value)
 	}
@@ -1668,54 +1739,15 @@ func (r *Runner) Describe(req *httpfile.Request) *Description {
 			texts = append(texts, spec.Texts()...)
 		}
 	}
+	seen := map[string]bool{}
 	for _, t := range texts {
 		for _, e := range template.Exprs(t) {
 			if seen[e] {
 				continue
 			}
 			seen[e] = true
-			if strings.HasPrefix(e, "$auth.") {
-				// Say which configuration runs; fetching a token is for
-				// sending, not describing.
-				info := r.describeAuth(e)
-				if info.Missing {
-					d.Ready = false
-				}
-				d.Variables = append(d.Variables, info)
-				continue
-			}
-			if strings.HasPrefix(e, "$") || strings.Contains(e, ".response.") {
-				v, ok, secret, err := r.resolveExprMeta(req, e, 0)
-				info := VarInfo{Name: e, Source: "built-in", Value: v, Secret: secret, Missing: !ok || err != nil}
-				if name, _, isRef := strings.Cut(e, ".response."); isRef {
-					info.Source = "response reference (flow only)"
-					if !ok && err == nil && refRuns[name] {
-						// `# @ref` runs the request first, as for a
-						// captured variable.
-						info.RefRuns = true
-					}
-				}
-				if err != nil {
-					info.Source += ": " + err.Error()
-				}
-				if (!ok || err != nil) && !info.RefRuns {
-					d.Ready = false
-				}
-				d.Variables = append(d.Variables, info)
-				continue
-			}
-			info, ok, err := r.lookup(req, e, 0)
-			if err != nil {
-				info.Source = info.Source + ": " + err.Error()
-				info.Missing = true
-			}
-			if info.Missing && err == nil && refRuns[info.CapturedBy] {
-				// A `# @ref` supplies it before the request goes out, so
-				// it does not make the request unready.
-				info.RefRuns = true
-			} else if !ok || err != nil {
-				d.Ready = false
-			}
+			info, ready := r.describeVar(req, e, refRuns)
+			d.Ready = d.Ready && ready
 			d.Variables = append(d.Variables, info)
 		}
 	}
@@ -1727,6 +1759,77 @@ func (r *Runner) Describe(req *httpfile.Request) *Description {
 	d.TLS = r.tlsInfoForURL(rendered)
 	d.Proxy = r.ProxyInfo(rendered)
 	return d
+}
+
+// describeGraphQL shows what goes on the wire for a GraphQL request: a
+// POST with the JSON envelope, the placeholders still to be filled in.
+func describeGraphQL(d *Description, req *httpfile.Request) {
+	d.Method = "POST"
+	for k := range d.Headers {
+		if strings.EqualFold(k, httpfile.GraphQLHeader) {
+			delete(d.Headers, k)
+		}
+	}
+	if _, has := req.Header("Content-Type"); !has {
+		d.Headers["Content-Type"] = "application/json"
+	}
+	if req.BodyFile != "" {
+		return
+	}
+	if q, v, err := req.GraphQL(); err == nil {
+		quoted, _ := json.Marshal(q)
+		d.Body = `{"query": ` + string(quoted)
+		if v != "" {
+			d.Body += `, "variables": ` + v
+		}
+		d.Body += "}"
+	}
+}
+
+// describeVar says where one placeholder's value comes from, and whether
+// the request is ready as far as it goes. refRuns holds the ids of the
+// requests a `# @ref` runs first.
+func (r *Runner) describeVar(req *httpfile.Request, e string, refRuns map[string]bool) (VarInfo, bool) {
+	if strings.HasPrefix(e, "$auth.") {
+		// Say which configuration runs; fetching a token is for
+		// sending, not describing.
+		info := r.describeAuth(e)
+		return info, !info.Missing
+	}
+	if strings.HasPrefix(e, "$") || strings.Contains(e, ".response.") {
+		return r.describeBuiltin(req, e, refRuns)
+	}
+	info, ok, err := r.lookup(req, e, 0)
+	if err != nil {
+		info.Source = info.Source + ": " + err.Error()
+		info.Missing = true
+	}
+	if info.Missing && err == nil && refRuns[info.CapturedBy] {
+		// A `# @ref` supplies it before the request goes out, so
+		// it does not make the request unready.
+		info.RefRuns = true
+		return info, true
+	}
+	return info, ok && err == nil
+}
+
+// describeBuiltin describes a built-in ($uuid, $env, …) or a response
+// reference.
+func (r *Runner) describeBuiltin(req *httpfile.Request, e string, refRuns map[string]bool) (VarInfo, bool) {
+	v, ok, secret, err := r.resolveExprMeta(req, e, 0)
+	info := VarInfo{Name: e, Source: "built-in", Value: v, Secret: secret, Missing: !ok || err != nil}
+	if name, _, isRef := strings.Cut(e, ".response."); isRef {
+		info.Source = "response reference (flow only)"
+		if !ok && err == nil && refRuns[name] {
+			// `# @ref` runs the request first, as for a
+			// captured variable.
+			info.RefRuns = true
+		}
+	}
+	if err != nil {
+		info.Source += ": " + err.Error()
+	}
+	return info, (ok && err == nil) || info.RefRuns
 }
 
 // tlsInfoForURL reports the non-default TLS setup for a request URL's host.

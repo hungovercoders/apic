@@ -46,13 +46,18 @@ const stepRe = /^\s*(Given|When|Then|And|But|\*)\s+(.*?)\s*$/;
 const tagRe = /^\s*@\S/;
 const docStringRe = /^\s*("""|```)/;
 
+/** Where parseFeature is: the feature so far, the section a line belongs to and the tags waiting for a keyword. */
+interface ParseState {
+  feature?: Feature;
+  scenario?: Scenario;
+  examples?: Examples;
+  background?: { line: number; steps: Step[] };
+  tags: string[];
+}
+
 /** Parses a feature file; undefined when it has no `Feature:` line. */
 export function parseFeature(text: string): Feature | undefined {
-  let feature: Feature | undefined;
-  let scenario: Scenario | undefined;
-  let examples: Examples | undefined;
-  let background: { line: number; steps: Step[] } | undefined;
-  let tags: string[] = [];
+  const state: ParseState = { tags: [] };
   let inDocString: string | undefined;
   const lines = text.split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {
@@ -71,75 +76,95 @@ export function parseFeature(text: string): Feature | undefined {
       continue;
     }
     if (tagRe.test(raw)) {
-      tags.push(...trimmed.split(/\s+/).filter((t) => t.startsWith("@")));
+      state.tags.push(...trimmed.split(/\s+/).filter((t) => t.startsWith("@")));
       continue;
     }
     const kw = keywordRe.exec(raw);
     if (kw) {
-      const name = kw[2].trim();
-      switch (kw[1]) {
-        case "Feature":
-          feature = { name, line, tags, scenarios: [] };
-          break;
-        case "Background":
-          background = { line, steps: [] };
-          if (feature) {
-            feature.background = background;
-          }
-          scenario = undefined;
-          examples = undefined;
-          break;
-        case "Scenario":
-        case "Example":
-        case "Scenario Outline":
-        case "Scenario Template":
-          scenario = { keyword: kw[1] === "Scenario" || kw[1] === "Example" ? "Scenario" : "Scenario Outline", name, line, tags: [...(feature?.tags ?? []), ...tags], steps: [], examples: [] };
-          feature?.scenarios.push(scenario);
-          background = undefined;
-          examples = undefined;
-          break;
-        case "Examples":
-        case "Scenarios":
-          examples = { name, line, tags, header: [], rows: [] };
-          scenario?.examples.push(examples);
-          break;
-        case "Rule":
-          scenario = undefined;
-          examples = undefined;
-          background = undefined;
-          break;
-      }
-      tags = [];
+      applyKeyword(state, kw[1], kw[2].trim(), line);
+      state.tags = [];
       continue;
     }
     if (trimmed.startsWith("|")) {
-      if (examples) {
-        const cells = trimmed
-          .slice(1, trimmed.endsWith("|") ? -1 : undefined)
-          .split("|")
-          .map((c) => c.trim());
-        if (examples.header.length === 0) {
-          examples.header = cells;
-        } else {
-          examples.rows.push({ line, cells });
-        }
+      if (state.examples) {
+        addTableRow(state.examples, trimmed, line);
       }
       continue; // a step's data table otherwise
     }
     const st = stepRe.exec(raw);
     if (st) {
-      const step = { keyword: st[1], text: st[2], line };
-      if (examples) {
-        continue;
-      } else if (scenario) {
-        scenario.steps.push(step);
-      } else if (background) {
-        background.steps.push(step);
-      }
+      addStep(state, { keyword: st[1], text: st[2], line });
     }
     // Anything else is a description line.
   }
-  return feature;
+  return state.feature;
+}
+
+/** Opens the section a keyword line starts, taking the tags read before it. */
+function applyKeyword(state: ParseState, keyword: string, name: string, line: number): void {
+  switch (keyword) {
+    case "Feature":
+      state.feature = { name, line, tags: state.tags, scenarios: [] };
+      break;
+    case "Background":
+      state.background = { line, steps: [] };
+      if (state.feature) {
+        state.feature.background = state.background;
+      }
+      state.scenario = undefined;
+      state.examples = undefined;
+      break;
+    case "Scenario":
+    case "Example":
+    case "Scenario Outline":
+    case "Scenario Template":
+      state.scenario = newScenario(state, keyword, name, line);
+      state.feature?.scenarios.push(state.scenario);
+      state.background = undefined;
+      state.examples = undefined;
+      break;
+    case "Examples":
+    case "Scenarios":
+      state.examples = { name, line, tags: state.tags, header: [], rows: [] };
+      state.scenario?.examples.push(state.examples);
+      break;
+    case "Rule":
+      state.scenario = undefined;
+      state.examples = undefined;
+      state.background = undefined;
+      break;
+  }
+}
+
+/** A scenario or outline under any of its keywords, with the feature's tags ahead of its own. */
+function newScenario(state: ParseState, keyword: string, name: string, line: number): Scenario {
+  const plain = keyword === "Scenario" || keyword === "Example";
+  return { keyword: plain ? "Scenario" : "Scenario Outline", name, line, tags: [...(state.feature?.tags ?? []), ...state.tags], steps: [], examples: [] };
+}
+
+/** An examples table's line: the first is the header, the rest are rows. */
+function addTableRow(examples: Examples, trimmed: string, line: number): void {
+  const cells = trimmed
+    .slice(1, trimmed.endsWith("|") ? -1 : undefined)
+    .split("|")
+    .map((c) => c.trim());
+  if (examples.header.length === 0) {
+    examples.header = cells;
+  } else {
+    examples.rows.push({ line, cells });
+  }
+}
+
+/** A step belongs to the open scenario, else the background; one under an examples table is ignored. */
+function addStep(state: ParseState, step: Step): void {
+  if (state.examples) {
+    return;
+  }
+  if (state.scenario) {
+    state.scenario.steps.push(step);
+  } else if (state.background) {
+    state.background.steps.push(step);
+  }
 }
 
 /** The label the tree shows for an example row: its cells, in order. */

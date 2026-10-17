@@ -59,6 +59,12 @@ version difference, and the page says which version it was written for.
 
 ## Recording notes
 
+- Every episode opens on its title card: the series label, the lesson's
+  title and one command, then the hook. The row of episodes reads as one
+  series that way, and a viewer who lands mid-course knows where they are
+  before the first terminal appears. A lesson's cold open comes straight
+  after the card. `task episodes:check` refuses a shot list that starts
+  on anything else.
 - One terminal, 100 columns by 30 rows, font size 16, dark background.
   The lesson's `docs/learn/tapes/NN.tape` (a [VHS](https://github.com/charmbracelet/vhs)
   script) reproduces the terminal parts on demand, so b-roll can be

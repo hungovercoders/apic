@@ -197,6 +197,8 @@ func (ep *Episode) Validate() error {
 	}
 	if len(ep.Shots) == 0 {
 		errs = append(errs, errors.New("no shots"))
+	} else if first := ep.Shots[0]; first.Card == nil || first.Card.Title == "" {
+		errs = append(errs, errors.New("the first shot is the title card (a card with a series label and a title), as the episode template says"))
 	}
 	clips := map[string]bool{}
 	wide := map[string]bool{}

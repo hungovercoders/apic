@@ -55,11 +55,14 @@ func TestSetupNamesRealBlocks(t *testing.T) {
 	}
 }
 
-// Validate catches a shot that is no kind or two, a zoom before any clip,
-// a thumbnail naming no clip, and a caption the renderer would misread.
+// Validate catches an episode that does not open on its title card, a
+// shot that is no kind or two, a zoom before any clip or after a wide one,
+// a thumbnail naming no clip or a wide one, a clip name that is not a file
+// name, and a caption the renderer would misread.
 func TestValidate(t *testing.T) {
 	good := func() *Episode {
 		return &Episode{Lesson: 1, Name: "01", Summary: "s", Thumbnail: Thumbnail{Words: "w", Clip: "a"}, Shots: []Shot{
+			{Chapter: "c", Say: []string{"hi"}, Card: &Card{Series: "s", Title: "t"}},
 			{Chapter: "c", Say: []string{"hi"}, Clip: "a", Tape: `Type "x" Enter`},
 			{Chapter: "c", Say: []string{"hi"}, Zoom: &Zoom{Col: 1, Row: 1}},
 		}}
@@ -68,25 +71,27 @@ func TestValidate(t *testing.T) {
 		t.Fatalf("a good episode fails: %v", err)
 	}
 	cases := map[string]func(*Episode){
-		"no kind":          func(e *Episode) { e.Shots[0].Clip = "" },
-		"two kinds":        func(e *Episode) { e.Shots[0].Card = &Card{Heading: "h"} },
-		"zoom first":       func(e *Episode) { e.Shots = e.Shots[1:] },
-		"zoom off window":  func(e *Episode) { e.Shots[1].Zoom.Col = 500 },
+		"no title first":   func(e *Episode) { e.Shots = e.Shots[1:] },
+		"heading first":    func(e *Episode) { e.Shots[0].Card = &Card{Heading: "h"} },
+		"no kind":          func(e *Episode) { e.Shots[1].Clip = "" },
+		"two kinds":        func(e *Episode) { e.Shots[1].Card = &Card{Heading: "h"} },
+		"zoom first":       func(e *Episode) { e.Shots = append(e.Shots[:1], e.Shots[2:]...) },
+		"zoom off window":  func(e *Episode) { e.Shots[2].Zoom.Col = 500 },
 		"thumbnail clip":   func(e *Episode) { e.Thumbnail.Clip = "nope" },
-		"brace in caption": func(e *Episode) { e.Shots[0].Say = []string{"{{user}}"} },
+		"brace in caption": func(e *Episode) { e.Shots[1].Say = []string{"{{user}}"} },
 		"name mismatch":    func(e *Episode) { e.Lesson = 2 },
-		"empty tape":       func(e *Episode) { e.Shots[0].Tape = " " },
-		"zoom with a tape": func(e *Episode) { e.Shots[1].Tape = `Type "x"` },
+		"empty tape":       func(e *Episode) { e.Shots[1].Tape = " " },
+		"zoom with a tape": func(e *Episode) { e.Shots[2].Tape = `Type "x"` },
 		"zoom after wide": func(e *Episode) {
-			e.Shots[0].Wide = true
+			e.Shots[1].Wide = true
 			e.Thumbnail.Clip = "b"
 			e.Shots = append(e.Shots, Shot{Chapter: "c", Say: []string{"hi"}, Clip: "b", Tape: "Enter"})
 		},
 		"wide thumbnail": func(e *Episode) {
-			e.Shots[0].Wide = true
-			e.Shots[1] = Shot{Chapter: "c", Say: []string{"hi"}, Card: &Card{Heading: "h"}}
+			e.Shots[1].Wide = true
+			e.Shots[2] = Shot{Chapter: "c", Say: []string{"hi"}, Card: &Card{Heading: "h"}}
 		},
-		"clip name": func(e *Episode) { e.Shots[0].Clip = "a/b"; e.Thumbnail.Clip = "a/b" },
+		"clip name": func(e *Episode) { e.Shots[1].Clip = "a/b"; e.Thumbnail.Clip = "a/b" },
 	}
 	for name, breakIt := range cases {
 		e := good()

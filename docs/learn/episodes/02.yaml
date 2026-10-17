@@ -11,6 +11,14 @@ thumbnail:
 
 shots:
   - chapter: Where do values come from
+    card:
+      series: From zero to apic · lesson 2
+      title: "Variables and\nenvironments"
+      text: "$ `apic describe login -C apic-demo --env staging`"
+    say:
+      - This is lesson two of From zero to apic. Everything still runs against the demo API, so keep apic demo running in another terminal.
+
+  - chapter: Where do values come from
     clip: describe
     tape: |
       Type "apic describe login -C apic-demo" Enter Sleep 5s
@@ -22,14 +30,6 @@ shots:
     zoom: { col: 66, row: 15 }
     say:
       - This column is the story of the lesson. Each value, and next to it, where it was found.
-
-  - chapter: Where do values come from
-    card:
-      series: From zero to apic · lesson 2
-      title: "Variables and\nenvironments"
-      text: "$ `apic describe login -C apic-demo --env staging`"
-    say:
-      - This is lesson two of From zero to apic. Everything still runs against the demo API, so keep apic demo running in another terminal.
 
   - chapter: File variables
     clip: file

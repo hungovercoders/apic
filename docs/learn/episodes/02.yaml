@@ -152,9 +152,14 @@ shots:
         replace: ["apic run login create-unique-todo -C apic-demo\n", ""]
     tape: |
       Type "cat apic-demo/builtins.http" Enter Sleep 4s
-      Type "apic run login create-unique-todo -C apic-demo" Enter Sleep 5s
     say:
       - "Some values are generated per request rather than looked up: dollar uuid, dollar isoTimestamp, dollar randomInt and a few more. Here are two in a body."
+
+  - chapter: Built-ins
+    clip: unique
+    tape: |
+      Type "apic run login create-unique-todo -C apic-demo" Enter Sleep 5s
+    say:
       - login went first in the same command, so token was captured before the todo was created. The title is never the same twice.
 
   - chapter: Checkpoint and exercise

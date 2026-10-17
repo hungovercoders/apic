@@ -356,15 +356,16 @@ func buildOne(root, bin, chromium string, ep, prev *Episode, out string, keep bo
 }
 
 // environment is what the setup steps and vhs run under: the fresh apic
-// first on PATH, a HOME of their own, UTC and a UTF-8 locale, and no
-// NO_COLOR from the recording machine, since the picture should have
-// colour.
+// first on PATH, a HOME of their own, UTC and a UTF-8 locale, and neither
+// NO_COLOR nor a proxy from the recording machine, since the picture
+// should have colour and `apic env` reports the proxy it sees.
 func environment(bin, work string) []string {
 	var env []string
 	for _, kv := range os.Environ() {
 		k, _, _ := strings.Cut(kv, "=")
-		switch k {
-		case "PATH", "HOME", "TZ", "LANG", "LC_ALL", "NO_COLOR", "APIC_DEMO_URL":
+		switch strings.ToUpper(k) {
+		case "PATH", "HOME", "TZ", "LANG", "LC_ALL", "NO_COLOR", "APIC_DEMO_URL",
+			"HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY":
 			continue
 		}
 		env = append(env, kv)

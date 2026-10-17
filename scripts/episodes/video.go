@@ -190,12 +190,14 @@ func SRT(cues []Cue) string {
 }
 
 // ASS is the captions styled for burning in: Inter at the bottom of the
-// canvas, in the docs theme's text colour with a dark outline.
+// canvas, in the docs theme's text colour on a translucent box of the
+// background colour, so a caption stays readable over a push-in whose
+// output reaches the bottom of the frame.
 func ASS(cues []Cue) string {
 	var b strings.Builder
 	b.WriteString("[Script Info]\nScriptType: v4.00+\nPlayResX: 1920\nPlayResY: 1080\nWrapStyle: 0\n\n")
 	b.WriteString("[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n")
-	b.WriteString("Style: Cap,Inter,40,&H00F4D6CD,&H00FFFFFF,&H00151520,&HA0000000,0,0,0,0,100,100,0,0,1,2.5,0,2,140,140,34,1\n\n")
+	b.WriteString("Style: Cap,Inter,40,&H00F4D6CD,&H00FFFFFF,&H502E1E1E,&H502E1E1E,0,0,0,0,100,100,0,0,3,14,0,2,140,140,34,1\n\n")
 	b.WriteString("[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n")
 	for _, c := range cues {
 		fmt.Fprintf(&b, "Dialogue: 0,%s,%s,Cap,,0,0,0,,%s\n", assTime(c.Start), assTime(c.End), c.Text)

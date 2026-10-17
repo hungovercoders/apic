@@ -1,0 +1,173 @@
+# Lesson 1's episode: the shots in order, what the voice says over each
+# (one caption per line; the lines set how long a shot runs) and the cards.
+# `task episodes` builds it, `task episodes:check` validates it; the
+# conventions are in docs/learn/_episode-template.md. The demo clip runs
+# `apic demo` on camera, so the project is not written up front.
+lesson: 1
+summary: Install apic and send your first request from a plain .http file, then read every line of the file that described it.
+project: false
+thumbnail:
+  words: "Install and\nfirst request"
+  clip: describe
+
+shots:
+  - chapter: Why
+    card:
+      series: From zero to apic · lesson 1
+      title: "Install apic and send\nyour first request"
+      text: "$ `apic run login -C apic-demo`"
+    say:
+      - In ten minutes you will have sent a request from a text file, and understood every line of the file.
+      - This is lesson one of From zero to apic. Everything runs against the fake API that ships inside apic, so you need nothing but the binary.
+
+  - chapter: Install
+    card:
+      heading: Install apic
+      commands:
+        - label: Homebrew · macOS and Linux
+          command: brew install hungovercoders/tap/apic
+        - label: Linux / macOS without Homebrew
+          command: curl -fsSL https://raw.githubusercontent.com/hungovercoders/apic/main/install.sh | sh
+        - label: Windows · PowerShell
+          command: irm https://raw.githubusercontent.com/hungovercoders/apic/main/install.ps1 | iex
+        - label: Go 1.25.7 or newer
+          command: go install github.com/hungovercoders/apic/cmd/apic@latest
+      foot: One static binary, no runtime · `apic.sh`
+    say:
+      - One static binary, no runtime. Homebrew on macOS and Linux, an install script, PowerShell on Windows, or go install.
+      - Pick yours. It is thirty seconds, whichever one it is.
+
+  - chapter: Install
+    clip: version
+    tape: |
+      Type "apic version" Enter Sleep 3s
+    say:
+      - Check it answers. apic version prints the version, the commit and the platform.
+      - Your version and platform will differ. The shape is what matters.
+
+  - chapter: The UI in thirty seconds
+    clip: ui
+    tape: |
+      Type "apic ui --demo" Enter Sleep 10s
+      Enter Sleep 8.5s
+      Type "j" Sleep 1.5s
+      Enter Sleep 10s
+    say:
+      - Before any files, see the tool move. apic ui, dash dash demo, serves a fake API inside the process and opens the UI on an example project.
+      - Enter on login sends it. The right pane shows the status, the body and a green check.
+      - j moves down to whoami. Enter again, and it uses the token that login just captured. Hold that thought for lesson three.
+      - q quits. Lesson five is the full tour. The rest of this course works from the command line, where every step is a command you can copy.
+
+  - chapter: list, describe, run
+    clip: demo
+    tape: |
+      Type "apic demo --out apic-demo" Enter Sleep 4s
+    say:
+      - apic demo writes the same example project to a directory, and serves the API it targets.
+      - Leave it running in one terminal. Everything from here on is typed in a second terminal.
+
+  - chapter: list, describe, run
+    clip: list
+    wide: true
+    tape: |
+      Type "apic list -C apic-demo" Enter Sleep 5s
+    say:
+      - List what the project contains. Dash C tells every apic command which directory the project is in.
+      - Four files, twenty-four requests, each with an id you can type. The PHRASES column is for lesson seven.
+
+  - chapter: list, describe, run
+    clip: describe
+    tape: |
+      Type "apic describe login -C apic-demo" Enter Sleep 5s
+    say:
+      - "describe shows everything apic knows about a request without sending it: the method and URL, the headers, the body."
+      - Then every variable it needs, and where each one comes from. Three variables, three different sources.
+      - The password shows as three stars because it came from the private file. Lesson two is about that column.
+
+  - chapter: list, describe, run
+    clip: run
+    tape: |
+      Type "apic run login -C apic-demo" Enter Sleep 4s
+    say:
+      - Now send it.
+      - Status, timing, size, the body, the assertion that passed, and the value that was captured.
+
+  - chapter: list, describe, run
+    zoom: { col: 24, row: 10 }
+    say:
+      - That last line is the one to remember. token is now stored, and every later request that says token will find it.
+
+  - chapter: The file, line by line
+    clip: file
+    tape: |
+      Type "head -n 12 apic-demo/auth.http" Enter Sleep 4s
+    say:
+      - Open auth.http in any editor. This is the first request in the file.
+
+  - chapter: The file, line by line
+    card:
+      heading: auth.http, line by line
+      table:
+        - ["@user = alice", "A file variable, available to every request in the file as `{{user}}`."]
+        - ["### Log in and keep the token", "The separator that starts a request, and its title."]
+        - ["# @name login", "The id. Without it the request would be `auth.http#1`."]
+        - ["# @step I am logged in", "A Gherkin phrase for lesson 7. Ignore it for now."]
+        - ["# @assert status == 200", "A check on the response. Lesson 4."]
+        - ["# @capture token = body.$.access_token", "Keep a value from the response. Lesson 3."]
+        - ["POST {{baseUrl}}/auth/login", "The request line: method and URL, with a variable."]
+        - ["Content-Type: application/json", "Headers, until the first blank line."]
+        - ["{\"user\": …}", "The body, until the next `###`."]
+    say:
+      - user equals alice is a file variable, available to every request in the file as double-brace user.
+      - The three-hash line starts a request and gives it a title. name is its id. Without it, the request would be auth.http hash one.
+      - step is a Gherkin phrase for lesson seven. assert is a check on the response, lesson four. capture keeps a value from it, lesson three.
+      - "Then the request line: method and URL, with a variable. Headers until the first blank line. The body until the next three hashes."
+      - Every line starting with a hash is a comment to any other tool that reads dot-http files, so this file still works in VS Code and JetBrains.
+
+  - chapter: Exit codes
+    clip: exit
+    tape: |
+      Type `apic run login -C apic-demo > /dev/null; echo "exit $?"` Enter Sleep 3s
+      Type `apic run not-found -C apic-demo || echo "exit $?"` Enter Sleep 4s
+    say:
+      - Scripts and CI read the exit code before anything else. Zero means every assertion passed.
+      - The demo project has one request that fails its assertion on purpose.
+      - One is an assertion that failed.
+
+  - chapter: Exit codes
+    zoom: { col: 56, row: 13 }
+    say:
+      - Two is a mistake before anything was sent, a missing variable or an id that does not exist. Three is the network.
+      - The exit codes table on the site is the contract.
+
+  - chapter: Checkpoint
+    clip: checkpoint
+    tape: |
+      Type `apic run login -C apic-demo --json | grep -o '"ok":true'` Enter Sleep 4s
+    say:
+      - The checkpoint. Dash dash json prints one JSON object per request.
+      - If this prints ok true, apic is installed, the demo is up, and you have sent a request through both.
+
+  - chapter: Exercise and lesson 2
+    card:
+      heading: Exercise
+      text: |-
+        The demo API has `GET /health`, which needs no token.
+        Add a request for it named `ping` and run it:
+
+        $ `apic run ping -C apic-demo`
+      foot: Solution on the lesson page · `apic.sh/learn/01-first-request/`
+    say:
+      - Your exercise. The demo API has a GET slash health endpoint that needs no token.
+      - Add a request for it named ping, and run it with apic run ping. The solution is on the lesson page.
+
+  - chapter: Exercise and lesson 2
+    card:
+      series: Next · lesson 2
+      title: "Variables and\nenvironments"
+      text: |-
+        Every command in this episode: `apic.sh/learn/01-first-request/`
+        The whole course: `apic.sh/learn/`
+    say:
+      - "Next, lesson two: variables and environments, and where that three-star password really comes from."
+      - The lesson page has every command to copy. See you there.

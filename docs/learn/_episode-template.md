@@ -67,3 +67,10 @@ version difference, and the page says which version it was written for.
   longer than feels natural. Viewers read slower than you talk.
 - Every episode ends on the checkpoint passing, then the one-line pitch
   for the next lesson.
+- `task episodes` builds the whole episode but the voice from the shot
+  list in `docs/learn/episodes/NN.yaml`: the cards, the clips (one VHS
+  tape each, against the demo API), the push-ins, and the captions from
+  the lines the voice says, which set each shot's length. It writes the
+  cut with and without captions, the SRT, the title, chapters and this
+  description filled in, the narration script and the thumbnail. Record
+  the narration to the script's timestamps and it fits the clean cut.

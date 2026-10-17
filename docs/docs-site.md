@@ -100,3 +100,13 @@ wrote link there (`website/scripts/legacy.mjs`).
   backslash escapes, so a command that needs both quote kinds goes in
   backticks. A test fails when a numbered lesson has neither a tape nor "No
   tape for this lesson" in its episode script.
+- `task episodes`: build the course's YouTube episodes, bar the voice,
+  into `dist/episodes/NN` with `scripts/episodes` from the shot lists in
+  `learn/episodes/NN.yaml` (in this directory): the cards, the terminal
+  clips as VHS tapes recorded against the demo API, the push-ins, and the
+  lines the voice says over each shot, which set the timing. Each episode
+  comes out as a captioned MP4 with a silent track, a clean MP4, the SRT,
+  the title, chapters and description from `_episode-template.md`, the
+  narration script and the thumbnail. Needs vhs, ttyd, ffmpeg and a
+  chromium. `task episodes:check` validates the shot lists and tapes with
+  vhs alone; `go test` checks the shot lists without it.

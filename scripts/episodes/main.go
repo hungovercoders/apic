@@ -15,24 +15,18 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"io"
-	"net"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/hungovercoders/apic/internal/demoapi"
+	"github.com/hungovercoders/apic/internal/lessons"
+	"github.com/hungovercoders/apic/scripts/internal/record"
 )
-
-// demoPort is the port the lessons show in their URLs.
-const demoPort = 8089
 
 func main() {
 	check := flag.Bool("check", false, "validate every episode's shot list and tapes with vhs and build nothing")
@@ -41,10 +35,11 @@ func main() {
 	keep := flag.Bool("keep", false, "keep each episode's scratch directory for inspection")
 	version := flag.String("version", "dev", "version to stamp into the apic binary the episodes show")
 	flag.Parse()
-	eps, err := LoadAll(".")
-	if err == nil {
-		eps, err = pick(eps, *only)
+	all, err := LoadAll(".")
+	if err != nil {
+		fail(err)
 	}
+	eps, err := record.Pick(all, func(e *Episode) string { return e.Name }, *only)
 	if err != nil {
 		fail(err)
 	}
@@ -54,7 +49,7 @@ func main() {
 		}
 		return
 	}
-	if err := Build(".", eps, *out, *version, *keep); err != nil {
+	if err := Build(".", all, eps, *out, *version, *keep); err != nil {
 		fail(err)
 	}
 }
@@ -64,31 +59,13 @@ func fail(err error) {
 	os.Exit(1)
 }
 
-// pick keeps the episodes named in only, in the order found.
-func pick(eps []*Episode, only string) ([]*Episode, error) {
-	if only == "" {
-		return eps, nil
-	}
-	want := map[string]bool{}
-	for _, n := range strings.Split(only, ",") {
-		want[strings.TrimSpace(n)] = true
-	}
-	var picked []*Episode
-	for _, e := range eps {
-		if want[e.Name] {
-			picked = append(picked, e)
-			delete(want, e.Name)
-		}
-	}
-	for n := range want {
-		return nil, fmt.Errorf("no episode %s in %s", n, EpisodesDir)
-	}
-	return picked, nil
-}
-
 // Check validates the shot lists (Load already did) and every clip's tape
 // with vhs, and returns how many episodes failed.
 func Check(eps []*Episode, w io.Writer) int {
+	if _, err := exec.LookPath("vhs"); err != nil {
+		fmt.Fprintln(w, vhsHint)
+		return len(eps)
+	}
 	dir, err := os.MkdirTemp("", "apic-episodes-check-*")
 	if err != nil {
 		fmt.Fprintln(w, err)
@@ -134,9 +111,12 @@ func writeTape(path string, s Shot) error {
 	return os.WriteFile(path, []byte(body), 0o600)
 }
 
-// Build makes every episode: one apic binary, then each from its own
+const vhsHint = "vhs is not on PATH; checking needs vhs, building vhs, ttyd and ffmpeg (https://github.com/charmbracelet/vhs#installation) and a chromium"
+
+// Build makes the picked episodes, out of all of them (the description
+// links each to the one before): one apic binary, then each from its own
 // scratch directory into out/NN.
-func Build(root string, eps []*Episode, out, version string, keep bool) error {
+func Build(root string, all, eps []*Episode, out, version string, keep bool) error {
 	for _, tool := range []string{"vhs", "ttyd", "ffmpeg", "ffprobe"} {
 		if _, err := exec.LookPath(tool); err != nil {
 			return fmt.Errorf("%s is not on PATH; building needs vhs, ttyd and ffmpeg (https://github.com/charmbracelet/vhs#installation) and a chromium", tool)
@@ -158,10 +138,6 @@ func Build(root string, eps []*Episode, out, version string, keep bool) error {
 	if err := build.Run(); err != nil {
 		return fmt.Errorf("building apic: %w", err)
 	}
-	all, err := LoadAll(root)
-	if err != nil {
-		return err
-	}
 	for _, ep := range eps {
 		var prev *Episode
 		for _, e := range all {
@@ -181,6 +157,7 @@ func Build(root string, eps []*Episode, out, version string, keep bool) error {
 type build struct {
 	root, bin, chromium, work, out string
 	ep                             *Episode
+	blocks                         []lessons.Block // the lesson's runnable blocks, for the setups
 	env                            []string
 	stop                           func()
 	segments                       []string
@@ -205,17 +182,21 @@ func buildOne(root, bin, chromium string, ep, prev *Episode, out string, keep bo
 			return err
 		}
 	}
-	b := &build{root: root, bin: bin, chromium: chromium, work: work, out: out, ep: ep, env: environment(bin, work), clipSeg: map[string]string{}}
+	blocks, err := lessons.Blocks(root, ep.Name)
+	if err != nil {
+		return err
+	}
+	b := &build{root: root, bin: bin, chromium: chromium, work: work, out: out, ep: ep, blocks: blocks, env: record.Environment(bin, work), clipSeg: map[string]string{}}
 	defer func() {
 		if b.stop != nil {
 			b.stop()
 		}
 	}()
 	if ep.Project {
-		if _, _, err := demoapi.WriteProject(filepath.Join(work, "apic-demo"), demoPort, true); err != nil {
+		if _, _, err := demoapi.WriteProject(filepath.Join(work, "apic-demo"), record.Port, true); err != nil {
 			return err
 		}
-		if b.stop, err = serve(); err != nil {
+		if b.stop, err = record.Serve(); err != nil {
 			return err
 		}
 	}
@@ -302,7 +283,7 @@ func (b *build) recordClip(i int, s Shot, seg string, want float64) error {
 	// runs `apic demo` on camera; vhs ends that server with the shell, so
 	// from the next clip on this process serves the API.
 	if _, err := os.Stat(filepath.Join(b.work, "apic-demo")); err == nil && b.stop == nil {
-		if b.stop, err = serve(); err != nil {
+		if b.stop, err = record.Serve(); err != nil {
 			return err
 		}
 	}
@@ -331,14 +312,12 @@ func (b *build) recordClip(i int, s Shot, seg string, want float64) error {
 // setup runs a clip's setup steps in the scratch directory, off camera.
 func (b *build) setup(s Shot) error {
 	for _, st := range s.Setup {
-		code, err := st.code(b.root, b.ep.Name)
+		code, err := st.step(b.ep.Name).Code(b.blocks)
 		if err != nil {
 			return err
 		}
-		cmd := exec.Command("sh", "-e") //nolint:gosec // the course's own commands, as learncheck runs them
-		cmd.Dir, cmd.Env, cmd.Stdin = b.work, append(b.env, "NO_COLOR=1"), strings.NewReader(code)
-		if o, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("clip %s: setup failed: %w\n%s", s.Clip, err, o)
+		if err := record.Shell(b.work, b.env, code); err != nil {
+			return fmt.Errorf("clip %s: %w", s.Clip, err)
 		}
 	}
 	return nil
@@ -392,54 +371,4 @@ func (b *build) write(prev *Episode) error {
 		}
 	}
 	return nil
-}
-
-// environment is what the setup steps and vhs run under: the fresh apic
-// first on PATH, a HOME of their own, UTC and a UTF-8 locale, and nothing
-// of the recording machine's that would show in the picture: no NO_COLOR,
-// no proxy (`apic env` reports the one it sees) and no APIC_ variable,
-// since an exported APIC_VAR_baseUrl or APIC_VAR_user would override the
-// demo project's values in every clip.
-func environment(bin, work string) []string {
-	var env []string
-	for _, kv := range os.Environ() {
-		k, _, _ := strings.Cut(kv, "=")
-		switch upper := strings.ToUpper(k); {
-		case upper == "PATH", upper == "HOME", upper == "TZ", upper == "LANG", upper == "LC_ALL", upper == "NO_COLOR",
-			upper == "HTTP_PROXY", upper == "HTTPS_PROXY", upper == "ALL_PROXY", upper == "NO_PROXY",
-			strings.HasPrefix(upper, "APIC_"):
-			continue
-		}
-		env = append(env, kv)
-	}
-	return append(env,
-		"PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
-		"HOME="+filepath.Join(work, "home"),
-		"TZ=UTC",
-		"LANG=C.UTF-8",
-		"APIC_DEMO_URL=http://localhost:"+strconv.Itoa(demoPort),
-	)
-}
-
-// serve starts the demo API on demoPort, waiting a few seconds for the
-// port when a clip's own `apic demo` is still letting go of it.
-func serve() (stop func(), err error) {
-	var ln net.Listener
-	for deadline := time.Now().Add(5 * time.Second); ; {
-		ln, err = net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", demoPort))
-		if err == nil {
-			break
-		}
-		if time.Now().After(deadline) {
-			return nil, fmt.Errorf("the lessons show port %d, which is in use: %w", demoPort, err)
-		}
-		time.Sleep(200 * time.Millisecond)
-	}
-	srv := &http.Server{Handler: demoapi.New(), ReadHeaderTimeout: 5 * time.Second}
-	go func() { _ = srv.Serve(ln) }()
-	return func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		defer cancel()
-		_ = srv.Shutdown(ctx)
-	}, nil
 }

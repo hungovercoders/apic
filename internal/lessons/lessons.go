@@ -7,9 +7,41 @@
 package lessons
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
+
+// Dir is where the course pages live, relative to the repository root.
+const Dir = "website/src/content/docs/learn"
+
+// Page finds the one lesson page with that number prefix, "02".
+func Page(root, lesson string) (string, error) {
+	pages, err := filepath.Glob(filepath.Join(root, Dir, lesson+"-*.md"))
+	if err != nil {
+		return "", err
+	}
+	if len(pages) != 1 {
+		return "", fmt.Errorf("want one lesson page %s-*.md, found %d", lesson, len(pages))
+	}
+	return pages[0], nil
+}
+
+// Blocks returns the runnable blocks of the lesson with that number
+// prefix, in page order.
+func Blocks(root, lesson string) ([]Block, error) {
+	page, err := Page(root, lesson)
+	if err != nil {
+		return nil, err
+	}
+	data, err := os.ReadFile(page) //nolint:gosec // a course page, by glob
+	if err != nil {
+		return nil, err
+	}
+	return Extract(page, string(data)), nil
+}
 
 // Block is one runnable fence: where it came from and what it holds.
 type Block struct {

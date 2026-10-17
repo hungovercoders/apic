@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/hungovercoders/apic/internal/lessons"
 )
 
 const root = "../.."
@@ -34,9 +36,13 @@ func TestSetupNamesRealBlocks(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, ep := range eps {
+		blocks, err := lessons.Blocks(root, ep.Name)
+		if err != nil {
+			t.Fatal(err)
+		}
 		for _, s := range ep.Shots {
 			for _, st := range s.Setup {
-				code, err := st.code(root, ep.Name)
+				code, err := st.step(ep.Name).Code(blocks)
 				if err != nil {
 					t.Errorf("%s: clip %s: %v", ep.Name, s.Clip, err)
 					continue
@@ -70,6 +76,17 @@ func TestValidate(t *testing.T) {
 		"brace in caption": func(e *Episode) { e.Shots[0].Say = []string{"{{user}}"} },
 		"name mismatch":    func(e *Episode) { e.Lesson = 2 },
 		"empty tape":       func(e *Episode) { e.Shots[0].Tape = " " },
+		"zoom with a tape": func(e *Episode) { e.Shots[1].Tape = `Type "x"` },
+		"zoom after wide": func(e *Episode) {
+			e.Shots[0].Wide = true
+			e.Thumbnail.Clip = "b"
+			e.Shots = append(e.Shots, Shot{Chapter: "c", Say: []string{"hi"}, Clip: "b", Tape: "Enter"})
+		},
+		"wide thumbnail": func(e *Episode) {
+			e.Shots[0].Wide = true
+			e.Shots[1] = Shot{Chapter: "c", Say: []string{"hi"}, Card: &Card{Heading: "h"}}
+		},
+		"clip name": func(e *Episode) { e.Shots[0].Clip = "a/b"; e.Thumbnail.Clip = "a/b" },
 	}
 	for name, breakIt := range cases {
 		e := good()

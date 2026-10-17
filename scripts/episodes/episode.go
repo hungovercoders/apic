@@ -12,13 +12,13 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/hungovercoders/apic/internal/lessons"
+	"github.com/hungovercoders/apic/scripts/internal/record"
 )
 
 // Where the episodes, the course and the description template live,
 // relative to the repository root.
 const (
 	EpisodesDir = "docs/learn/episodes"
-	LearnDir    = "website/src/content/docs/learn"
 	Template    = "docs/learn/_episode-template.md"
 )
 
@@ -127,7 +127,7 @@ func Load(root, path string) (*Episode, error) {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
 	ep.Name = strings.TrimSuffix(filepath.Base(path), ".yaml")
-	page, err := lessonPage(root, ep.Name)
+	page, err := lessons.Page(root, ep.Name)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
@@ -143,6 +143,19 @@ func Load(root, path string) (*Episode, error) {
 	ep.Title = string(m[1])
 	if err := ep.Validate(); err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
+	}
+	// A setup step naming a block the lesson does not have, or text that
+	// is not in it, would otherwise fail minutes into a recording.
+	blocks, err := lessons.Blocks(root, ep.Name)
+	if err != nil {
+		return nil, err
+	}
+	for _, s := range ep.Shots {
+		for _, st := range s.Setup {
+			if _, err := st.step(ep.Name).Code(blocks); err != nil {
+				return nil, fmt.Errorf("%s: clip %s: %w", path, s.Clip, err)
+			}
+		}
 	}
 	return &ep, nil
 }
@@ -186,6 +199,8 @@ func (ep *Episode) Validate() error {
 		errs = append(errs, errors.New("no shots"))
 	}
 	clips := map[string]bool{}
+	wide := map[string]bool{}
+	lastWide := false
 	for i, s := range ep.Shots {
 		at := fmt.Sprintf("shot %d", i+1)
 		if s.Chapter == "" {
@@ -204,18 +219,23 @@ func (ep *Episode) Validate() error {
 			errs = append(errs, s.validateCard(at)...)
 		case "clip":
 			errs = append(errs, s.validateClip(at, clips)...)
-			clips[s.Clip] = true
+			clips[s.Clip], wide[s.Clip], lastWide = true, s.Wide, s.Wide
 		case "zoom":
-			errs = append(errs, s.validateZoom(at, len(clips) > 0)...)
+			errs = append(errs, s.validateZoom(at, len(clips) > 0, lastWide)...)
 		default:
 			errs = append(errs, fmt.Errorf("%s: a shot is exactly one of card, clip or zoom", at))
 		}
 	}
 	if ep.Thumbnail.Words == "" || !clips[ep.Thumbnail.Clip] {
 		errs = append(errs, errors.New("thumbnail needs words and the name of a clip"))
+	} else if wide[ep.Thumbnail.Clip] {
+		errs = append(errs, fmt.Errorf("thumbnail: clip %q is wide; the thumbnail cuts the standard terminal out of its frame", ep.Thumbnail.Clip))
 	}
 	return errors.Join(errs...)
 }
+
+// clipName is what a clip may be called: it is spliced into file names.
+var clipName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
 
 func (s Shot) validateCard(at string) []error {
 	var errs []error
@@ -230,6 +250,9 @@ func (s Shot) validateCard(at string) []error {
 
 func (s Shot) validateClip(at string, clips map[string]bool) []error {
 	var errs []error
+	if !clipName.MatchString(s.Clip) {
+		errs = append(errs, fmt.Errorf("%s: clip name %q must be lower-case letters, digits and hyphens", at, s.Clip))
+	}
 	if clips[s.Clip] {
 		errs = append(errs, fmt.Errorf("%s: another clip is already named %q", at, s.Clip))
 	}
@@ -247,10 +270,16 @@ func (s Shot) validateClip(at string, clips map[string]bool) []error {
 	return errs
 }
 
-func (s Shot) validateZoom(at string, afterClip bool) []error {
+func (s Shot) validateZoom(at string, afterClip, afterWide bool) []error {
 	var errs []error
 	if !afterClip {
 		errs = append(errs, fmt.Errorf("%s: a zoom needs a clip before it", at))
+	}
+	if afterWide {
+		errs = append(errs, fmt.Errorf("%s: the clip before a zoom cannot be wide; the push-in assumes the standard terminal", at))
+	}
+	if s.Tape != "" || s.Wide || len(s.Setup) > 0 {
+		errs = append(errs, fmt.Errorf("%s: tape, wide and setup belong to a clip", at))
 	}
 	if cols, rows := zoomWindow(); s.Zoom.Col > cols || s.Zoom.Row > rows || s.Zoom.Col < 1 || s.Zoom.Row < 1 {
 		errs = append(errs, fmt.Errorf("%s: zoom target (%d,%d) is outside the %dx%d window the push-in shows", at, s.Zoom.Col, s.Zoom.Row, cols, rows))
@@ -258,57 +287,13 @@ func (s Shot) validateZoom(at string, afterClip bool) []error {
 	return errs
 }
 
-// lessonPage finds the one lesson page with that number prefix.
-func lessonPage(root, lesson string) (string, error) {
-	pages, err := filepath.Glob(filepath.Join(root, LearnDir, lesson+"-*.md"))
-	if err != nil {
-		return "", err
+// step is the setup step as the shared recorder runs it.
+func (s Setup) step(lesson string) record.Step {
+	st := record.Step{Sh: s.Sh, Lesson: lesson, Blocks: s.Blocks}
+	if len(s.Replace) == 2 {
+		st.Replace = [2]string{s.Replace[0], s.Replace[1]}
 	}
-	if len(pages) != 1 {
-		return "", fmt.Errorf("want one lesson page %s-*.md, found %d", lesson, len(pages))
-	}
-	return pages[0], nil
-}
-
-// LessonBlocks returns the runnable blocks of the lesson with that number
-// prefix, in page order.
-func LessonBlocks(root, lesson string) ([]lessons.Block, error) {
-	page, err := lessonPage(root, lesson)
-	if err != nil {
-		return nil, err
-	}
-	data, err := os.ReadFile(page) //nolint:gosec // a course page, by glob
-	if err != nil {
-		return nil, err
-	}
-	return lessons.Extract(page, string(data)), nil
-}
-
-// code is the shell a setup step runs: its snippet, or the lesson blocks
-// it names, with the substitution applied.
-func (s Setup) code(root, lesson string) (string, error) {
-	if s.Sh != "" {
-		return s.Sh + "\n", nil
-	}
-	blocks, err := LessonBlocks(root, lesson)
-	if err != nil {
-		return "", err
-	}
-	var b strings.Builder
-	for _, n := range s.Blocks {
-		if n < 1 || n > len(blocks) {
-			return "", fmt.Errorf("lesson %s has %d runnable blocks, no block %d", lesson, len(blocks), n)
-		}
-		code := blocks[n-1].Code
-		if len(s.Replace) == 2 {
-			if !strings.Contains(code, s.Replace[0]) {
-				return "", fmt.Errorf("nothing to replace: %q is not in block %d of lesson %s", s.Replace[0], n, lesson)
-			}
-			code = strings.ReplaceAll(code, s.Replace[0], s.Replace[1])
-		}
-		b.WriteString(code)
-	}
-	return b.String(), nil
+	return st
 }
 
 // sayTime is how long a line takes to say at about 150 words a minute,
@@ -361,11 +346,10 @@ func (ep *Episode) Description(root string, chapters []Chapter, prev *Episode) (
 		return "", fmt.Errorf("%s has no ```text block to fill", Template)
 	}
 	head, tail, ok := strings.Cut(body, "Chapters\n")
-	chapterLines, after, ok2 := strings.Cut(tail, "\n\nLinks")
+	_, after, ok2 := strings.Cut(tail, "\n\nLinks")
 	if !ok || !ok2 {
 		return "", fmt.Errorf("%s: the description's Chapters block is not where it was", Template)
 	}
-	_ = chapterLines
 	var ch strings.Builder
 	for _, c := range chapters {
 		fmt.Fprintf(&ch, "%s %s\n", ytTime(c.Start), c.Title)

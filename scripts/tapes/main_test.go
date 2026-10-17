@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/hungovercoders/apic/internal/lessons"
 )
 
 const root = "../.."
@@ -19,26 +21,21 @@ func TestSetupNamesRealTapesAndBlocks(t *testing.T) {
 			t.Errorf("setup[%q]: no such tape: %v", name, err)
 		}
 		for _, s := range steps {
-			if s.sh != "" {
+			if s.Sh != "" {
 				continue
 			}
-			code, err := s.code(root)
+			blocks, err := lessons.Blocks(root, s.Lesson)
 			if err != nil {
 				t.Errorf("setup[%q]: %v", name, err)
 				continue
 			}
-			if s.replace[0] != "" && strings.Contains(code, s.replace[0]) {
-				t.Errorf("setup[%q]: the substitution of %q left some behind", name, s.replace[0])
+			code, err := s.Code(blocks)
+			if err != nil {
+				t.Errorf("setup[%q]: %v", name, err)
+				continue
 			}
-			blocks, _ := LessonBlocks(root, s.lesson)
-			if s.replace[0] != "" {
-				found := false
-				for _, n := range s.blocks {
-					found = found || strings.Contains(blocks[n-1].Code, s.replace[0])
-				}
-				if !found {
-					t.Errorf("setup[%q]: nothing to replace: %q is not in blocks %v of lesson %s", name, s.replace[0], s.blocks, s.lesson)
-				}
+			if s.Replace[0] != "" && strings.Contains(code, s.Replace[0]) {
+				t.Errorf("setup[%q]: the substitution of %q left some behind", name, s.Replace[0])
 			}
 		}
 	}
@@ -48,7 +45,7 @@ func TestSetupNamesRealTapesAndBlocks(t *testing.T) {
 // none and why, so a lesson cannot be left without a recording by
 // accident.
 func TestEveryLessonHasATapeOrSaysWhyNot(t *testing.T) {
-	pages, err := filepath.Glob(filepath.Join(root, LearnDir, "[0-9][0-9]-*.md"))
+	pages, err := filepath.Glob(filepath.Join(root, lessons.Dir, "[0-9][0-9]-*.md"))
 	if err != nil || len(pages) == 0 {
 		t.Fatalf("no lesson pages: %v", err)
 	}

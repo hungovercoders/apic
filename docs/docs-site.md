@@ -109,4 +109,4 @@ wrote link there (`website/scripts/legacy.mjs`).
   the title, chapters and description from `_episode-template.md`, the
   narration script and the thumbnail. Needs vhs, ttyd, ffmpeg and a
   chromium. `task episodes:check` validates the shot lists and tapes with
-  vhs alone; `go test` checks the shot lists without it.
+  vhs alone, as CI does; `go test` checks the shot lists without it.

@@ -68,7 +68,7 @@ version difference, and the page says which version it was written for.
 - Every episode ends on the checkpoint passing, then the one-line pitch
   for the next lesson.
 - `task episodes` builds the whole episode but the voice from the shot
-  list in `docs/learn/episodes/NN.yaml`: the cards, the clips (one VHS
+  list under `docs/learn/episodes/`, named by the lesson's number: the cards, the clips (one VHS
   tape each, against the demo API), the push-ins, and the captions from
   the lines the voice says, which set each shot's length. It writes the
   cut with and without captions, the SRT, the title, chapters and this

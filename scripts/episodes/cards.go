@@ -139,7 +139,7 @@ func screenshot(chromium, html, png string, w, h int) error {
 	if os.Geteuid() == 0 {
 		args = append([]string{"--no-sandbox"}, args...)
 	}
-	cmd := exec.Command(chromium, args...) //nolint:gosec // the browser found on PATH, on a file this process wrote
+	cmd := exec.Command(chromium, args...) //nolint:gosec // the browser found on PATH or named by CHROMIUM, on a file this process wrote; nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("chromium: %w\n%s", err, out)
 	}

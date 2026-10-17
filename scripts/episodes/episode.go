@@ -173,74 +173,89 @@ func LoadAll(root string) ([]*Episode, error) {
 // caption renderer would misread.
 func (ep *Episode) Validate() error {
 	var errs []error
-	fail := func(format string, args ...any) { errs = append(errs, fmt.Errorf(format, args...)) }
 	if ep.Lesson < 1 {
-		fail("lesson must be a positive number")
+		errs = append(errs, errors.New("lesson must be a positive number"))
 	}
 	if fmt.Sprintf("%02d", ep.Lesson) != ep.Name {
-		fail("lesson %d does not match the file name %s", ep.Lesson, ep.Name)
+		errs = append(errs, fmt.Errorf("lesson %d does not match the file name %s", ep.Lesson, ep.Name))
 	}
 	if strings.TrimSpace(ep.Summary) == "" {
-		fail("summary (the first line of the description) is empty")
+		errs = append(errs, errors.New("summary (the first line of the description) is empty"))
 	}
 	if len(ep.Shots) == 0 {
-		fail("no shots")
+		errs = append(errs, errors.New("no shots"))
 	}
 	clips := map[string]bool{}
-	sawClip := false
 	for i, s := range ep.Shots {
 		at := fmt.Sprintf("shot %d", i+1)
 		if s.Chapter == "" {
-			fail("%s: no chapter", at)
+			errs = append(errs, fmt.Errorf("%s: no chapter", at))
 		}
 		if len(s.Say) == 0 {
-			fail("%s: nothing to say", at)
+			errs = append(errs, fmt.Errorf("%s: nothing to say", at))
 		}
 		for _, line := range s.Say {
 			if strings.ContainsAny(line, "{}\\\n") {
-				fail("%s: a line holds a brace, backslash or newline, which the caption renderer would misread: %q", at, line)
+				errs = append(errs, fmt.Errorf("%s: a line holds a brace, backslash or newline, which the caption renderer would misread: %q", at, line))
 			}
 		}
 		switch s.Kind() {
 		case "card":
-			if s.Card.Title == "" && s.Card.Heading == "" {
-				fail("%s: a card needs a title or a heading", at)
-			}
-			if s.Tape != "" || s.Wide || len(s.Setup) > 0 {
-				fail("%s: tape, wide and setup belong to a clip", at)
-			}
+			errs = append(errs, s.validateCard(at)...)
 		case "clip":
-			if clips[s.Clip] {
-				fail("%s: another clip is already named %q", at, s.Clip)
-			}
+			errs = append(errs, s.validateClip(at, clips)...)
 			clips[s.Clip] = true
-			sawClip = true
-			if strings.TrimSpace(s.Tape) == "" {
-				fail("%s: clip %q has no tape", at, s.Clip)
-			}
-			for _, st := range s.Setup {
-				if (st.Sh == "") == (len(st.Blocks) == 0) {
-					fail("%s: a setup step is a shell snippet or lesson blocks, not both or neither", at)
-				}
-				if len(st.Replace) != 0 && len(st.Replace) != 2 {
-					fail("%s: replace is [old, new]", at)
-				}
-			}
 		case "zoom":
-			if !sawClip {
-				fail("%s: a zoom needs a clip before it", at)
-			}
-			if cols, rows := zoomWindow(); s.Zoom.Col > cols || s.Zoom.Row > rows || s.Zoom.Col < 1 || s.Zoom.Row < 1 {
-				fail("%s: zoom target (%d,%d) is outside the %dx%d window the push-in shows", at, s.Zoom.Col, s.Zoom.Row, cols, rows)
-			}
+			errs = append(errs, s.validateZoom(at, len(clips) > 0)...)
 		default:
-			fail("%s: a shot is exactly one of card, clip or zoom", at)
+			errs = append(errs, fmt.Errorf("%s: a shot is exactly one of card, clip or zoom", at))
 		}
 	}
 	if ep.Thumbnail.Words == "" || !clips[ep.Thumbnail.Clip] {
-		fail("thumbnail needs words and the name of a clip")
+		errs = append(errs, errors.New("thumbnail needs words and the name of a clip"))
 	}
 	return errors.Join(errs...)
+}
+
+func (s Shot) validateCard(at string) []error {
+	var errs []error
+	if s.Card.Title == "" && s.Card.Heading == "" {
+		errs = append(errs, fmt.Errorf("%s: a card needs a title or a heading", at))
+	}
+	if s.Tape != "" || s.Wide || len(s.Setup) > 0 {
+		errs = append(errs, fmt.Errorf("%s: tape, wide and setup belong to a clip", at))
+	}
+	return errs
+}
+
+func (s Shot) validateClip(at string, clips map[string]bool) []error {
+	var errs []error
+	if clips[s.Clip] {
+		errs = append(errs, fmt.Errorf("%s: another clip is already named %q", at, s.Clip))
+	}
+	if strings.TrimSpace(s.Tape) == "" {
+		errs = append(errs, fmt.Errorf("%s: clip %q has no tape", at, s.Clip))
+	}
+	for _, st := range s.Setup {
+		if (st.Sh == "") == (len(st.Blocks) == 0) {
+			errs = append(errs, fmt.Errorf("%s: a setup step is a shell snippet or lesson blocks, not both or neither", at))
+		}
+		if len(st.Replace) != 0 && len(st.Replace) != 2 {
+			errs = append(errs, fmt.Errorf("%s: replace is [old, new]", at))
+		}
+	}
+	return errs
+}
+
+func (s Shot) validateZoom(at string, afterClip bool) []error {
+	var errs []error
+	if !afterClip {
+		errs = append(errs, fmt.Errorf("%s: a zoom needs a clip before it", at))
+	}
+	if cols, rows := zoomWindow(); s.Zoom.Col > cols || s.Zoom.Row > rows || s.Zoom.Col < 1 || s.Zoom.Row < 1 {
+		errs = append(errs, fmt.Errorf("%s: zoom target (%d,%d) is outside the %dx%d window the push-in shows", at, s.Zoom.Col, s.Zoom.Row, cols, rows))
+	}
+	return errs
 }
 
 // lessonPage finds the one lesson page with that number prefix.

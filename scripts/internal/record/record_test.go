@@ -1,6 +1,7 @@
 package record
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -44,7 +45,7 @@ func TestEnvironment(t *testing.T) {
 			t.Errorf("environment still has %s", gone)
 		}
 	}
-	for k, want := range map[string]string{"KEEP_ME": "1", "HOME": "/work-dir/home", "TZ": "UTC", "APIC_DEMO_URL": "http://localhost:8089"} {
+	for k, want := range map[string]string{"KEEP_ME": "1", "HOME": filepath.Join("/work-dir", "home"), "TZ": "UTC", "APIC_DEMO_URL": "http://localhost:8089"} {
 		if keys[k] != want {
 			t.Errorf("environment has %s=%q, want %q", k, keys[k], want)
 		}

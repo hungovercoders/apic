@@ -20,7 +20,8 @@ const (
 	canvasH   = 1080
 	termW     = 1150
 	termH     = 720
-	wideW     = 2000 // apic list is 179 columns wide; this holds it unwrapped
+	wideW     = 2000 // apic list is 179 columns wide and 31 lines long; this
+	wideH     = 800  // holds it unwrapped, with the command and prompt around it
 	pad       = 60
 	crop      = 40
 	termScale = 1.5
@@ -85,7 +86,7 @@ func encodeArgs() []string {
 func composeClip(src, dst string, hold float64, wide bool) error {
 	var cw, ch, sw, sh, x, y int
 	if wide {
-		cw, ch = wideW-2*crop, termH-2*crop
+		cw, ch = wideW-2*crop, wideH-2*crop
 		sw = canvasW - 80
 		sh = int(float64(ch)*float64(sw)/float64(cw)) / 2 * 2
 		x, y = 40, 170

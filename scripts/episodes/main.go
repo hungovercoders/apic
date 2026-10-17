@@ -125,12 +125,12 @@ func Check(eps []*Episode, w io.Writer) int {
 
 // writeTape writes a clip's tape: the shared preamble, then its body.
 func writeTape(path string, s Shot) error {
-	w := termW
+	w, h := termW, termH
 	if s.Wide {
-		w = wideW
+		w, h = wideW, wideH
 	}
 	mp4 := strings.TrimSuffix(filepath.Base(path), ".tape") + ".mp4"
-	body := fmt.Sprintf(tapeHead, mp4, w, termH) + strings.TrimSpace(s.Tape) + "\n"
+	body := fmt.Sprintf(tapeHead, mp4, w, h) + strings.TrimSpace(s.Tape) + "\n"
 	return os.WriteFile(path, []byte(body), 0o600)
 }
 
@@ -395,16 +395,19 @@ func (b *build) write(prev *Episode) error {
 }
 
 // environment is what the setup steps and vhs run under: the fresh apic
-// first on PATH, a HOME of their own, UTC and a UTF-8 locale, and neither
-// NO_COLOR nor a proxy from the recording machine, since the picture
-// should have colour and `apic env` reports the proxy it sees.
+// first on PATH, a HOME of their own, UTC and a UTF-8 locale, and nothing
+// of the recording machine's that would show in the picture: no NO_COLOR,
+// no proxy (`apic env` reports the one it sees) and no APIC_ variable,
+// since an exported APIC_VAR_baseUrl or APIC_VAR_user would override the
+// demo project's values in every clip.
 func environment(bin, work string) []string {
 	var env []string
 	for _, kv := range os.Environ() {
 		k, _, _ := strings.Cut(kv, "=")
-		switch strings.ToUpper(k) {
-		case "PATH", "HOME", "TZ", "LANG", "LC_ALL", "NO_COLOR", "APIC_DEMO_URL",
-			"HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY":
+		switch upper := strings.ToUpper(k); {
+		case upper == "PATH", upper == "HOME", upper == "TZ", upper == "LANG", upper == "LC_ALL", upper == "NO_COLOR",
+			upper == "HTTP_PROXY", upper == "HTTPS_PROXY", upper == "ALL_PROXY", upper == "NO_PROXY",
+			strings.HasPrefix(upper, "APIC_"):
 			continue
 		}
 		env = append(env, kv)

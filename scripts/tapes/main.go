@@ -9,35 +9,25 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
-	"net"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"sort"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/hungovercoders/apic/internal/demoapi"
-	"github.com/hungovercoders/apic/internal/lessons"
+	"github.com/hungovercoders/apic/scripts/internal/record"
 )
-
-// demoPort is the port the lessons show in their URLs; a tape's picture
-// carries it, so it is not negotiable the way learncheck's is.
-const demoPort = 8089
 
 // Where the tapes and the course live, relative to the repository root.
 const (
 	TapesDir = "docs/learn/tapes"
 	DemoTape = "docs/assets/demo.tape"
-	LearnDir = "website/src/content/docs/learn"
 )
 
 // Tape is one VHS script: its name (01, 05, demo) and its path.
@@ -46,39 +36,30 @@ type Tape struct {
 	Path string
 }
 
-// step is one piece of a tape's setup: a shell snippet, or runnable blocks
-// of a lesson page (1-based, in page order), optionally with a text
-// substitution applied to them first.
-type step struct {
-	sh      string
-	lesson  string // the page's number prefix, "09"
-	blocks  []int
-	replace [2]string
-}
-
 // setup is what each tape expects to find beyond the demo project: the
-// state the lesson has built up by the time its terminal parts begin. A
-// tape not listed needs only apic-demo and the running API.
-var setup = map[string][]step{
+// state the lesson has built up by the time its terminal parts begin, as
+// record.Steps run in its scratch directory. A tape not listed needs only
+// apic-demo and the running API.
+var setup = map[string][]record.Step{
 	// the staging environment and the private env file
-	"02": {{lesson: "02", blocks: []int{3, 7}}},
+	"02": {{Lesson: "02", Blocks: []int{3, 7}}},
 	// logged in, so the todos requests have a token
-	"04": {{lesson: "04", blocks: []int{1}}},
+	"04": {{Lesson: "04", Blocks: []int{1}}},
 	// logged in, and the apic-auth project with its exec and signed requests
-	"06": {{lesson: "06", blocks: []int{1, 8, 10, 11, 12}}},
+	"06": {{Lesson: "06", Blocks: []int{1, 8, 10, 11, 12}}},
 	// the feature files the tape runs, and a login for the ones that need
 	// it; the lesson deletes the undefined feature after showing it, the
 	// tape shows it
-	"07": {{lesson: "07", blocks: []int{3, 4, 5, 6, 8}, replace: [2]string{"rm apic-demo/features/undefined.feature\n", ""}}},
+	"07": {{Lesson: "07", Blocks: []int{3, 4, 5, 6, 8}, Replace: [2]string{"rm apic-demo/features/undefined.feature\n", ""}}},
 	"09": {
 		// the OpenAPI document and the Postman collection and environment
-		{lesson: "09", blocks: []int{1, 11}},
+		{Lesson: "09", Blocks: []int{1, 11}},
 		// the tidied files the tape copies in, written to tidy/ instead of
 		// into the project the tape is about to import
-		{sh: "mkdir -p tidy"},
-		{lesson: "09", blocks: []int{8, 9}, replace: [2]string{"todos-api/", "tidy/"}},
+		{Sh: "mkdir -p tidy"},
+		{Lesson: "09", Blocks: []int{8, 9}, Replace: [2]string{"todos-api/", "tidy/"}},
 		// block 11 imported the collection; the tape does that on camera
-		{sh: "rm -rf todos-api postman-api"},
+		{Sh: "rm -rf todos-api postman-api"},
 	},
 }
 
@@ -91,7 +72,7 @@ func main() {
 	flag.Parse()
 	tapes, err := Find(".")
 	if err == nil {
-		tapes, err = pick(tapes, *only)
+		tapes, err = record.Pick(tapes, func(t Tape) string { return t.Name }, *only)
 	}
 	if err != nil {
 		fail(err)
@@ -102,7 +83,7 @@ func main() {
 		}
 		return
 	}
-	if err := record(".", tapes, *out, *keep || *prepare, *prepare); err != nil {
+	if err := recordAll(".", tapes, *out, *keep || *prepare, *prepare); err != nil {
 		fail(err)
 	}
 }
@@ -131,27 +112,6 @@ func Find(root string) ([]Tape, error) {
 	return tapes, nil
 }
 
-func pick(tapes []Tape, only string) ([]Tape, error) {
-	if only == "" {
-		return tapes, nil
-	}
-	want := map[string]bool{}
-	for _, n := range strings.Split(only, ",") {
-		want[strings.TrimSpace(n)] = true
-	}
-	var out []Tape
-	for _, t := range tapes {
-		if want[t.Name] {
-			out = append(out, t)
-			delete(want, t.Name)
-		}
-	}
-	for n := range want {
-		return nil, fmt.Errorf("no tape called %q under %s", n, TapesDir)
-	}
-	return out, nil
-}
-
 // Validate runs `vhs validate` on every tape and returns how many failed,
 // reporting each on w.
 func Validate(tapes []Tape, w io.Writer) int {
@@ -169,7 +129,7 @@ func Validate(tapes []Tape, w io.Writer) int {
 	return failed
 }
 
-func record(root string, tapes []Tape, out string, keep, prepareOnly bool) error {
+func recordAll(root string, tapes []Tape, out string, keep, prepareOnly bool) error {
 	// vhs records a shell, so a missing tool would not fail the recording:
 	// it would be filmed as "command not found". Check up front for vhs
 	// and what it drives, and for jq, which most tapes pipe through.
@@ -219,24 +179,18 @@ func recordOne(root, bin string, t Tape, out string, keep, prepareOnly bool) err
 			return err
 		}
 	}
-	if _, _, err := demoapi.WriteProject(filepath.Join(work, "apic-demo"), demoPort, true); err != nil {
+	if _, _, err := demoapi.WriteProject(filepath.Join(work, "apic-demo"), record.Port, true); err != nil {
 		return err
 	}
-	stop, err := serve()
+	stop, err := record.Serve()
 	if err != nil {
 		return err
 	}
 	defer stop()
-	env := environment(bin, work)
+	env := record.Environment(bin, work)
 	for _, s := range setup[t.Name] {
-		code, err := s.code(root)
-		if err != nil {
+		if err := s.Run(root, work, env); err != nil {
 			return err
-		}
-		cmd := exec.Command("sh", "-e") //nolint:gosec // the course's own commands, as learncheck runs them
-		cmd.Dir, cmd.Env, cmd.Stdin = work, append(env, "NO_COLOR=1"), strings.NewReader(code)
-		if o, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("setup failed: %w\n%s", err, o)
 		}
 	}
 	if prepareOnly {
@@ -284,82 +238,4 @@ func moveFile(src, dst string) error {
 		return err
 	}
 	return os.Remove(src)
-}
-
-// environment is what the setup and vhs run under: the fresh apic first on
-// PATH, a HOME of their own, UTC and a UTF-8 locale, and no NO_COLOR from
-// the recording machine, since the picture should have colour.
-func environment(bin, work string) []string {
-	var env []string
-	for _, kv := range os.Environ() {
-		k, _, _ := strings.Cut(kv, "=")
-		switch k {
-		case "PATH", "HOME", "TZ", "LANG", "LC_ALL", "NO_COLOR", "APIC_DEMO_URL":
-			continue
-		}
-		env = append(env, kv)
-	}
-	return append(env,
-		"PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
-		"HOME="+filepath.Join(work, "home"),
-		"TZ=UTC",
-		"LANG=C.UTF-8",
-		"APIC_DEMO_URL=http://localhost:"+strconv.Itoa(demoPort),
-	)
-}
-
-// code is the shell the step runs: its snippet, or the lesson blocks it
-// names, with the substitution applied.
-func (s step) code(root string) (string, error) {
-	if s.sh != "" {
-		return s.sh + "\n", nil
-	}
-	blocks, err := LessonBlocks(root, s.lesson)
-	if err != nil {
-		return "", err
-	}
-	var b strings.Builder
-	for _, n := range s.blocks {
-		if n < 1 || n > len(blocks) {
-			return "", fmt.Errorf("lesson %s has %d runnable blocks, no block %d", s.lesson, len(blocks), n)
-		}
-		code := blocks[n-1].Code
-		if s.replace[0] != "" {
-			code = strings.ReplaceAll(code, s.replace[0], s.replace[1])
-		}
-		b.WriteString(code)
-	}
-	return b.String(), nil
-}
-
-// LessonBlocks returns the runnable blocks of the lesson with that number
-// prefix, in page order.
-func LessonBlocks(root, lesson string) ([]lessons.Block, error) {
-	pages, err := filepath.Glob(filepath.Join(root, LearnDir, lesson+"-*.md"))
-	if err != nil {
-		return nil, err
-	}
-	if len(pages) != 1 {
-		return nil, fmt.Errorf("want one lesson page %s-*.md, found %d", lesson, len(pages))
-	}
-	data, err := os.ReadFile(pages[0]) //nolint:gosec // a course page, by glob
-	if err != nil {
-		return nil, err
-	}
-	return lessons.Extract(pages[0], string(data)), nil
-}
-
-// serve starts the demo API on demoPort for one tape.
-func serve() (stop func(), err error) {
-	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", demoPort))
-	if err != nil {
-		return nil, fmt.Errorf("the lessons show port %d, which is in use: %w", demoPort, err)
-	}
-	srv := &http.Server{Handler: demoapi.New(), ReadHeaderTimeout: 5 * time.Second}
-	go func() { _ = srv.Serve(ln) }()
-	return func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		defer cancel()
-		_ = srv.Shutdown(ctx)
-	}, nil
 }

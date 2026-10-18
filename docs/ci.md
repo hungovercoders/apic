@@ -51,6 +51,12 @@ in place, so a deliberately deleted one does not come back.
   `mise.toml` exports `SERVE_ROOT=website/dist` and `SS_SERVER_HEADERS` for
   the bundled static server the browser checks and DAST run against on pull
   requests, so it sends the same headers as Cloudflare.
+- The URL-driven checks also run on every `deployment_status` event, and the
+  only deployments this repo raises are `docs.yml`'s GitHub Pages deploys of
+  the legacy redirect stubs. That job declares no environment `url`, so the
+  status carries only the Actions log link and `ss-resolve-url` audits
+  `urls.production` instead; with a `url` the checks audited
+  `hungovercoders.github.io/apic/` and failed on every docs deploy.
 - One shipped file is hand-edited, which a refresh undoes:
   `ss-reliability-seo-check.yml` passes `--no-verify-og-image` on a local
   build, because slopstopper-cli 0.21.0 ignores the `SEO_VERIFY_OG_IMAGE`

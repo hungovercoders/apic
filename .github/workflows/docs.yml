@@ -77,13 +77,21 @@ jobs:
         with:
           path: website/legacy
 
+  # The environment deliberately has no `url`. With one, the deployment's
+  # success status names hungovercoders.github.io/apic/ as its
+  # environment_url, and every URL-driven slopstopper check (they run `on:
+  # deployment_status`) audits it as if it were the site: no sitemap,
+  # robots.txt or llms.txt, redirect stubs with no metadata, and GitHub
+  # Pages' headers for DAST. Without it the status carries only the Actions
+  # log link, which ss-resolve-url never audits: it audits urls.production
+  # (apic.sh) in its place. The deployment still shows on the repo's
+  # Environments page; only its link is lost.
   deploy:
     if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
         uses: actions/deploy-pages@v5

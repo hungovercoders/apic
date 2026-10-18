@@ -27,7 +27,7 @@ shots:
       text: |-
         A CI log, somewhere, right now:
 
-        `> curl -v -H "Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbGljZSJ9.4f8…" https://api.example.com/me`
+        `> curl -v -H "Authorization: Bearer 4f8c21a7e9b0d3c6f5a2e18b7d9c0a4f…" https://api.example.com/me`
         `< 200 OK`
         `{"email": "alice@example.com", "role": "admin"}`
       foot: Stored for ninety days, readable by everyone with access to the repository

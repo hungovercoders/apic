@@ -143,6 +143,16 @@ tasks:
     cmds:
       - go run ./scripts/tapes -check
 
+  episodes:
+    desc: Build the course's YouTube episodes, bar the voice, into dist/episodes from docs/learn/episodes (needs vhs, ttyd, ffmpeg and a chromium, and port 8089 free)
+    cmds:
+      - go run ./scripts/episodes -version {{.VERSION}}
+
+  episodes:check:
+    desc: Validate every episode's shot list and its tapes' syntax (needs vhs), recording nothing
+    cmds:
+      - go run ./scripts/episodes -check
+
   schemas:
     desc: Regenerate the JSON schemas in website/public/schemas from the config types (a test fails when they are stale)
     cmds:

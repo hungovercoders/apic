@@ -15,5 +15,6 @@ this is the map of everything else.
 | writing a lesson for the course | Read [learn/_template.md](learn/_template.md): the template every lesson is copied from and the rules it follows |
 | cutting a lesson's YouTube episode | Read [learn/_episode-template.md](learn/_episode-template.md): the title, thumbnail and description conventions |
 | recording the course's episode b-roll or the README's animation | Read the VHS scripts in `learn/tapes/` and `assets/demo.tape`; `task tapes` records them all against the demo API and `task tapes:check` validates them |
+| building a lesson's episode video, or changing what one shows or says | Read its shot list under `learn/episodes/` (one YAML file per lesson, named by its number) and `scripts/episodes/main.go`; `task episodes` builds every episode into `dist/episodes`, bar the voice, and `task episodes:check` validates the shot lists and tapes |
 | relaxing the Content-Security-Policy for one path, or answering a CSP finding from DAST | Read [security/CSP_EXCEPTIONS.md](security/CSP_EXCEPTIONS.md): the baseline policy and the entry a per-path relaxation needs |
 | changing the prose style | Read `.vale/`, the styles Vale holds the docs to (`task docs:check`); `docs-site.md` says where a term or a deliberate typo goes |

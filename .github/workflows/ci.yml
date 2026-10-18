@@ -104,8 +104,10 @@ jobs:
           go-version-file: go.mod
       - run: go run ./scripts/learncheck
 
-  # The course's VHS tapes parse. vhs alone is enough to validate; recording
-  # needs ttyd and ffmpeg too and is a local job (task tapes).
+  # The course's VHS tapes parse, the lesson tapes and the ones embedded in
+  # the episodes' shot lists alike. vhs alone is enough to validate;
+  # recording needs ttyd and ffmpeg too and is a local job (task tapes,
+  # task episodes).
   tapes:
     runs-on: ubuntu-latest
     steps:
@@ -119,6 +121,7 @@ jobs:
         env:
           GOTOOLCHAIN: auto
       - run: go run ./scripts/tapes -check
+      - run: go run ./scripts/episodes -check
 
   # The VS Code extension in editors/vscode is the one place Node lives.
   # It is linted, typechecked, bundled, tested in a real VS Code (headless

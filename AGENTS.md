@@ -37,7 +37,7 @@ files itself (it reads `--json`).
 - `task validate-examples`: the example projects, as CI checks them
 - `task check`: what CI runs — lint, test, race, licences and validate-examples
 - `task ss:hygiene:test`: the slopstopper hygiene suite, which the pre-push hook runs once `git config core.hooksPath .githooks` is set (CONTRIBUTING's setup does); `task --list` shows every `ss:*` check
-- Generated files each have a task: `task docs:cli` (the site's `cli.md`), `task docs:errors` (its `errors.md`, from `runner.Catalogue`), `task skill` (`skills/apic/references/cheatsheet.md`) and `task schemas` have a test that fails when the output is stale; `task man`, `task shots`, `task tapes` and `task notices` write what is not committed
+- Generated files each have a task: `task docs:cli` (the site's `cli.md`), `task docs:errors` (its `errors.md`, from `runner.Catalogue`), `task skill` (`skills/apic/references/cheatsheet.md`) and `task schemas` have a test that fails when the output is stale; `task man`, `task shots`, `task tapes`, `task episodes` and `task notices` write what is not committed
 
 ## Conventions
 

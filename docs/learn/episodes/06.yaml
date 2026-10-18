@@ -1,0 +1,198 @@
+# Lesson 6's episode. The lesson assumes `apic demo` is running, so the
+# project is written and the API served before the first shot. Every
+# auth type in the lesson runs offline against the demo API; the two
+# real providers are cards, as they are prose on the page. The small
+# apic-auth project and the lines appended to it come from the lesson's
+# own blocks as setup, off camera, and the clips show the commands.
+lesson: 6
+summary: "Attach credentials with # @auth per request and per project: bearer, basic, API keys, OAuth2, exec and AWS SigV4, and what apic shows and what it hides."
+project: true
+thumbnail:
+  words: "Auth, five ways,\nnever printed"
+  clip: oauthrun
+
+shots:
+  - chapter: Five ways, never printed
+    card:
+      series: From zero to apic · lesson 6
+      title: "Authentication"
+      text: "$ `apic run whoami -C apic-demo -v`"
+    say:
+      - "This is lesson six of From zero to apic. apic will add a credential to a request five different ways, and never print one. Here are all five, every one of them running against the demo API."
+
+  - chapter: Bearer
+    card:
+      heading: Bearer, by hand and by directive
+      text: |-
+        By hand, as whoami does:
+        `GET {{baseUrl}}/me`
+        `Authorization: Bearer {{token}}`
+
+        By directive:
+        `# @auth bearer {{token}}`
+        `GET {{baseUrl}}/me`
+    say:
+      - "You have been doing auth since lesson one. whoami writes the Authorization header itself. The directive form does the same thing, with two differences: a directive can be a project default, so you do not repeat the header in every request, and whatever apic adds for you is never printed."
+
+  - chapter: Bearer
+    clip: bearer
+    setup:
+      - blocks: [1]
+        replace: ["apic run whoami -C apic-demo -v | head -3\n", ""]
+    tape: |
+      Type "apic run whoami -C apic-demo -v | head -3" Enter Sleep 4s
+    say:
+      - "Dash v prints the request headers. Only headers you wrote yourself appear, and even those are masked when they carry a credential: Authorization, three stars."
+
+  - chapter: Basic
+    clip: basic
+    tape: |
+      Type "apic run basic-auth -C apic-demo" Enter Sleep 4s
+      Type "apic curl basic-auth -C apic-demo" Enter Sleep 4s
+    say:
+      - "Basic auth is the one you cannot write as a plain header, because the value is base64 of user colon password. auth basic, user, password, and apic encodes it."
+      - "apic curl maps every auth type onto curl where curl has an equivalent, which for basic is dash dash user."
+
+  - chapter: API keys
+    clip: apikey
+    tape: |
+      Type "apic run api-key -C apic-demo -v | head -3" Enter Sleep 4s
+    say:
+      - "An API key is a header with a secret in it. Write the header, keep the value in the private file, and apic masks it because of where it came from."
+
+  - chapter: API keys
+    card:
+      heading: What is masked
+      table:
+        - ["Always", "`Authorization`, `X-Api-Key`, `Cookie` and a few other header names"]
+        - ["By source", "Any header whose value came from the private env file, `.env`, the session, a capture, `--var` or `APIC_VAR_`"]
+        - ["Added by apic", "Never printed at all: only headers you wrote yourself appear in `-v`"]
+      foot: The rules in full · `apic.sh/auth/`
+    say:
+      - "Authorization, X-Api-Key, Cookie and a few other header names are always masked. So is any header whose value came from a secret source: the private env file, dot env, the session, a capture, dash dash var or an APIC_VAR variable."
+
+  - chapter: OAuth2
+    clip: oauth
+    tape: |
+      Type "apic describe oauth2-token -C apic-demo" Enter Sleep 5s
+    say:
+      - "Machine-to-machine OAuth2 is one line: auth oauth2, with the token URL, the client id and the client secret. describe shows the spec and whether its variables resolve, before anything is sent."
+
+  - chapter: OAuth2
+    zoom: { col: 60, row: 10 }
+    say:
+      - "The client id came from a file variable in auth.http, the secret from the private file, and the secret is three stars here too."
+
+  - chapter: OAuth2
+    clip: oauthrun
+    tape: |
+      Type "apic run oauth2-token -C apic-demo > /dev/null" Enter Sleep 2s
+      Type "apic session -C apic-demo" Enter Sleep 4s
+      Type `apic run oauth2-token -C apic-demo --json | grep -o '"auth":"[a-z0-9]*"'` Enter Sleep 4s
+    say:
+      - "Run it, then look at the session. apic fetched a token from the token endpoint, sent the request with it, and cached the token keyed by token URL, client id, grant and scope, with its lifetime."
+      - "Every later request with the same spec reuses it until a minute before it expires, then refreshes it. session clear forgets it, and dash dash no-session fetches a fresh one every time."
+      - "In dash dash json, the request records which auth type applied and nothing else about it."
+
+  - chapter: OAuth2
+    card:
+      heading: A real provider
+      table:
+        - ["Spotify", "`examples/spotify` in the repository: the same line with `grant=client_credentials clientAuth=basic`, the id and secret in the private file"]
+        - ["Entra ID, Okta, Auth0, Keycloak, Cognito", "The same grant, so the same line with a different `tokenUrl`"]
+        - ["A human at a keyboard", "`grant=device_code` prints a URL and a code and waits; `grant=authorization_code` opens a browser once. Neither starts under `--json` or MCP"]
+      foot: Every type and option · `apic.sh/auth/`
+    say:
+      - "The repository's Spotify example does this against the real Spotify Web API with client credentials. Entra ID, Okta, Auth0, Keycloak and Cognito all speak the same grant, so the line is the same with a different token URL."
+      - "For a person at a keyboard, the device code grant prints a URL and a code and waits while you approve, and the authorization code grant opens a browser once. Both are for people, not agents, and neither starts under dash dash json or MCP."
+
+  - chapter: A project default
+    clip: default
+    setup:
+      - blocks: [8]
+        replace: ["apic run me health -C apic-auth | tail -4\n", ""]
+    tape: |
+      Type "cat apic-auth/apic.yaml" Enter Sleep 2500ms
+      Type "cat apic-auth/api.http" Enter Sleep 4s
+      Type "apic run me health -C apic-auth | tail -4" Enter Sleep 4s
+    say:
+      - "Most projects authenticate every request the same way. Say it once in apic.yaml: auth default, bearer token. Here is a small project beside the demo that does."
+      - "me has no auth line and no Authorization header, and was sent with the bearer token from the default. health said auth none and was sent with nothing. A request with its own auth line would use that instead."
+
+  - chapter: A project default
+    clip: source
+    tape: |
+      Type "apic describe me -C apic-auth | sed -n 5,6p" Enter Sleep 4s
+    say:
+      - "describe names the source: bearer token, from apic.yaml. Because the default may hold variables, one project can point at a different identity provider per environment."
+
+  - chapter: exec
+    clip: exec
+    setup:
+      - blocks: [10]
+        replace: ["apic validate -C apic-auth\napic run me-exec -C apic-auth || echo \"exit $?\"\n", ""]
+    tape: |
+      Type "tail -6 apic-auth/api.http" Enter Sleep 3s
+      Type "apic validate -C apic-auth" Enter Sleep 3s
+      Type `apic run me-exec -C apic-auth || echo "exit $?"` Enter Sleep 5s
+    say:
+      - "When the credential comes from a tool, gcloud, az, op or vault, auth exec runs it and uses its output. Here the command is just echo."
+      - "Refused, on purpose, and validate warned about it first. A request file that runs commands deserves a deliberate yes, because agents edit request files."
+
+  - chapter: exec
+    clip: allow
+    setup:
+      - blocks: [11]
+        replace: ["apic run me-exec -C apic-auth | head -2\n", ""]
+    tape: |
+      Type "cat apic-auth/apic.yaml" Enter Sleep 2500ms
+      Type "apic run me-exec -C apic-auth | head -2" Enter Sleep 4s
+    say:
+      - "The project opts in with allowExec true. The command runs directly, not through a shell, and its trimmed output becomes the bearer header. header and prefix change that, and ttl caches the output in the session."
+
+  - chapter: AWS SigV4
+    clip: aws
+    setup:
+      - blocks: [12]
+        replace: ["AWS_ACCESS_KEY_ID=AKIAEXAMPLE AWS_SECRET_ACCESS_KEY=example apic curl signed -C apic-auth\n", ""]
+    tape: |
+      Type "tail -4 apic-auth/api.http" Enter Sleep 3s
+      Type "AWS_ACCESS_KEY_ID=AKIAEXAMPLE AWS_SECRET_ACCESS_KEY=example apic curl signed -C apic-auth" Enter Sleep 5s
+    say:
+      - "Signing a request for API Gateway, S3 or Lambda is one directive: auth aws, with the service and the region. apic finds the keys the way the AWS CLI does, the environment, then the credentials file, then the CLI itself for SSO sessions and assumed roles."
+      - "There is no AWS SDK inside apic. The signature is written from the spec and checked against the official test vectors. Without an account, apic curl still shows what the signed request would be, with fake keys in the environment."
+      - "Against a real gateway, apic run sends the AWS4-HMAC-SHA256 header, X-Amz-Date and the content hash, and shows none of them in its output."
+
+  - chapter: Checkpoint and exercise
+    clip: checkpoint
+    tape: |
+      Type `apic run oauth2-token -C apic-demo --json | grep -o '"auth":"oauth2"'` Enter Sleep 4s
+    say:
+      - "The checkpoint. The OAuth2 request goes through the whole flow, token endpoint included, and reports the auth type it used."
+
+  - chapter: Checkpoint and exercise
+    card:
+      heading: Exercise
+      text: |-
+        Move the demo project onto a default. In `apic-demo/apic.yaml`:
+        `auth:`
+        `  default: bearer {{token}}`
+
+        Delete every `Authorization: Bearer {{token}}` header from `todos.http`,
+        and make `apic run todos.http --keep-going` and `apic test` pass as before.
+        One request will need to opt out. Find it.
+      foot: Solution on the lesson page · `apic.sh/learn/06-authentication/`
+    say:
+      - "Your exercise: move the demo project onto a default. Set the bearer default in apic.yaml, delete every Authorization header from todos.http, and make the flow and apic test pass as before."
+      - "One request will need to opt out. Find it. The solution is on the lesson page."
+
+  - chapter: Checkpoint and exercise
+    card:
+      series: Next · lesson 7
+      title: "Behaviour tests\nwith Gherkin"
+      text: |-
+        Every command in this episode: `apic.sh/learn/06-authentication/`
+        The whole course: `apic.sh/learn/`
+    say:
+      - "Next, lesson seven: behaviour tests with Gherkin. Phrases on your requests, a feature file written from them, and a report anyone can read."
+      - Every command from this episode is on the lesson page. See you there.

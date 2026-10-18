@@ -80,3 +80,8 @@ version difference, and the page says which version it was written for.
   cut with and without captions, the SRT, the title, chapters and this
   description filled in, the narration script and the thumbnail. Record
   the narration to the script's timestamps and it fits the clean cut.
+  The builder records against the demo API only: a lesson's calls to a
+  real service are cards carrying the page's sample output, and a
+  lesson that works on the repository's example projects copies them
+  into the scratch directory in a setup step, which sees the repository
+  root as `EPISODE_REPO`.

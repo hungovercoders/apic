@@ -318,11 +318,11 @@ func goCaches() []string {
 	if err != nil {
 		return nil
 	}
-	vals := strings.Fields(string(out))
+	vals := strings.Split(strings.TrimSpace(string(out)), "\n")
 	if len(vals) != 2 {
 		return nil
 	}
-	return []string{"GOMODCACHE=" + vals[0], "GOCACHE=" + vals[1]}
+	return []string{"GOMODCACHE=" + strings.TrimSpace(vals[0]), "GOCACHE=" + strings.TrimSpace(vals[1])}
 }
 
 // setup runs a clip's setup steps in the scratch directory, off camera.

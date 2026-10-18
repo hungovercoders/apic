@@ -41,6 +41,9 @@ shots:
       - sh: |
           cp -r "$EPISODE_REPO/examples" examples
           cp "$EPISODE_REPO/.gitignore" .gitignore
+          for p in httpbin github spotify; do
+            git -C "$EPISODE_REPO" show HEAD:examples/$p/http-client.private.env.json > examples/$p/http-client.private.env.json
+          done
     tape: |
       Type "apic list -C examples/httpbin" Enter Sleep 4s
       Type "sed -n 1,10p examples/httpbin/auth.http" Enter Sleep 6s

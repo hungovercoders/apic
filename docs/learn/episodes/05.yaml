@@ -175,6 +175,7 @@ shots:
   - chapter: Find, switch, edit, reload
     clip: edit
     tape: |
+      Env VISUAL "vi"
       Env EDITOR "vi"
       Hide
       Type "apic ui -C apic-demo" Enter Sleep 3s

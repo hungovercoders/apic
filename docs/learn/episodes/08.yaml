@@ -116,7 +116,8 @@ shots:
               - name: Validate the request files
                 run: `apic validate -C apic-demo --format github`
               - name: Smoke flow
-                run: `apic run login whoami todos.http -C apic-demo --keep-going --json --redact`
+                run: `apic run login whoami todos.http -C apic-demo --keep-going`
+                     `--json --redact --no-session`
                 env: { APIC_VAR_password: `${{ secrets.API_PASSWORD }}` }
               - name: Feature suite
                 `if: always()`
@@ -125,9 +126,9 @@ shots:
               - uses: dorny/test-reporter@v1
                 `if: always()`
                 with: { name: API features, path: report.xml, reporter: java-junit }
-      foot: Copy it into any repository, add a secret named `API_PASSWORD` with the value `s3cret`, and push
+      foot: Copy it into any repository, add a secret `API_PASSWORD` with the value `s3cret`, and push
     say:
-      - "Then the three steps. The password never appears: it goes from a repository secret to an environment variable to the request. And if always runs the suite and the reporter even when the smoke step failed, so one broken request does not hide the rest of the report."
+      - "Then the three steps. The password never appears: it goes from a repository secret to an environment variable to the request. no-session keeps the token login captures off the runner's disk, and the captures still pass between the requests of one invocation. And if always runs the suite and the reporter even when the smoke step failed, so one broken request does not hide the rest of the report."
       - "Push it and the smoke step goes red on the deliberate not-found failure in todos.http, which is the point: a failed assertion fails the build, and the log shows which one without showing a single value. Drop that request, and it goes green."
 
   - chapter: Other CI

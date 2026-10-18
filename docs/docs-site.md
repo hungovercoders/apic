@@ -56,7 +56,10 @@ request gets a preview URL. `docs.yml` builds the site on each change to
 prove it, and keeps GitHub Pages (`hungovercoders.github.io/apic/`, where the
 docs lived before apic.sh) serving the schemas as real files and a redirect
 page per route, because the 0.1.x binaries and the `apic.yaml` files they
-wrote link there (`website/scripts/legacy.mjs`).
+wrote link there (`website/scripts/legacy.mjs`). That Pages deployment
+declares no environment `url` on purpose: the slopstopper checks that run on
+`deployment_status` would otherwise audit the redirect stubs as the site
+(see `ci.md`).
 
 ## Commands
 

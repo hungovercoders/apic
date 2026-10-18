@@ -111,7 +111,11 @@ to requests whose id, URL, file or description contains it.`,
 			lastFile := ""
 			for _, e := range entries {
 				if len(files) > 1 && e.File != lastFile {
-					fmt.Fprintf(tw, "%s\t\t\t\t\n", theme.Accent.Render(e.File))
+					// As many cells as a request row: a shorter line ends
+					// the tab writer's column block, which would size the
+					// description column per file and leave the header
+					// unpadded.
+					fmt.Fprintf(tw, "%s%s\n", theme.Accent.Render(e.File), strings.Repeat("\t", len(cols)-1))
 					lastFile = e.File
 				}
 				where := fmt.Sprintf("%s:%d", e.File, e.Line)

@@ -138,8 +138,8 @@ whoami               GET      {{baseUrl}}/me                                :20 
 basic-auth           GET      {{baseUrl}}/basic-auth/{{user}}/{{password}}  :28   Basic auth, encoded for you
 …
 todos.http
-list-todos           GET      {{baseUrl}}/todos                             :8    List todos                                             I list the todos
-list-open-todos      GET      {{baseUrl}}/todos?done=false&page=1&limit=5   :18   Filter and paginate; the total comes back in a header  I list the open todos
+list-todos           GET      {{baseUrl}}/todos                             :8    List todos                                                                I list the todos
+list-open-todos      GET      {{baseUrl}}/todos?done=false&page=1&limit=5   :18   Filter and paginate; the total comes back in a header                     I list the open todos
 …
 
 24 requests in 4 files · apic describe <id> · apic run <id> · apic ui

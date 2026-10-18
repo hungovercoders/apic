@@ -1,0 +1,236 @@
+# Lesson 5's episode. Almost entirely screen: every clip is `apic ui` on
+# the demo project, driven by keys. A vhs recording cannot carry the UI's
+# state from one clip to the next, so each clip opens the UI again,
+# hidden, and replays the keys that reach its starting point before the
+# recording shows; the session file on disk carries the captured values
+# across clips as it would for a user. The first clip clears the session
+# so the marks start empty, the environment clip writes lesson 2's
+# staging environment as setup, and the exercise is done live in vi.
+lesson: 5
+summary: "Drive a whole project from apic ui without touching the command line: run, read, check, edit, reload."
+project: true
+thumbnail:
+  words: "The terminal\nUI tour"
+  clip: flow
+
+shots:
+  - chapter: One key
+    card:
+      series: From zero to apic · lesson 5
+      title: "The terminal\nUI tour"
+      text: "$ `apic ui -C apic-demo`"
+    say:
+      - "This is lesson five of From zero to apic. Every lesson so far was a command. This one is a screen: run, read, check, edit and reload a whole project without leaving it."
+
+  - chapter: The screen and the marks
+    clip: open
+    setup:
+      - sh: apic session clear --all -C apic-demo
+    tape: |
+      Type "apic ui -C apic-demo" Enter Sleep 4s
+    say:
+      - "apic ui on the demo project. Four areas. Requests on the left, grouped by file, one row each. On the right, a tab strip: preview, response, checks, session and history. The status bar at the bottom shows the project root, the environment and the result of the last run."
+      - "Nothing is different from the command line underneath: the same runner, the same session file, the same environment files. What you see here is what CI sees."
+
+  - chapter: The screen and the marks
+    zoom: { col: 30, row: 12 }
+    say:
+      - "Every row starts with a mark. A filled circle is ready: every variable it needs resolves. An empty circle is not ready, usually a token that another request captures."
+      - "On a fresh session most of todos.http is empty. whoami is ready even so, because its ref login promises to fetch the token."
+
+  - chapter: The screen and the marks
+    clip: preview
+    tape: |
+      Hide
+      Type "apic ui -C apic-demo" Enter Sleep 3s
+      Show
+      Type "j" Sleep 2s
+      Type "G" Sleep 1500ms
+      Type "kkk" Sleep 3s
+    say:
+      - "Move the cursor with j and k, or the arrows, and the preview tab follows. It is apic describe for the selected request: every variable and where it came from, and the missing ones called out with the request that would provide them."
+
+  - chapter: Run one
+    clip: run
+    tape: |
+      Hide
+      Type "apic ui -C apic-demo" Enter Sleep 3s
+      Show
+      Sleep 1s
+      Enter Sleep 4s
+    say:
+      - "Put the cursor on login and press enter. A spinner, then a tick with the status and the time, and the right pane switches to the response tab: the status line, the body, the assertion that passed and the value captured."
+
+  - chapter: Run one
+    zoom: { col: 30, row: 15 }
+    say:
+      - "Look left again. list-todos, list-open-todos, create-todo and create-todo-invalid went from empty to filled. The token landed in the session and the marks updated without a reload. That is lesson three happening in front of you."
+      - The rows in between stay empty for now. get-todo and its neighbours also need todoId, which only create-todo captures.
+
+  - chapter: Run one
+    clip: headers
+    tape: |
+      Hide
+      Type "apic ui -C apic-demo" Enter Sleep 3s
+      Enter Sleep 2s
+      Show
+      Sleep 1s
+      Type "H" Sleep 3s
+      Type "H" Sleep 1500ms
+      Type "c" Sleep 3s
+      Type "c" Sleep 2s
+      Type "c" Sleep 2s
+      Escape Sleep 2s
+    say:
+      - Capital H adds the request and response headers to the response tab, and again hides them.
+      - c swaps the response for the equivalent curl command, ready to paste. Press it again for HTTPie, PowerShell, Python, JavaScript and Go, and escape brings the response back.
+
+  - chapter: Run a file
+    clip: flow
+    tape: |
+      Hide
+      Type "apic ui -C apic-demo" Enter Sleep 3s
+      Show
+      Sleep 1s
+      Type "G" Sleep 1500ms
+      Type "f" Sleep 7s
+    say:
+      - "Move down into todos.http and press f: every request in the file, in order, as a flow. The rows light up one after another, each turning tick or cross as its response lands, and the file heading rolls them up: eleven passed, one failed."
+      - "The cross is not-found, the request that fails on purpose. The flow carries on past it in the UI, so you can see the whole file. The status bar says last: one failed, eleven passed. a does the same for the whole project."
+
+  - chapter: Read a failure
+    clip: checks
+    tape: |
+      Hide
+      Type "apic ui -C apic-demo" Enter Sleep 3s
+      Type "G" Sleep 500ms
+      Type "f" Sleep 7s
+      Type "kk" Sleep 500ms
+      Show
+      Sleep 1500ms
+      Type "3" Sleep 4s
+      Type "JJJ" Sleep 2s
+      Type "KKK" Sleep 1s
+    say:
+      - "With the cursor on not-found, press 3 for the checks tab. Each assertion with its actual and expected values side by side: status equals 200, actual 404, expected 200."
+      - For a long response, capital J and K scroll the right pane a line at a time, control d and control u half a page, and the right end of the tab strip says where you are.
+
+  - chapter: The session
+    clip: session
+    tape: |
+      Hide
+      Type "apic ui -C apic-demo" Enter Sleep 3s
+      Show
+      Sleep 1s
+      Type "4" Sleep 4s
+      Type "x" Sleep 2500ms
+      Type "y" Sleep 3s
+      Enter Sleep 4s
+    say:
+      - "4 is the session tab: the values captured for the current environment. token, todoId and todoTitle, exactly what apic session prints and what the next apic run will use."
+      - x clears them, after a confirmation. Watch todos.http go back to empty circles. Then enter on login again, and the token is back.
+
+  - chapter: Find, switch, edit, reload
+    clip: filter
+    tape: |
+      Hide
+      Type "apic ui -C apic-demo" Enter Sleep 3s
+      Show
+      Sleep 1s
+      Type "/" Sleep 1s
+      Type "todo" Sleep 2s
+      Enter Sleep 2s
+      Escape Sleep 2s
+    say:
+      - Slash filters the list as you type, by id, URL, method, file or description. Enter keeps the filter, escape clears it.
+
+  - chapter: Find, switch, edit, reload
+    clip: env
+    setup:
+      - sh: |
+          base=$(grep -o 'http://[^"]*' apic-demo/http-client.env.json | head -1)
+          cat > apic-demo/http-client.env.json <<EOF
+          {
+            "\$shared": { "baseUrl": "$base" },
+            "local":    {},
+            "staging":  { "user": "bob" }
+          }
+          EOF
+          cat > apic-demo/http-client.private.env.json <<'EOF'
+          {
+            "local":   { "password": "s3cret", "clientSecret": "demo-secret", "apiKey": "demo-key" },
+            "staging": { "password": "s3cret", "clientSecret": "demo-secret", "apiKey": "demo-key" }
+          }
+          EOF
+    tape: |
+      Hide
+      Type "apic ui -C apic-demo" Enter Sleep 3s
+      Show
+      Sleep 1s
+      Type "e" Sleep 4s
+      Type "e" Sleep 3s
+    say:
+      - "e switches to the next environment. The project is rebuilt with that environment's variables and session, and the results on screen are cleared, because they came from somewhere else. staging, from lesson two's exercise, has no token yet, so the marks empty; e again, and local is back."
+
+  - chapter: Find, switch, edit, reload
+    clip: edit
+    tape: |
+      Env EDITOR "vi"
+      Hide
+      Type "apic ui -C apic-demo" Enter Sleep 3s
+      Type "jjjjj" Sleep 500ms
+      Show
+      Sleep 1500ms
+      Type "o" Sleep 3s
+      Type "O# @assert body.$.service == apic-demo" Sleep 1500ms
+      Escape Sleep 500ms
+      Type ":wq" Sleep 500ms Enter Sleep 3s
+      Enter Sleep 2500ms
+      Type "3" Sleep 4s
+    say:
+      - "o opens the selected request's file at its line in your editor: VISUAL, then EDITOR, vi if neither is set. This is the exercise: give health a fourth assertion, body dollar service equals apic-demo."
+      - "Save and quit, and the project is reloaded. Run health again, then 3: four checks, four ticks. r reloads without editing, for files changed by anything else."
+
+  - chapter: Find, switch, edit, reload
+    clip: help
+    tape: |
+      Hide
+      Type "apic ui -C apic-demo" Enter Sleep 3s
+      Show
+      Sleep 1s
+      Type "?" Sleep 5s
+      Escape Sleep 1500ms
+      Type "q" Sleep 1500ms
+    say:
+      - Question mark shows every key. Escape closes it, and q quits.
+
+  - chapter: Find, switch, edit, reload
+    clip: refuse
+    tape: |
+      Type `apic ui -C apic-demo --json || echo "exit $?"` Enter Sleep 3s
+      Type "apic ui -C apic-demo | cat" Enter Sleep 4s
+    say:
+      - "If it refuses to start, that is by design. apic ui is the one interactive command: it declines dash dash json or a pipe rather than leave a script waiting on a screen. Everything else in apic is non-interactive."
+      - Started with dash dash redact, the UI masks bodies, header values and captures on screen, and shows a redact badge in the status bar so a screenshot never hides that values were masked.
+
+  - chapter: Checkpoint and exercise
+    card:
+      heading: Checkpoint and exercise
+      table:
+        - ["Checkpoint", "`g`, then `f` on todos.http: the heading reads `todos.http ✓11 ✗1`, the status bar `last: 1 failed, 11 passed`"]
+        - ["Exercise", "a fourth assertion on health, without quitting: `o`, add `# @assert body.$.service == apic-demo`, save, `enter`, `3`"]
+      foot: Every key · `apic.sh/tui/` · solution on the lesson page · `apic.sh/learn/05-terminal-ui/`
+    say:
+      - "The checkpoint: g to the top, onto any request in todos.http, then f. The heading reads eleven passed, one failed, and the cross is not-found."
+      - "The exercise is what you just watched: o on health, the fourth assertion, save, run, and 3 for four ticks. Every key is on the UI page."
+
+  - chapter: Checkpoint and exercise
+    card:
+      series: Next · lesson 6
+      title: "Authentication"
+      text: |-
+        Every key in this episode: `apic.sh/learn/05-terminal-ui/`
+        The whole course: `apic.sh/learn/`
+    say:
+      - "Next, lesson six: authentication. Bearer, basic, API keys, OAuth2 and more, attached to a request or a whole project with one directive."
+      - Every key from this episode is on the lesson page. See you there.

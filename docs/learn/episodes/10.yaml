@@ -1,0 +1,184 @@
+# Lesson 10's episode. The lesson assumes `apic demo` is running, so the
+# project is written and the API served before the first shot. The
+# agent session and the MCP client registration are cards, as the
+# builder records a terminal, not an agent; the stdio handshake with the
+# MCP server is typed on one line so the clip shows the whole command.
+lesson: 10
+summary: "Let an AI agent discover, describe and run your requests through the shell contract, --json and the MCP server, brief it with the skill, and never hand it a secret."
+project: true
+thumbnail:
+  words: "Agents\nand MCP"
+  clip: mcp
+
+shots:
+  - chapter: The stuck agent
+    card:
+      series: From zero to apic · lesson 10
+      title: "Agents and MCP"
+      text: "$ `apic run get-todo -C apic-demo --json`"
+    say:
+      - "This is lesson ten of From zero to apic. An AI agent that can discover, describe and run your requests, from the shell and over MCP, without ever being handed a secret."
+
+  - chapter: The stuck agent
+    card:
+      heading: The stuck agent
+      text: |-
+        `> I'll try the todos endpoint.`
+        `$ curl https://api.example.com/v1/todo/1`
+        `404 Not Found`
+        `> Maybe it's plural. Let me try again.`
+        `$ curl https://api.example.com/v1/todos/1`
+        `401 Unauthorized`
+        `> This endpoint needs authentication. Could you give me a token?`
+      foot: Three guesses, two wrong URLs, and a secret about to be pasted into a chat
+    say:
+      - "An agent stuck. It guesses a URL, guesses again, gets a 401, and asks you for a token. The tool was never built for it. Here is one that was."
+
+  - chapter: The briefing
+    card:
+      heading: The briefing
+      text: |-
+        Requests live in `*.http` and are run with `apic`.
+        - `apic list --json`: every request with id, method, URL and description
+        - `apic describe <id> --json`: the variables it needs and whether it is ready
+        - `apic run <id> --json`: send it; one object with ok, request, response, captures, asserts
+        - `apic validate --json`: check every file before running anything
+        Exit codes: 0 ok, 1 assertion failed, 2 usage, parse or missing variable, 3 network.
+        Captured values persist, so run `login` once; a missing variable names the request that captures it.
+      foot: Paste it into `AGENTS.md` or `CLAUDE.md` · the full version at `apic.sh/agents/`
+    say:
+      - "An agent that can run shell commands needs three things from a tool: output it can parse, exit codes it can branch on, and no prompts that would leave it hanging. apic gives all three to every command, and this paragraph is the whole briefing."
+
+  - chapter: The briefing
+    clip: list
+    tape: |
+      Type `apic list -C apic-demo --json | jq -r '.requests[] | "\(.id)\t\(.method) \(.url)"' | head -5` Enter Sleep 4s
+    say:
+      - "Watch it work by running the commands the way an agent would, with jq picking the fields it cares about. Every request, its method and its URL template."
+
+  - chapter: Not ready, and what to do
+    clip: missing
+    tape: |
+      Type "apic session clear -C apic-demo" Enter Sleep 1500ms
+      Type `apic describe get-todo -C apic-demo --json | jq -c '{ready, missing: [.variables[] | select(.missing) | {name, captured_by}]}'` Enter Sleep 4s
+      Type `apic run get-todo -C apic-demo --json 2>/dev/null | jq -c '{ok, errors}'` Enter Sleep 4s
+      Type `apic run get-todo -C apic-demo --json >/dev/null 2>&1 || echo "exit $?"` Enter Sleep 3s
+    say:
+      - "The moment the design shows itself is a request that is not ready yet. From an empty session, describe does not just say what is missing. It says which request produces each value: the id from create-todo, the token from login."
+      - "An agent that runs the request anyway gets the same answer as JSON on stdout, the human message on stderr, and exit code two. Every error apic can produce is written for that reader: what is wrong, what to run, or what to pass."
+
+  - chapter: Not ready, and what to do
+    clip: chain
+    tape: |
+      Type `apic run login -C apic-demo --json | jq -c '{ok, captures}'` Enter Sleep 2500ms
+      Type `apic run create-todo -C apic-demo --json --var title="From an agent" | jq -c '{ok, status: .response.status, captures}'` Enter Sleep 3s
+      Type `apic run get-todo -C apic-demo --json | jq -c '{ok, body: .response.body}'` Enter Sleep 4s
+    say:
+      - "So the agent runs what it was told to, and reads the captures out of the answer. The body is parsed JSON when the response is JSON, so the agent chains values without string handling, and the captures persist, so it logs in once per session rather than before every call."
+
+  - chapter: "# @ref"
+    clip: ref
+    tape: |
+      Type "apic session clear -C apic-demo" Enter Sleep 1500ms
+      Type `apic describe whoami -C apic-demo --json | jq -c '{ready, refs, token: [.variables[] | select(.name == "token") | {missing, captured_by, ref_runs}]}'` Enter Sleep 4s
+      Type `apic run whoami -C apic-demo --json | jq -c '{name: .request.name, ok, status: .response.status}'` Enter Sleep 4s
+    say:
+      - "whoami declares ref login, so the agent does not need to know about the dependency at all. ready is true although the token is missing, because ref_runs says the dependency will handle it, and the run prints one object per request that was sent, login first. An agent reading newline-delimited JSON sees exactly what happened."
+
+  - chapter: A real session
+    card:
+      heading: "A session, condensed"
+      text: |-
+        Asked to mark the todo called Buy milk as done, with only the briefing and the project:
+
+        `$ apic list --json | jq -r '.requests[] | select(.file == "todos.http") | .id'`
+        `$ apic describe update-todo --json | jq '{ready, missing: [.variables[] | select(.missing) | .captured_by]}'`
+        {"ready": false, "missing": ["create-todo", "login"]}
+        `$ apic run list-todos --json | jq 'first(.response.body[] | select(.title == "Buy milk") | .id)'`
+        "1"
+        `$ apic run update-todo --json --var todoId=1 | jq '{ok, done: .response.body.done}'`
+        {"ok": true, "done": true}
+    say:
+      - "Give an agent the demo project and the briefing, and ask it to mark the todo called Buy milk as done. It found the request by name, learned what it needed, got the id from a listing rather than creating a new todo, and passed it with dash dash var because the value it wanted was not the one create-todo would have captured."
+      - "Notice what it did not have to do: read the request files, guess a URL, or ask you for a token. Every step was a documented command with a documented shape."
+
+  - chapter: MCP
+    card:
+      heading: Over MCP
+      table:
+        - ["Register once", "`claude mcp add api -- apic mcp --dir ./apic-demo --env local`, or the same command in `.cursor/mcp.json`"]
+        - ["Discover", "`list_requests` · `describe_request` · `list_environments`"]
+        - ["Run", "`run_request` · `run_file` · `run_features`"]
+        - ["Check and share", "`validate_project` · `curl_request` · `clear_session`"]
+        - ["Resources", "every `.http` file, readable before a call, or as the style for a new request"]
+      foot: The tool reference · `apic.sh/agents/`
+    say:
+      - "The Model Context Protocol is the other door: the same project as tools an MCP client calls directly, with no shell in between. Register the server once, and the client sees nine tools and every request file as a resource."
+
+  - chapter: MCP
+    clip: mcp
+    tape: |
+      Type@12ms `(printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"lesson","version":"0"}}}' '{"jsonrpc":"2.0","method":"notifications/initialized"}' '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'; sleep 1) | apic mcp --dir apic-demo 2>/dev/null | jq -r 'select(.id == 2) | .result.tools[].name'` Enter Sleep 5s
+    say:
+      - "The server speaks JSON-RPC over stdin and stdout, which means you can talk to it from a shell as well. Three lines, the MCP handshake and one call, list the tools: nine of them, the same list, describe, run, validate and curl you have been using, as tools."
+
+  - chapter: What it cannot read
+    clip: refused
+    tape: |
+      Type@12ms `(printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"lesson","version":"0"}}}' '{"jsonrpc":"2.0","method":"notifications/initialized"}' "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"resources/read\",\"params\":{\"uri\":\"file://$PWD/apic-demo/http-client.private.env.json\"}}"; sleep 1) | apic mcp --dir apic-demo 2>/dev/null | jq -c 'select(.id == 3) | .error.message'` Enter Sleep 5s
+    say:
+      - "The resources are the request files and nothing else. The private env file, dot env and the session file sit in the same directory, and a read of any of them is refused: resource not found."
+      - "The same line holds everywhere an agent looks. list_environments masks secrets as apic env does, run_request shows sensitive headers as three stars, and cached tokens are described, never printed. What the agent does get is real URLs, bodies and captured values, because it needs them to chain calls. When the output is going into a stored log, add dash dash redact."
+
+  - chapter: The agent as author
+    clip: author
+    tape: |
+      Type "mkdir -p agent-draft" Enter Sleep 500ms
+      Type `printf '### Health\n# @name health\n# @assert stauts == 200\nGET http://localhost:8089/health\n' > agent-draft/health.http` Enter Sleep 1s
+      Type `apic validate -C agent-draft --json | jq -c '.diagnostics[] | {path, line, column, code, message}'` Enter Sleep 4s
+      Type `apic test --steps -C apic-demo --json | jq -r '.[].pattern' | head -4` Enter Sleep 4s
+    say:
+      - "Because the format is plain text, an agent can add requests, and validate with json tells it where it went wrong, with a line and a column. Here, a typo in a selector, column eleven."
+      - "For features, steps with json lists every step the agent may use, so it writes scenarios from a vocabulary that exists rather than one it imagines."
+
+  - chapter: The skill
+    clip: skill
+    tape: |
+      Type "apic skill install -C apic-demo" Enter Sleep 3s
+      Type "grep '^## ' apic-demo/.claude/skills/apic/SKILL.md" Enter Sleep 4s
+    say:
+      - "The briefing paragraph costs a few hundred tokens on every turn, whether or not the task touches the API. A skill is the same briefing loaded on demand: the agent sees one line saying when it applies, and reads the rest only when a task involves request files or an API call."
+      - "The binary carries one, in the Agent Skills format Claude Code, Codex, Cursor and the others read, and installs it into the project. Two copies, one per convention, and the same five things this lesson walked through: the running order, the error codes, how to write a request, when to reach for apic test, and the MCP tools when they exist."
+      - "The cheat sheet beside it is generated from the binary, so the two cannot drift. Commit the directories. apic init writes them for a new project, and apic skill prints the briefing for an agent that can only run commands."
+
+  - chapter: Checkpoint and exercise
+    clip: checkpoint
+    tape: |
+      Type@12ms `(printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"lesson","version":"0"}}}' '{"jsonrpc":"2.0","method":"notifications/initialized"}' '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'; sleep 1) | apic mcp --dir apic-demo 2>/dev/null | jq 'select(.id == 2) | .result.tools | length'` Enter Sleep 4s
+    say:
+      - "The checkpoint. The MCP server answers a tools list over stdio with the nine tools."
+
+  - chapter: Checkpoint and exercise
+    card:
+      heading: Exercise
+      text: |-
+        Ask an agent, over MCP or the shell, to add pagination assertions
+        to `list-todos` in the demo project and make them pass.
+
+        Give it only the briefing and the request's name.
+        Judge it on whether it looked next door first: `list-open-todos`
+        already carries the assertions it needs.
+      foot: Solution on the lesson page · `apic.sh/learn/10-agents/`
+    say:
+      - "Your exercise: ask an agent, over MCP or the shell, to add pagination assertions to list-todos in the demo project and make them pass. Give it only the briefing and the request's name, and judge it on whether it looked next door first."
+
+  - chapter: Checkpoint and exercise
+    card:
+      series: Next · lesson 11
+      title: "Real APIs and\nthe Taskfile front door"
+      text: |-
+        Every command in this episode: `apic.sh/learn/10-agents/`
+        The whole course: `apic.sh/learn/`
+    say:
+      - "Next, lesson eleven: real APIs and the Taskfile front door. The three example projects against real services, credentials kept out of git, and task as the way the team runs it."
+      - Every command from this episode is on the lesson page. See you there.

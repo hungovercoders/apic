@@ -186,7 +186,7 @@ func buildOne(root, bin, chromium string, ep, prev *Episode, out string, keep bo
 	if err != nil {
 		return err
 	}
-	b := &build{root: root, bin: bin, chromium: chromium, work: work, out: out, ep: ep, blocks: blocks, env: record.Environment(bin, work), clipSeg: map[string]string{}}
+	b := &build{root: root, bin: bin, chromium: chromium, work: work, out: out, ep: ep, blocks: blocks, env: append(record.Environment(bin, work), goCaches()...), clipSeg: map[string]string{}}
 	defer func() {
 		if b.stop != nil {
 			b.stop()
@@ -309,14 +309,37 @@ func (b *build) recordClip(i int, s Shot, seg string, want float64) error {
 	return nil
 }
 
+// goCaches keeps the recording machine's Go module and build caches in
+// force under the recording's own HOME, so a clip that builds or tests
+// apic in a clone (lesson 13) neither downloads modules, which the
+// recording's environment has no proxy for, nor compiles from cold.
+func goCaches() []string {
+	out, err := exec.Command("go", "env", "GOMODCACHE", "GOCACHE").Output()
+	if err != nil {
+		return nil
+	}
+	vals := strings.Fields(string(out))
+	if len(vals) != 2 {
+		return nil
+	}
+	return []string{"GOMODCACHE=" + vals[0], "GOCACHE=" + vals[1]}
+}
+
 // setup runs a clip's setup steps in the scratch directory, off camera.
+// A step sees the repository root as EPISODE_REPO, for a lesson that
+// works on the example projects rather than the demo; the clips do not.
 func (b *build) setup(s Shot) error {
+	root, err := filepath.Abs(b.root)
+	if err != nil {
+		return err
+	}
+	env := append(append([]string(nil), b.env...), "EPISODE_REPO="+root)
 	for _, st := range s.Setup {
 		code, err := st.step(b.ep.Name).Code(b.blocks)
 		if err != nil {
 			return err
 		}
-		if err := record.Shell(b.work, b.env, code); err != nil {
+		if err := record.Shell(b.work, env, code); err != nil {
 			return fmt.Errorf("clip %s: %w", s.Clip, err)
 		}
 	}

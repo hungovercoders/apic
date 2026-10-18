@@ -105,8 +105,10 @@ cat apic-demo/.apic/session.json
 
 ```json
 {
-  "local": {
-    "token": "mock-token"
+  "envs": {
+    "local": {
+      "token": "mock-token"
+    }
   }
 }
 ```
@@ -382,7 +384,7 @@ a background job, and lesson 4 comes back to it.
 
 **Length.** 10 to 12 minutes.
 
-**Cold open (0:00).** `apic run list-todos` and the missing-variable
+**Cold open (after the title card).** `apic run list-todos` and the missing-variable
 error. "apic knows which request would fix this. By the end, the
 request will know too."
 

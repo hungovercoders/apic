@@ -131,14 +131,15 @@ apic list -C apic-demo
 ```
 
 ```
-ID              METHOD  URL                        LINE  DESCRIPTION                                                               PHRASES
+ID                   METHOD   URL                                           LINE  DESCRIPTION                                                               PHRASES
 auth.http
-login           POST    {{baseUrl}}/auth/login     :9    Log in and keep the token                                                 I am logged in
-whoami          GET     {{baseUrl}}/me             :20   Who am I, using the token captured by login (which runs first if needed)  I ask who I am
-basic-auth      GET     {{baseUrl}}/basic-auth/{{user}}/{{password}}  :28   Basic auth, encoded for you
+login                POST     {{baseUrl}}/auth/login                        :9    Log in and keep the token                                                 I am logged in
+whoami               GET      {{baseUrl}}/me                                :20   Who am I, using the token captured by login (which runs first if needed)  I ask who I am
+basic-auth           GET      {{baseUrl}}/basic-auth/{{user}}/{{password}}  :28   Basic auth, encoded for you
 …
 todos.http
-list-todos      GET     {{baseUrl}}/todos          :8    List todos                                                                I list the todos
+list-todos           GET      {{baseUrl}}/todos                             :8    List todos                                             I list the todos
+list-open-todos      GET      {{baseUrl}}/todos?done=false&page=1&limit=5   :18   Filter and paginate; the total comes back in a header  I list the open todos
 …
 
 24 requests in 4 files · apic describe <id> · apic run <id> · apic ui
@@ -361,7 +362,7 @@ only there when the request needs them.
 
 **Length.** 8 to 10 minutes.
 
-**Cold open (0:00).** An empty terminal. "In ten minutes you will have
+**Cold open (after the title card).** An empty terminal. "In ten minutes you will have
 sent a request from a text file, and understood every line of the
 file."
 

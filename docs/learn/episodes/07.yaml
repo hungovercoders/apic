@@ -1,0 +1,185 @@
+# Lesson 7's episode. The lesson assumes `apic demo` is running, so the
+# project is written and the API served before the first shot. Every
+# feature file the lesson writes comes from its own block as setup, off
+# camera, and the clip shows the file and runs it. The vocabulary is
+# longer than a screen, so the built-in steps and the project's phrases
+# are two clips, each cut to what fits.
+lesson: 7
+summary: "Declare # @step phrases on requests, write a .feature file with the built-in vocabulary, run it and read the report."
+project: true
+thumbnail:
+  words: "Behaviour tests,\nno step code"
+  clip: myway
+
+shots:
+  - chapter: No step code
+    card:
+      series: From zero to apic · lesson 7
+      title: "Behaviour tests\nwith Gherkin"
+      text: "$ `apic test -C apic-demo`"
+    say:
+      - "This is lesson seven of From zero to apic. Eight scenarios, forty-seven steps, and not one line of step code. Here is how."
+
+  - chapter: The shipped suite
+    clip: suite
+    tape: |
+      Type "apic test -C apic-demo | tail -3" Enter Sleep 4s
+      Type "head -12 apic-demo/features/todos.feature" Enter Sleep 6s
+    say:
+      - "The demo project has a features directory with one file in it, and apic test runs every feature file under it. Eight scenarios, forty-seven steps, all passing."
+      - "Here is the first scenario. Given I am logged in. When I list the todos. Then the response status is 200, and the body's count is not zero."
+      - "No step definitions, no Cucumber runtime, no glue code. Every line is either a step apic ships or a phrase a request in this project declared. That is the whole language, and it is the thing no other dot http tool has."
+
+  - chapter: The vocabulary
+    clip: steps
+    tape: |
+      Type "apic test --steps -C apic-demo | head -20" Enter Sleep 6s
+    say:
+      - "Dash dash steps prints the vocabulary, in two halves. The built-in steps run requests by id, set variables, and check the last response: its status, a path into its body, a header, a cookie, its shape, or its time."
+
+  - chapter: The vocabulary
+    clip: phrases
+    tape: |
+      Type "apic test --steps -C apic-demo | sed -n '/^phrases/,$p' | head -17" Enter Sleep 6s
+    say:
+      - "The second half is the phrases: the step lines on requests in this project, each naming the request it runs. This half is yours to grow."
+
+  - chapter: Your first feature
+    clip: first
+    setup:
+      - blocks: [3]
+        replace: ["apic test features/first.feature -C apic-demo | tail -3\n", ""]
+    tape: |
+      Type "cat apic-demo/features/first.feature" Enter Sleep 4s
+      Type "apic test features/first.feature -C apic-demo | tail -3" Enter Sleep 4s
+    say:
+      - "The smallest possible scenario runs a request by id and checks the status. When I run login. Then the response status is 200, and the body's access token exists."
+      - "Feature paths are relative to the project root. A run step fails when the request cannot be sent, when any assert on it fails, or when a capture finds nothing, so the assertions from lesson four are already part of every scenario that runs the request."
+
+  - chapter: Phrases, tables, doc strings, outlines
+    card:
+      heading: A phrase on a request
+      text: |-
+        `### Create a todo`
+        `# @name create-todo`
+        `# @step a todo titled {title} is created`
+
+        `{title}` becomes a variable for that request.
+        `I run "…" with:` and a table does the same for a request without a phrase.
+    say:
+      - "I run create-todo works, but a todo titled Learn Gherkin is created reads like behaviour. create-todo declares that phrase with a step directive, and title in braces becomes a variable for that request. The built-in with step does the same with a table, for requests without a phrase."
+
+  - chapter: Phrases, tables, doc strings, outlines
+    clip: myway
+    setup:
+      - blocks: [4]
+        replace: ["apic test features/lesson7.feature -C apic-demo | tail -3\n", ""]
+    tape: |
+      Type "cat apic-demo/features/lesson7.feature" Enter Sleep 8s
+    say:
+      - "A feature that uses all of it. A background that logs in. A scenario that creates a todo by phrase, checks the status and the title, fetches it back, and compares the body to a doc string."
+      - "And a scenario outline that runs once per row of its examples, supplying both variables get-todo needs from a table."
+
+  - chapter: Phrases, tables, doc strings, outlines
+    clip: myrun
+    tape: |
+      Type "apic test features/lesson7.feature -C apic-demo | tail -3" Enter Sleep 4s
+    say:
+      - "Three scenarios, fourteen steps. I fetch the todo used the id and title that create-todo captured a step earlier: captures flow through a scenario the way they flow through a run."
+      - "contains is a subset match, so the id the API added does not have to be in the doc string. the response body is would demand the whole thing."
+
+  - chapter: Tags
+    clip: tags
+    setup:
+      - blocks: [5]
+        replace: ["apic test features/tagged.feature -C apic-demo --tags '@smoke && ~@slow' | tail -3\n", ""]
+    tape: |
+      Type "cat apic-demo/features/tagged.feature" Enter Sleep 4s
+      Type "apic test features/tagged.feature -C apic-demo --tags '@smoke && ~@slow' | tail -3" Enter Sleep 4s
+    say:
+      - "A tag on a feature or a scenario, and dash dash tags to choose. Comma is or, double ampersand is and, tilde is not. Smoke and not slow runs one of the two scenarios. A smoke suite in CI is a tag expression away."
+
+  - chapter: Every scenario starts clean
+    clip: iso
+    setup:
+      - blocks: [6]
+        replace: ["apic test features/iso.feature -C apic-demo --format progress || echo \"exit $?\"\n", ""]
+    tape: |
+      Type "cat apic-demo/features/iso.feature" Enter Sleep 3s
+      Type `apic test features/iso.feature -C apic-demo --format progress || echo "exit $?"` Enter Sleep 6s
+    say:
+      - "Scenarios do not share state with each other or with apic run. Each one begins with an empty in-memory session, and nothing it captures reaches the session file. There is a token in the session from a login just before this, and this scenario skips the login."
+      - "It fails: token is missing, captured by login. That is why the shipped feature has a background that logs in. It runs once per scenario."
+
+  - chapter: Every scenario starts clean
+    clip: usesession
+    tape: |
+      Type "apic test features/iso.feature -C apic-demo --use-session | tail -3" Enter Sleep 4s
+      Type "rm apic-demo/features/iso.feature" Enter Sleep 1s
+    say:
+      - "Dash dash use-session shares the persisted session instead, for a slow identity provider you would rather not hit twenty times. Now it passes."
+
+  - chapter: Undefined steps
+    clip: undefined
+    setup:
+      - blocks: [8]
+        replace: ["(apic test features/undefined.feature -C apic-demo --format progress || echo \"exit $?\") | grep -E \"scenarios|steps|exit\"\nrm apic-demo/features/undefined.feature\n", ""]
+    tape: |
+      Type "cat apic-demo/features/undefined.feature" Enter Sleep 3s
+      Type `(apic test features/undefined.feature -C apic-demo --format progress || echo "exit $?") | grep -E "scenarios|steps|exit"` Enter Sleep 5s
+      Type "rm apic-demo/features/undefined.feature" Enter Sleep 1s
+    say:
+      - "A misspelt or invented step is never silently skipped. One undefined, one skipped, exit code one. An undefined step counts as a failure, and dash dash steps is where to look for the wording that exists."
+      - "There is no way to add step code, and that is the point. The vocabulary plus your phrases is the whole language, so a feature is always readable by someone who knows neither Go nor apic."
+
+  - chapter: Reports
+    clip: reports
+    tape: |
+      Type "apic test -C apic-demo --format junit --output report.xml" Enter Sleep 3s
+      Type "head -2 report.xml" Enter Sleep 4s
+      Type "rm report.xml" Enter Sleep 1s
+    say:
+      - "Dash dash format picks the report: pretty, progress, junit for CI dashboards, and cucumber, or dash dash json, for the tools that read Cucumber JSON."
+      - "Exit codes follow the rest of apic. Zero, every scenario passed. One, a failure or an undefined step. Two, a definition problem. Three, a server that could not be reached. The same suite is one MCP call away for an agent."
+
+  - chapter: Checkpoint and exercise
+    clip: checkpoint
+    tape: |
+      Type "apic test -C apic-demo --format progress | grep scenarios" Enter Sleep 4s
+    say:
+      - "The checkpoint. Every feature in the project passes, yours included: fourteen scenarios."
+
+  - chapter: Checkpoint and exercise
+    card:
+      heading: Exercise
+      text: |-
+        Write a feature for the jobs resource: submit a job,
+        then wait until it is done.
+
+        `jobs.http` already declares the phrases, and `wait-for-job`
+        carries the `# @retry` from lesson 4, so the waiting is one step.
+      foot: Solution on the lesson page · `apic.sh/learn/07-gherkin/`
+    say:
+      - "Your exercise: a feature for the jobs resource. Submit a job, then wait until it is done. jobs.http already declares the phrases, and wait-for-job carries the retry from lesson four, so the waiting is one step."
+
+  - chapter: Checkpoint and exercise
+    clip: jobs
+    setup:
+      - blocks: [11]
+        replace: ["apic test features/jobs.feature -C apic-demo | tail -3\n", ""]
+    tape: |
+      Type "cat apic-demo/features/jobs.feature" Enter Sleep 4s
+      Type "apic test features/jobs.feature -C apic-demo | tail -3" Enter Sleep 4s
+    say:
+      - "One solution. A job is submitted runs create-job, which captures the job id. I wait for the job runs wait-for-job, whose retry sends it until the state is done. The half second in the timing is the one wait between the first and second attempt."
+
+  - chapter: Checkpoint and exercise
+    card:
+      series: Next · lesson 8
+      title: "CI without\nleaking secrets"
+      text: |-
+        Every command in this episode: `apic.sh/learn/07-gherkin/`
+        The whole course: `apic.sh/learn/`
+    say:
+      - "Next, lesson eight: CI without leaking secrets. The smoke flow and this suite in GitHub Actions, with the secret from the environment and a report the dashboard reads."
+      - Every command from this episode is on the lesson page. See you there.

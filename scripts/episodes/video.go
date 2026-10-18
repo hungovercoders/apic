@@ -20,7 +20,7 @@ const (
 	canvasH   = 1080
 	termW     = 1150
 	termH     = 720
-	wideW     = 2000 // apic list is 179 columns wide and 31 lines long; this
+	wideW     = 2100 // apic list is 188 columns wide and 31 lines long; this
 	wideH     = 800  // holds it unwrapped, with the command and prompt around it
 	pad       = 60
 	crop      = 40

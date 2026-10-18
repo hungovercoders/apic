@@ -128,7 +128,9 @@ to requests whose id, URL, file or description contains it.`,
 				}
 				rows = append(rows, row)
 			}
-			fmt.Fprint(a.Stdout, table(rows))
+			if _, err := fmt.Fprint(a.Stdout, table(rows)); err != nil {
+				return err
+			}
 			fmt.Fprintf(a.Stdout, "\n%s\n", theme.Dim.Render(fmt.Sprintf("%s in %s · apic describe <id> · apic run <id> · apic ui",
 				plural(len(entries), "request"), plural(len(files), "file"))))
 			return nil

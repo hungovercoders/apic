@@ -373,7 +373,7 @@ right one.
 
 **Length.** 10 minutes.
 
-**Cold open (0:00).** `apic describe login` with the three-source
+**Cold open (after the title card).** `apic describe login` with the three-source
 variable table on screen. "Same request, three places the values come
 from. By the end you will know all eight, and the order."
 

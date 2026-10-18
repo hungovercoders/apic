@@ -1,0 +1,176 @@
+# Lesson 13's episode. The lesson works in a clone of the repository
+# with Go and Task, so a setup step clones the repository (the builder's
+# own, as EPISODE_REPO) into the scratch directory, and the clips build
+# and test it with go directly; the recording machine's Go caches are
+# in force, so nothing is downloaded. `task check` and the directive
+# walk are cards built from the page, with the places it touches shown
+# in the clone on camera.
+lesson: 13
+summary: "Follow a request through the packages, know the three contracts every change is checked against, and add a small directive end to end with task check green."
+project: true
+thumbnail:
+  words: "Inside apic,\nfirst contribution"
+  clip: golden
+
+shots:
+  - chapter: Eight stages
+    card:
+      series: From zero to apic · lesson 13
+      title: "How apic works inside,\nand your first contribution"
+      text: "$ `task check`"
+    say:
+      - "This is lesson thirteen of From zero to apic, the last one. A request followed through the packages, the three contracts every change is checked against, and a small directive added end to end with the checks green."
+
+  - chapter: Eight stages
+    card:
+      heading: Eight stages, eight packages
+      table:
+        - ["1 Parse", "`internal/httpfile` · split on `###`, directives from the `# @` comments; problems become diagnostics"]
+        - ["2 Discover", "`internal/project` · `apic.yaml`, the env files, every `.http` file under the root"]
+        - ["3 Resolve", "`internal/runner` · every placeholder in the precedence order; a missing one is exit 2, unless a `# @ref` names its request"]
+        - ["4 Apply auth", "`internal/auth` · a header, a SigV4 signature, a cached OAuth2 token or a command's output"]
+        - ["5 Send", "`net/http` · one attempt per `# @retry` round, with the timeout, TLS and the cookie jar"]
+        - ["6 Capture and assert", "`internal/selector`, `internal/assert` · the body read once; a failure is exit 1"]
+        - ["7 Persist", "`internal/session` · captures and cookies to `.apic/`"]
+        - ["8 Render", "`internal/output` · one result becomes the report, the `--json` line, the UI panes and the MCP result"]
+      foot: The diagram · `docs/architecture.md` in the repository
+    say:
+      - "Eight stages, eight packages. Parse the file into requests and diagnostics. Discover the project. Resolve every placeholder in the precedence order, or stop with exit two unless a ref names the request that captures it. Apply the auth."
+      - "Send, one attempt per retry round. Capture and assert, with the body read once. Persist the captures and cookies. And render: the same result becomes the terminal report, the JSON line, the UI panes and the MCP result."
+
+  - chapter: Eight stages
+    clip: contract
+    tape: |
+      Type `apic list -C apic-demo --json | jq -c '.requests[0] | keys'` Enter Sleep 5s
+    say:
+      - "You can see stage eight's contract from outside, and it is the one an agent, the UI and the VS Code extension all read. Every key of a list entry. Keep that list in mind: the directive added later in this lesson will put a key on it."
+
+  - chapter: How it is tested
+    clip: clone
+    setup:
+      - sh: git clone -q "$EPISODE_REPO" apic
+    tape: |
+      Type "cd apic && go build -o bin/apic ./cmd/apic && bin/apic version" Enter Sleep 6s
+    say:
+      - "Clone the repository. task build is go build, task test is go test, and no test needs the network: every one runs against an httptest server. A few seconds, and bin slash apic is yours."
+
+  - chapter: How it is tested
+    card:
+      heading: Three habits
+      table:
+        - ["The parser has a golden file", "`internal/httpfile/testdata/sample.http` holds one of everything the parser understands, and `TestParseSample` checks the fields it produces. A new piece of syntax is a case in that file first"]
+        - ["The runner talks to httptest", "`runner_test.go` starts an `httptest.NewServer` per test with handlers that play the API, so a test can hand back a 401, a redirect or a slow body without a network. The same goes for `bdd` and `mcp`"]
+        - ["The UI is driven headlessly", "`internal/ui/headless.go` has `Press` and `Resize`; tests and the screenshot generator call them, so a screenshot in the docs is what the UI draws"]
+    say:
+      - "Three habits run through the tests, and a change that follows them is easy to accept. The parser has a golden file with one of everything it understands. The runner talks to httptest servers that play the API. And the UI is driven headlessly, so a screenshot in the docs is what the UI draws."
+
+  - chapter: How it is tested
+    clip: golden
+    tape: |
+      Type "cd apic && tail -12 internal/httpfile/testdata/sample.http" Enter Sleep 4s
+      Type "go test ./internal/httpfile/ -run TestParseSample -v" Enter Sleep 6s
+    say:
+      - "The end of the golden file, and the test that pins every field it produces. A new piece of syntax is a case in that file first, and the test that reads it goes red before the parser learns it."
+
+  - chapter: The three contracts
+    card:
+      heading: The three contracts
+      table:
+        - ["The dialect is REST Client's and JetBrains'", "Everything apic adds is a `# @` comment. Enforced by the golden file, by `TestGrammarMatchesKnownDirectives`, which fails when the VS Code grammar and the parser disagree, and by `validate` warning rather than failing on an unknown directive"]
+        - ["`--json` and the exit codes are stable", "Keys are only added; 0, 1, 2 and 3 keep their meanings. `runner.ExitCode` uses `errors.As`, `errorlint` is on so a wrapped transport error cannot become a 2, and `TestExitCodeUnwraps` pins it"]
+        - ["Every command is non-interactive", "`apic ui` is the one exception. Every CLI test runs with no terminal; the device-code and authorization-code prompts never block on stdin"]
+      foot: "`task check` is what CI runs: lint, tests, the race detector, the licence check and the examples"
+    say:
+      - "Every review asks the same three questions, and the tree enforces each. The dialect is REST Client's and JetBrains': everything apic adds is a comment, and a test fails when the VS Code grammar and the parser disagree on the directive list."
+      - "JSON and the exit codes are stable: keys are only added, and a test pins that a wrapped transport error cannot become a two. And every command is non-interactive, with apic ui the one exception. task check is what CI runs, and a green task check locally is usually a green pull request."
+
+  - chapter: "Add # @tag"
+    card:
+      heading: "Add a directive: # @tag, in five edits and a test"
+      table:
+        - ["Parse it", "One line in `KnownDirectives` in `internal/httpfile/parse.go`, and a tagged request at the end of the golden file, where it moves no line numbers"]
+        - ["Tell the grammar", "`tag` in the alternation in `editors/vscode/syntaxes/apic-directives.injection.json`, or the grammar test fails"]
+        - ["Surface it", "`Tags []string` with `json:\"tags,omitempty\"` on `listEntry` in `internal/cli/list.go`, filled from the directives; `omitempty` keeps the shape identical for every request without tags"]
+        - ["Rank it", "A slot beside `description` in `directiveRank` in `internal/httpfile/format.go`, so `apic fmt` knows where it reads best"]
+        - ["Document it", "A row in the site's `format.md`, a line in `cheatsheet.md`, and `tags` in the `list --json` note of `cli.md`"]
+        - ["Test it", "The pattern in `internal/cli/ref_test.go`: a project in a temp directory, `list --json`, an assertion on `\"tags\": [\"smoke\", \"users\"]`"]
+      foot: The checklist · `docs/architecture.md#how-to-add-things`
+    say:
+      - "Walk the checklist with a small, real directive. tag smoke labels a request, repeatable, and list with json surfaces the tags so an agent or a script can pick the smoke set. Five edits and a test."
+      - "Parse it: one line in the known directives, and a case at the end of the golden file, where it moves no line numbers. Tell the grammar, or its test fails: that is the dialect contract at work. Surface it on the list entry with omitempty, so the shape is identical for every request without tags. Rank it for apic fmt. Document it. Test it, with the pattern the ref test shows."
+
+  - chapter: "Add # @tag"
+    clip: where
+    tape: |
+      Type "cd apic && grep -n -A3 'KnownDirectives = ' internal/httpfile/parse.go" Enter Sleep 4s
+      Type "grep -o 'name|description|capture|assert|auth|step|ref' editors/vscode/syntaxes/apic-directives.injection.json" Enter Sleep 3s
+      Type `grep -n 'json:"' internal/cli/list.go | head -4` Enter Sleep 4s
+    say:
+      - "The three places in the clone: the known directives, each with the one-line description validate and the editors show; the grammar's alternation, the same list in the extension; and the list entry's fields, each with its JSON key. The whole change is under fifty lines, and every one of them has a test or a check that would have caught its absence."
+
+  - chapter: "Add # @tag"
+    card:
+      heading: task check
+      text: |-
+        `$ task check`
+        task: [lint] golangci-lint run ./...
+        0 issues.
+        task: [test] go test ./...
+        ok      github.com/hungovercoders/apic/internal/cli
+        ok      github.com/hungovercoders/apic/internal/httpfile
+        …
+        task: [race] go test -race ./...
+        task: [validate-examples] apic validate -C examples/httpbin
+      foot: lint, test, race, licences and the examples, as CI runs them
+    say:
+      - "Then task check: lint with errorlint, gosec, bodyclose and friends, the tests, the race detector, the licence check and the examples. Green here is what the pull request's CI sees."
+
+  - chapter: The pull request
+    card:
+      heading: Open the pull request
+      table:
+        - ["A test next to it", "One that fails without the fix. Revert the fix once and watch it go red; that is the proof"]
+        - ["Docs in the same change", "A new directive needs `format.md` and the cheat sheet; a new command the README table, `cli.md` and the cheat sheet"]
+        - ["A commit message that says why", "The diff already says what"]
+        - ["`task check` green before you push", "If the UI changed, `task shots`; if a lesson changed, `task learn:check`"]
+      foot: CI runs the same `task check`, the docs build, the course harness and the extension's tests
+    say:
+      - "CONTRIBUTING is short, and the parts that matter for a first change: a test next to it that fails without the fix, the docs in the same change, a commit message that says why, and task check green before you push. Push a branch and open the pull request. CI runs the same checks, the docs build, the course harness and the extension's tests."
+
+  - chapter: Checkpoint and exercise
+    card:
+      heading: Checkpoint
+      text: |-
+        `task check` is green with the new directive and its test, and:
+        `$ bin/apic list -C apic-demo --json | jq -c '[.requests[] | select(.tags)] | length'`
+        1
+
+        The bundled project has no tags until you add one; tag a request and see `1`.
+    say:
+      - "The checkpoint. task check is green with the new directive and its test, and list with json counts the requests you tagged in the demo project. The bundled project has none until you add some, so tag one and see one."
+
+  - chapter: Checkpoint and exercise
+    card:
+      heading: Exercise
+      text: |-
+        Pick a `P3` issue from the tracker and open a pull request for it.
+        `github.com/hungovercoders/apic/issues?q=is:issue+is:open+label:P3`
+
+        `P3` issues are small and self-contained on purpose. A good first pull request
+        has the shape of the tag walk: a few dozen lines, a test that fails without it,
+        the docs it needs, and a commit message that starts with the reason.
+      foot: Say in the description what you checked and how; reviewers read that first
+    say:
+      - "Your exercise: pick a P3 issue from the tracker and open a pull request for it. They are small and self-contained on purpose. A good first pull request has the shape of the tag walk: a few dozen lines, a test that fails without it, the docs it needs, and a commit message that starts with the reason."
+
+  - chapter: Checkpoint and exercise
+    card:
+      series: From zero to apic · the end
+      title: "Thank you"
+      text: |-
+        The whole course, every command checked in CI: `apic.sh/learn/`
+        The source, the issues and the P3 label: `github.com/hungovercoders/apic`
+        apic is MIT licensed and built in the open.
+    say:
+      - "That is the course. Thirteen lessons, from a first request to a pull request, every command on the lesson pages checked in CI. apic is MIT licensed and built in the open."
+      - If something did not work for you, the lesson page has a report-a-problem link at the bottom. Thank you for watching.

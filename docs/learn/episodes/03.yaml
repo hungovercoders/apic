@@ -27,10 +27,6 @@ shots:
     say:
       - Start clean, then ask for the todo list, which needs a token.
       - Nothing was sent. Exit code two means apic stopped before the network. The error names the variable, the request that captures it, and the two ways to fix it.
-
-  - chapter: The missing token
-    zoom: { col: 60, row: 8 }
-    say:
       - apic knows which request would fix this. By the end of the episode, the request will know too. For now, take the first way.
 
   - chapter: Capture

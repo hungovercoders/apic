@@ -1,5 +1,6 @@
 ---
 title: "Testing with Gherkin features"
+description: "apic test runs Gherkin .feature files against your .http requests with a built-in step vocabulary, no Cucumber runtime, and JUnit and cucumber reports."
 ---
 `apic test` runs Cucumber-style `.feature` files against the requests in
 your `.http` files. There is no Cucumber runtime to install and no step
@@ -151,7 +152,7 @@ set of matches, count it or look for one member:
 
 | Step | Effect |
 |---|---|
-| `When I capture the response body "$.id" as "userId"` | Store a value for later steps. Also `header`. |
+| `When I capture the response body "$.id" as "userId"` | Store a value for later steps. Also `header` and `cookie`. |
 
 `# @capture` lines on requests do this automatically.
 
@@ -220,7 +221,7 @@ in isolated sessions unless `use_session` is true, which shares
 the way `--use-session` does on the command line:
 
 ```json
-{"ok": false, "scenarios": 4, "passed": 3, "failed": 1, "skipped": 0, "undefined": 0,
+{"ok": false, "exit_code": 1, "scenarios": 4, "passed": 3, "failed": 1, "skipped": 0, "undefined": 0,
  "failures": [{"feature": "Users", "scenario": "Fetch a user by id",
                "step": "Then the response status is 200",
                "status": "failed", "error": "expected status == 200, got \"404\"\n  GET https://..."}]}

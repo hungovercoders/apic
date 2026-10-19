@@ -1,5 +1,6 @@
 ---
 title: "Lesson 11: Real APIs and the Taskfile front door"
+description: "Lesson 11: run the three example projects against real services, keep credentials out of git, and make task the way the team runs it."
 ---
 **Goal.** Run apic against three real services with the three example
 projects, keep the credentials out of git, and make `task` the way your
@@ -227,17 +228,20 @@ tasks:
   api:
     desc: Run any request, e.g. task api -- get-user --env staging
     dir: api
-    cmds: [apic run {{.CLI_ARGS}}]
+    cmds:
+      - apic run {{.CLI_ARGS}}
 
   login:
     desc: Log in and keep the token for the tasks below
     dir: api
-    cmds: [apic run login --env {{.ENV}}]
+    cmds:
+      - apic run login --env {{.ENV}}
 
   smoke:
     desc: Run every request in smoke.http
     dir: api
-    cmds: [apic run smoke.http --env {{.ENV}}]
+    cmds:
+      - apic run smoke.http --env {{.ENV}}
 
   api:check:
     desc: Validate the request files and run the smoke flow, as CI does
@@ -280,7 +284,7 @@ If you skipped Spotify, the GitHub file is the same check:
 
 Add a fourth example project for an API you use, with one flow and one
 feature. Start it with `apic init`, which writes the config, the env
-files, the `.gitignore` lines and a first request; point it at the demo
+files, the `.gitignore` lines, a first request and the Agent Skill; point it at the demo
 API first if the real one needs credentials you do not have to hand.
 
 <details>
@@ -299,6 +303,10 @@ wrote my-api/http-client.private.env.json
 wrote my-api/api.http
 wrote my-api/features/smoke.feature
 wrote my-api/.gitignore
+wrote my-api/.claude/skills/apic/SKILL.md
+wrote my-api/.claude/skills/apic/references/cheatsheet.md
+wrote my-api/.agents/skills/apic/SKILL.md
+wrote my-api/.agents/skills/apic/references/cheatsheet.md
 
 next:
   cd my-api

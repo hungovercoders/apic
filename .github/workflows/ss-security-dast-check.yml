@@ -106,10 +106,9 @@ jobs:
             echo "::notice::api.openapi.spec is set but no URL resolved for this event. Set urls.preview / urls.production to enable the API scan here."
             echo "mode=skip" >> "$GITHUB_OUTPUT"
           else
-            # Same shape as the resolve-url action's validator: the URL reaches a
-            # `run:` line, so only URL-safe characters pass.
-            if [[ ! "$URL" =~ ^https?://[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~%/-]*)?$ ]]; then
-              echo "::error::Invalid URL format: $URL" >&2
+            if ! python -c 'import sys; from urllib.parse import urlsplit; value=sys.argv[1]; parsed=urlsplit(value); parsed.port; sys.exit(not (parsed.scheme in ("http", "https") and parsed.hostname and not any(char.isspace() for char in value)))' "$URL" 2>/dev/null
+            then
+              echo "::error::Invalid URL format" >&2
               exit 1
             fi
             echo "mode=api" >> "$GITHUB_OUTPUT"
@@ -146,13 +145,15 @@ jobs:
       - name: Run DAST analysis + gate
         id: dast
         if: steps.mode.outputs.mode != 'skip'
+        env:
+          TARGET_URL: ${{ steps.mode.outputs.url }}
         # `task -x` passes the CLI's exit code through (plain `task` maps
         # every failure to 201). The code is kept as an output so later
         # steps can tell blocking alerts (1) from could-not-run (2).
         shell: bash
         run: |
           set +e
-          task -x ss:security:dast -- ${{ steps.mode.outputs.url }}
+          task -x ss:security:dast -- "$TARGET_URL"
           rc=$?
           echo "rc=$rc" >> "$GITHUB_OUTPUT"
           exit $rc

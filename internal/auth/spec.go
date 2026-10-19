@@ -73,83 +73,112 @@ func (s *Spec) check() error {
 		if len(s.Args) != 1 {
 			return fmt.Errorf("@auth bearer needs exactly one argument: the token")
 		}
-	case "basic":
+	case "basic", "digest":
 		if len(s.Args) != 2 {
-			return fmt.Errorf("@auth basic needs two arguments: user and password")
-		}
-	case "digest":
-		if len(s.Args) != 2 {
-			return fmt.Errorf("@auth digest needs two arguments: user and password")
+			return fmt.Errorf("@auth %s needs two arguments: user and password", s.Type)
 		}
 	case "apikey":
-		if len(s.Args) != 1 {
-			return fmt.Errorf("@auth apikey needs exactly one argument: the key (then header=, query= or prefix=)")
-		}
-		if s.Options["header"] != "" && s.Options["query"] != "" {
-			return fmt.Errorf("@auth apikey: header= and query= are alternatives; give one")
-		}
+		return s.checkAPIKey()
 	case "aws":
-		if len(s.Args) > 0 {
-			return fmt.Errorf("@auth aws takes only key=value options (service, region, profile)")
-		}
-		for k := range s.Options {
-			if k != "service" && k != "region" && k != "profile" {
-				return fmt.Errorf("@auth aws: unknown option %q", k)
-			}
-		}
+		return s.checkAWS()
 	case "oauth2":
-		if len(s.Args) > 0 {
-			return fmt.Errorf("@auth oauth2 takes only key=value options")
-		}
-		if s.Options["tokenUrl"] == "" {
-			return fmt.Errorf("@auth oauth2 needs tokenUrl=")
-		}
-		if s.Options["clientId"] == "" {
-			return fmt.Errorf("@auth oauth2 needs clientId=")
-		}
-		switch g := s.grant(); g {
-		case "client_credentials":
-		case "password":
-			if s.Options["username"] == "" || s.Options["password"] == "" {
-				return fmt.Errorf("@auth oauth2 grant=password needs username= and password=")
-			}
-		case "device_code":
-			if s.Options["deviceUrl"] == "" {
-				return fmt.Errorf("@auth oauth2 grant=device_code needs deviceUrl=")
-			}
-		case "authorization_code":
-			if s.Options["authUrl"] == "" {
-				return fmt.Errorf("@auth oauth2 grant=authorization_code needs authUrl=")
-			}
-			if p := s.Options["redirectPort"]; p != "" {
-				if n, err := strconv.Atoi(p); err != nil || n < 0 || n > 65535 {
-					return fmt.Errorf("@auth oauth2: redirectPort must be a port number, not %q", p)
-				}
-			}
-			if u := s.Options["redirectUrl"]; u != "" {
-				if _, _, err := redirectTarget(u); err != nil {
-					return fmt.Errorf("@auth oauth2: %w", err)
-				}
-				if s.Options["redirectPort"] != "" {
-					return fmt.Errorf("@auth oauth2: redirectUrl and redirectPort are alternatives; give one")
-				}
-			}
-		default:
-			return fmt.Errorf("@auth oauth2: unknown grant %q (client_credentials, password, device_code or authorization_code)", g)
-		}
-		for k := range s.Options {
-			switch k {
-			case "tokenUrl", "clientId", "clientSecret", "grant", "scope", "username", "password", "audience", "deviceUrl", "authUrl", "redirectPort", "redirectUrl", "clientAuth":
-			default:
-				return fmt.Errorf("@auth oauth2: unknown option %q", k)
-			}
-		}
-		if ca := s.Options["clientAuth"]; ca != "" && ca != "body" && ca != "basic" {
-			return fmt.Errorf("@auth oauth2: clientAuth must be body or basic")
-		}
+		return s.checkOAuth2()
 	case "exec":
 		if len(s.Args) == 0 {
 			return fmt.Errorf("@auth exec needs a command")
+		}
+	}
+	return nil
+}
+
+func (s *Spec) checkAPIKey() error {
+	if len(s.Args) != 1 {
+		return fmt.Errorf("@auth apikey needs exactly one argument: the key (then header=, query= or prefix=)")
+	}
+	if s.Options["header"] != "" && s.Options["query"] != "" {
+		return fmt.Errorf("@auth apikey: header= and query= are alternatives; give one")
+	}
+	return nil
+}
+
+func (s *Spec) checkAWS() error {
+	if len(s.Args) > 0 {
+		return fmt.Errorf("@auth aws takes only key=value options (service, region, profile)")
+	}
+	for _, k := range s.optionKeys() {
+		if k != "service" && k != "region" && k != "profile" {
+			return fmt.Errorf("@auth aws: unknown option %q", k)
+		}
+	}
+	return nil
+}
+
+// oauth2Options are the keys @auth oauth2 accepts.
+var oauth2Options = map[string]bool{
+	"tokenUrl": true, "clientId": true, "clientSecret": true, "grant": true, "scope": true,
+	"username": true, "password": true, "audience": true, "deviceUrl": true, "authUrl": true,
+	"redirectPort": true, "redirectUrl": true, "clientAuth": true,
+}
+
+func (s *Spec) checkOAuth2() error {
+	if len(s.Args) > 0 {
+		return fmt.Errorf("@auth oauth2 takes only key=value options")
+	}
+	if s.Options["tokenUrl"] == "" {
+		return fmt.Errorf("@auth oauth2 needs tokenUrl=")
+	}
+	if s.Options["clientId"] == "" {
+		return fmt.Errorf("@auth oauth2 needs clientId=")
+	}
+	if err := s.checkGrant(); err != nil {
+		return err
+	}
+	for _, k := range s.optionKeys() {
+		if !oauth2Options[k] {
+			return fmt.Errorf("@auth oauth2: unknown option %q", k)
+		}
+	}
+	if ca := s.Options["clientAuth"]; ca != "" && ca != "body" && ca != "basic" {
+		return fmt.Errorf("@auth oauth2: clientAuth must be body or basic")
+	}
+	return nil
+}
+
+// checkGrant checks the options the oauth2 grant needs.
+func (s *Spec) checkGrant() error {
+	switch g := s.grant(); g {
+	case "client_credentials":
+	case "password":
+		if s.Options["username"] == "" || s.Options["password"] == "" {
+			return fmt.Errorf("@auth oauth2 grant=password needs username= and password=")
+		}
+	case "device_code":
+		if s.Options["deviceUrl"] == "" {
+			return fmt.Errorf("@auth oauth2 grant=device_code needs deviceUrl=")
+		}
+	case "authorization_code":
+		return s.checkAuthorizationCode()
+	default:
+		return fmt.Errorf("@auth oauth2: unknown grant %q (client_credentials, password, device_code or authorization_code)", g)
+	}
+	return nil
+}
+
+func (s *Spec) checkAuthorizationCode() error {
+	if s.Options["authUrl"] == "" {
+		return fmt.Errorf("@auth oauth2 grant=authorization_code needs authUrl=")
+	}
+	if p := s.Options["redirectPort"]; p != "" {
+		if n, err := strconv.Atoi(p); err != nil || n < 0 || n > 65535 {
+			return fmt.Errorf("@auth oauth2: redirectPort must be a port number, not %q", p)
+		}
+	}
+	if u := s.Options["redirectUrl"]; u != "" {
+		if _, _, err := redirectTarget(u); err != nil {
+			return fmt.Errorf("@auth oauth2: %w", err)
+		}
+		if s.Options["redirectPort"] != "" {
+			return fmt.Errorf("@auth oauth2: redirectUrl and redirectPort are alternatives; give one")
 		}
 	}
 	return nil
@@ -256,8 +285,8 @@ func (s *Spec) Render(fn func(string) (string, error)) (*Spec, error) {
 		}
 		out.Args = append(out.Args, v)
 	}
-	for k, a := range s.Options {
-		v, err := fn(a)
+	for _, k := range s.optionKeys() {
+		v, err := fn(s.Options[k])
 		if err != nil {
 			return nil, err
 		}
@@ -266,11 +295,26 @@ func (s *Spec) Render(fn func(string) (string, error)) (*Spec, error) {
 	return out, nil
 }
 
-// Texts returns every string in the spec that may contain placeholders.
+// Texts returns every string in the spec that may contain placeholders:
+// the arguments in order, then the options by name, so describe lists
+// their variables the same way every run.
 func (s *Spec) Texts() []string {
 	out := append([]string(nil), s.Args...)
-	for _, v := range s.Options {
-		out = append(out, v)
+	for _, k := range s.optionKeys() {
+		out = append(out, s.Options[k])
 	}
 	return out
+}
+
+// optionKeys is the option names in sorted order. Go randomises map
+// order, and anything a user sees (a variable list, which unknown option
+// an error names, which placeholder a render fails on) must not change
+// from run to run.
+func (s *Spec) optionKeys() []string {
+	keys := make([]string, 0, len(s.Options))
+	for k := range s.Options {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }

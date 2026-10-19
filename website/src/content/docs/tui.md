@@ -1,9 +1,10 @@
 ---
 title: "The terminal UI"
+description: "apic ui, the terminal UI: browse requests, send them, read the response, the checks, the session and the history, with every key and flag explained."
 ---
 `apic ui` is the interactive face of the same project the CLI runs: requests
-on the left, and a preview, the response, the checks and the session on the
-right. It sends requests with the same runner as `apic run`, so what you see
+on the left, and a preview, the response, the checks, the session and the
+history on the right. It sends requests with the same runner as `apic run`, so what you see
 is what CI will see.
 
 ![apic ui](assets/apic-ui.svg)

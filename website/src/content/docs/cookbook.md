@@ -1,5 +1,6 @@
 ---
 title: "Cookbook"
+description: "Worked recipes for the jobs that come up most: real APIs, tokens, CRUD flows, polling, uploads and downloads, redirects, secrets in CI, agents and imports."
 ---
 Worked recipes for the jobs that come up most. Each one is self-contained;
 copy the parts you need. Recipes that use the fake API from `apic demo` can
@@ -112,8 +113,9 @@ apic run todos.http              # stops at the first failure
 apic run todos.http --keep-going # runs everything, then reports
 ```
 
-This exact file ships with `apic demo`, so
-`apic run todos.http -C apic-demo` works offline.
+A longer version of this file ships with `apic demo`:
+`apic run login todos.http -C apic-demo --keep-going` runs it offline. Its
+`not-found` request fails on purpose, to show what a failure looks like.
 
 ## A smoke test in CI that never leaks secrets
 
@@ -127,7 +129,7 @@ This exact file ships with `apic demo`, so
 ```
 
 - `setup-apic` installs a release verified against `checksums.txt`, cached
-  per version and platform, on every runner OS; `with: version: v0.1.2`
+  per version and platform, on every runner OS; `with: version: v0.1.3`
   pins one. Elsewhere, `install.sh` does the same.
 - `APIC_VAR_<name>` overrides any variable from the shell, so no secret
   needs to reach the runner's disk.
@@ -166,8 +168,9 @@ at the exact line and column:
 ### In a container
 
 `ghcr.io/hungovercoders/apic` is the same binary on `scratch`, with the CA
-bundle it needs for TLS: about 7 MB, for amd64 and arm64, tagged with the
-version (`0.2.0` and `v0.2.0`), the minor (`v0.2`) and `latest`. Mount the
+bundle it needs for TLS: about 16 MB (about 7 MB to pull), for amd64 and
+arm64, tagged with the version (`0.1.3` and `v0.1.3`), the minor (`v0.1`)
+and `latest`. Mount the
 project at `/work` and pass secrets as `APIC_VAR_*` variables:
 
 ```sh
@@ -189,7 +192,7 @@ There, copy the binary into the image you already use:
 
 ```dockerfile
 FROM node:22
-COPY --from=ghcr.io/hungovercoders/apic:v0.2 /apic /usr/local/bin/apic
+COPY --from=ghcr.io/hungovercoders/apic:v0.1 /apic /usr/local/bin/apic
 ```
 
 or run the installer in the job:
@@ -224,7 +227,7 @@ configure, and no AWS SDK in the binary.
 
 ```sh
 aws sso login --profile prod
-apic run list-orders --var profile=prod   # or: # @auth aws profile=prod
+AWS_PROFILE=prod apic run list-orders   # or: # @auth aws profile=prod
 ```
 
 Set it once for a whole project in `apic.yaml` instead of on every request:
@@ -541,7 +544,8 @@ claude mcp add api -- apic mcp --dir ./api --env dev
 ```
 
 The agent gets `list_requests`, `describe_request`, `run_request`,
-`run_file`, `list_environments`, `clear_session` and `run_features`, plus
+`run_file`, `list_environments`, `clear_session`, `run_features`,
+`validate_project` and `curl_request`, plus
 each `.http` file as a readable resource. Assertion failures come back as
 `ok: false` rather than tool errors, so the agent can reason about them.
 
@@ -555,7 +559,8 @@ tasks:
   api:
     desc: Run an API request, e.g. task api -- get-user --env staging
     dir: api
-    cmds: [apic run {{.CLI_ARGS}}]
+    cmds:
+      - apic run {{.CLI_ARGS}}
 
   api:check:
     desc: Validate the request files and run the smoke flow

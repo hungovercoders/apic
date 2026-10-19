@@ -86,5 +86,5 @@ every doc in this repo. Report a credential that escapes privately
 
 ## Licence
 
-[MIT](LICENSE); every release archive ships the notices for the modules the
-binary links.
+[MIT](LICENSE); every release archive, package and image ships the notices
+for Go and the modules the binary links.

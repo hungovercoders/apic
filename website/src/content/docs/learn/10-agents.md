@@ -1,5 +1,6 @@
 ---
 title: "Lesson 10: Agents and MCP"
+description: "Lesson 10: let an AI agent discover, describe and run your requests through the shell contract, --json and the MCP server, without handing it a secret."
 ---
 **Goal.** Let an AI agent discover, describe and run your requests, from
 the shell through the JSON contract and over MCP as tools, without ever
@@ -186,7 +187,7 @@ The client then sees nine tools:
 | `list_environments` | environments and the variables in effect, secrets masked |
 | `clear_session {all?}` | forget captured values and cookies |
 | `validate_project {}` | check every `.http` file, with file, line, column and code, without sending anything |
-| `curl_request {name, raw?}` | the equivalent curl command, masked unless `raw` |
+| `curl_request {name, lang?, raw?}` | the equivalent curl command, or HTTPie, PowerShell, Python, JavaScript or Go with `lang`, masked unless `raw` |
 
 and every `.http` file as a resource it can read, so it can look at a
 request's definition before calling it, or write a new one in the same
@@ -281,6 +282,45 @@ and `run_features` over MCP (or `apic test --json` from the shell) hands
 back the failing steps with their errors, which is what the agent needs
 to fix the request or the scenario.
 
+### 8. The briefing as a skill
+
+The paragraph in step 1 costs a few hundred tokens on every turn, whether
+or not the task touches the API. A skill is the same briefing loaded on
+demand: the agent sees one line saying when it applies, and reads the
+rest only when a task involves `.http` files or an API call. The binary
+carries one, in the [Agent Skills](https://agentskills.io) format that
+Claude Code, Codex, Cursor and the others read, and installs it into the
+project:
+
+<!-- learn -->
+```sh
+apic skill install -C apic-demo
+grep '^## ' apic-demo/.claude/skills/apic/SKILL.md
+```
+
+```
+wrote apic-demo/.claude/skills/apic/SKILL.md
+wrote apic-demo/.claude/skills/apic/references/cheatsheet.md
+wrote apic-demo/.agents/skills/apic/SKILL.md
+wrote apic-demo/.agents/skills/apic/references/cheatsheet.md
+## Running requests
+## When a command fails
+## Writing or changing requests
+## Testing an API
+## Over MCP instead of the shell
+```
+
+Two copies, one per convention, and the same five things this lesson
+walked through: the validate, list, describe, run order; the error codes
+to branch on; how to write a request and where secrets belong; when to
+reach for `apic test`; and the MCP tools, which the skill tells the agent
+to prefer when they exist. `references/cheatsheet.md` is the
+[cheat sheet](../cheatsheet.md) with absolute links, generated from the
+binary so the two cannot drift. Commit the directories. `apic init`
+writes them for a new project, `apic skill` prints the briefing for an
+agent that can only run commands, and `npx skills add hungovercoders/apic`
+fetches the same files from the repository for the agents that CLI finds.
+
 ## Checkpoint
 
 The MCP server answers a `tools/list` over stdio with the nine tools:
@@ -313,10 +353,11 @@ A good agent reads `todos.http` (as a resource, or with `cat`), runs
 
 ```http
 # @assert header.x-total-count >= 1
-# @assert body.$.# <= 5
+# @assert body.$.# <= 20
 ```
 
-then runs `apic validate --json` and `apic run list-todos --json` and
+(20 is the API's default page size, since `list-todos` sends no
+`limit`), then runs `apic validate --json` and `apic run list-todos --json` and
 reports the `asserts` array. The demo's `list-open-todos` already
 carries these, so the agent can also be judged on whether it looked
 next door first. If it wrote an assertion with a selector that does
@@ -357,16 +398,18 @@ was never built for it. Here is one that was."
    `--redact`.
 7. The agent writing a request: `validate --json` with the column;
    `--steps --json` for features.
-8. Checkpoint, then the pagination exercise.
+8. The skill: the same briefing on demand, `apic skill install`, the
+   five sections, and the cheat sheet that cannot drift.
+9. Checkpoint, then the pagination exercise.
 
-**Shot list.** A terminal for steps 1 to 3 and 5 to 7; the agent
+**Shot list.** A terminal for steps 1 to 3 and 5 to 8; the agent
 session prerecorded in Claude Code, at 2x, with the tool calls
 expanded. `docs/learn/tapes/10.tape` records the terminal parts.
 
 **Chapters.** `0:00 The stuck agent` · `0:40 The briefing` · `1:40
 Not ready, and what to do` · `3:30 # @ref` · `4:20 A real session`
 · `6:40 MCP` · `8:40 What it cannot read` · `9:40 The agent as
-author` · `11:00 Checkpoint and exercise`.
+author` · `10:30 The skill` · `11:20 Checkpoint and exercise`.
 
 **Description.** From the [episode template](https://github.com/hungovercoders/apic/blob/main/docs/learn/_episode-template.md).
 

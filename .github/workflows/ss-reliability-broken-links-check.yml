@@ -129,8 +129,9 @@ jobs:
       - name: Run broken-link checks
         env:
           BROKEN_LINKS_PAGES: ${{ env.BROKEN_LINKS_PAGES }}
+          TARGET_URL: ${{ steps.url.outputs.url }}
         id: links
-        run: task ss:reliability:broken-links -- ${{ steps.url.outputs.url }} --ci
+        run: task ss:reliability:broken-links -- "$TARGET_URL" --ci
 
       - name: Stop local server
         if: always() && steps.url.outputs.use_local == 'true'

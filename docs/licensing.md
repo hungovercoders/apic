@@ -4,7 +4,18 @@
   without it, and goreleaser ships it in every archive.
 - `task notices` (`scripts/notices.sh`) regenerates the third-party notices
   file, which is generated rather than committed (it is in `.gitignore`);
-  goreleaser runs it before packaging.
+  goreleaser runs it before packaging. It starts with Go itself (the standard
+  library and runtime are in every binary, under Go's BSD licence) and gives
+  every module the URL of its exact source on the module proxy, which MPL-2.0
+  3.2(a) requires for the MPL modules. CI's `licences` job checks both.
+- Every way apic ships carries `LICENSE` and the notices: the archives, the
+  deb, rpm and apk packages (`/usr/share/doc/apic`), and the image (also
+  `/usr/share/doc/apic`, through `extra_files` in `dockers_v2`). The image
+  also ships Alpine's CA bundle, Mozilla's certificate store under MPL-2.0,
+  so the Dockerfile writes `CA-CERTIFICATES.md` naming the package version
+  and its source, and the image's `org.opencontainers.image.licenses` label
+  lists every licence inside it. CI's `image` job checks the three files are
+  there.
 - The generator unions the module set across every released GOOS/GOARCH,
   not just the host: cobra pulls in `mousetrap` on Windows only. It also
   reproduces each module's `NOTICE` (required by Apache-2.0 4(d)) and

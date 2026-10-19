@@ -1,5 +1,6 @@
 ---
 title: "Lesson 6: Authentication"
+description: "Lesson 6: attach credentials with # @auth per request and per project: bearer, basic, API keys, OAuth2, AWS SigV4 and exec."
 ---
 **Goal.** Attach credentials to requests with `# @auth`, per request and
 per project, and know what apic shows and what it hides.
@@ -198,8 +199,10 @@ same with a different `tokenUrl`.
 **A human at a keyboard.** `grant=device_code` prints a URL and a code,
 waits while you approve in a browser, and caches the token like any other.
 It is for people, not agents: an unattended run would wait until the code
-expired. Authorization-code flows with a browser redirect are not
-supported.
+expired. `grant=authorization_code` (with PKCE) is the other one for
+people: it opens a browser once and caches the token, and it never
+starts under `--json`, MCP or without a terminal; see
+[auth.md](../auth.md).
 
 ### 5. A project default, and opting out
 
@@ -290,6 +293,8 @@ api.http:14:9: warning: @auth exec will be refused until apic.yaml sets auth.all
 GET {{baseUrl}}/me
 error: api.http:16: auth: @auth exec is disabled: set `auth:
   allowExec: true` in apic.yaml to let request files run "echo mock-token"
+  hint: Check the # @auth spec (or auth.default), its credentials, and the token endpoint.
+  E105 authentication failed · see https://apic.sh/errors/#e105
 exit 2
 ```
 
@@ -393,10 +398,10 @@ auth:
 ```
 
 Delete the `Authorization:` line from each request in `todos.http`.
-Then run `apic run todos.http -C apic-demo --keep-going` and it fails
-at once: `login` now needs `{{token}}` too, because the default
-applies to every request without its own `# @auth`, and `login` is the
-request that produces the token. It opts out:
+Then run `apic test -C apic-demo` and every scenario fails: `login`
+now needs `{{token}}` too, because the default applies to every request
+without its own `# @auth`, and `login` is the request that produces the
+token. It opts out:
 
 ```http
 ### Log in and keep the token

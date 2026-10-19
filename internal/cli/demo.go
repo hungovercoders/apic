@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
@@ -39,6 +40,13 @@ project this command just wrote unless you cd into it or pass -C.`,
 			if port < 1 || port > 65535 {
 				return runner.Usage(runner.CodeFlag, "--port must be between 1 and 65535")
 			}
+			// Bind first: a port already in use fails here, before anything is
+			// written or "listening" is printed (E214 names this command).
+			ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+			if err != nil {
+				return runner.Usage(runner.CodeServer, err.Error())
+			}
+			defer func() { _ = ln.Close() }()
 			written, skipped, err := demoapi.WriteProject(out, port, force)
 			if err != nil {
 				return err
@@ -74,22 +82,20 @@ project this command just wrote unless you cd into it or pass -C.`,
 			// short-lived and local, but a server with no read timeout is
 			// still a server a single stalled connection can tie up.
 			srv := &http.Server{
-				Addr:              fmt.Sprintf("127.0.0.1:%d", port),
 				Handler:           demoapi.New(),
 				ReadHeaderTimeout: 10 * time.Second,
 				ReadTimeout:       30 * time.Second,
 				WriteTimeout:      30 * time.Second,
 				IdleTimeout:       60 * time.Second,
 			}
-			// Ctrl-C stops the server cleanly; a port already in use is a
-			// server problem, not a mystery (E214 names this command).
+			// Ctrl-C stops the server cleanly.
 			go func() {
 				<-cmd.Context().Done()
 				shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
 				_ = srv.Shutdown(shutdown)
 			}()
-			if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				return runner.Usage(runner.CodeServer, err.Error())
 			}
 			return nil

@@ -1,5 +1,6 @@
 ---
 title: "Lesson 7: Behaviour tests with Gherkin"
+description: "Lesson 7: declare # @step phrases on requests, write a .feature file with the built-in vocabulary, run it and read the report."
 ---
 **Goal.** Write a feature file that exercises the demo API using the
 built-in steps and the phrases you declare on requests, and read its
@@ -71,7 +72,7 @@ built-in steps
   the response status is <n> / is not <n>
       status code
   the response body "<path>" is "<value>"
-      also: is not, contains, starts with, ends with, matches; <path> like $.items[0].id
+      also: is not, contains, starts with, ends with, matches; <path> like $.items[0].id, $..id or $.items[?(@.done == true)].id
   the response header "<name>" is "<value>"
       same operators as for the body
   the response body "<path>" exists / does not exist
@@ -85,12 +86,14 @@ built-in steps
 phrases declared in this project
   I am logged in
       runs login (auth.http)
-  I list the todos
-      runs list-todos (todos.http)
-  a todo titled {title} is created
-      runs create-todo (todos.http)
+  …
   I wait for the job
       runs wait-for-job (jobs.http)
+  I list the todos
+      runs list-todos (todos.http)
+  …
+  a todo titled {title} is created
+      runs create-todo (todos.http)
   …
 ```
 
@@ -241,8 +244,8 @@ F- 2
 
 --- Failed steps:
 
-  Scenario: Needs a token but never logged in # features/iso.feature:2
-    When I list the todos # features/iso.feature:3
+  Scenario: Needs a token but never logged in # /home/you/apic-demo/features/iso.feature:2
+    When I list the todos # /home/you/apic-demo/features/iso.feature:3
       Error: todos.http:8: missing variable
   {{token}}: it is captured by request "login"; run `apic run login` first, or pass --var token=...
 
@@ -251,6 +254,7 @@ F- 2
 2.0ms
 error: todos.http:8: missing variable
   {{token}}: it is captured by request "login"; run `apic run login` first, or pass --var token=...
+  E101 missing variable · see https://apic.sh/errors/#e101
 exit 2
 ```
 
@@ -317,7 +321,7 @@ rm report.xml
 
 ```
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="apic" tests="14" skipped="0" failures="0" errors="0" time="0.026">
+<testsuites name="apic" tests="14" skipped="0" failures="0" errors="0" time="0.336821">
 ```
 
 Exit codes follow the rest of apic: `0` every scenario passed, `1` a
@@ -371,8 +375,8 @@ apic test features/jobs.feature -C apic-demo | tail -3
 
 ```
 1 scenarios (1 passed)
-5 steps (5 passed)
-0.5s
+6 steps (6 passed)
+505.232235ms
 ```
 
 `a job is submitted` runs `create-job`, which captures `jobId`. `I wait

@@ -1,5 +1,6 @@
 ---
 title: "Lesson 1: Install apic and send your first request"
+description: "Lesson 1: install apic, try apic ui --demo, read the anatomy of a .http file, and use run, list, describe and the exit codes."
 ---
 **Goal.** Install apic, run a request from a `.http` file against the demo
 API, and read the file that described it.
@@ -15,7 +16,16 @@ API, and read the file that described it.
 
 One static binary, no runtime. Pick your platform:
 
-#### Linux / macOS
+#### Homebrew (macOS and Linux)
+
+```sh
+brew install hungovercoders/tap/apic
+```
+
+The cask installs the binary, the man pages and shell completions, and
+`brew upgrade` follows new releases.
+
+#### Linux / macOS without Homebrew
 
 
 ```sh
@@ -43,7 +53,7 @@ verifies the release checksum, and adds the directory to your user
 
 
 ```sh
-go install github.com/hungovercoders/apic/cmd/apic@latest   # Go 1.25 or newer
+go install github.com/hungovercoders/apic/cmd/apic@latest   # Go 1.25.7 or newer
 ```
 
 This builds from source into `$(go env GOPATH)/bin`.
@@ -59,7 +69,7 @@ apic version
 ```
 
 ```
-apic v0.2.0 · 1a2b3c4 · go1.25.7 linux/amd64
+apic v0.1.3 · 1a2b3c4 · go1.25.7 linux/amd64
 apic is epic · https://apic.sh/
 ```
 
@@ -100,7 +110,15 @@ apic demo --out apic-demo
 ```
 
 ```
-apic demo: serving http://localhost:8089, project written to apic-demo
+wrote apic-demo/apic.yaml
+wrote apic-demo/auth.http
+wrote apic-demo/explore.http
+wrote apic-demo/features/todos.feature
+wrote apic-demo/http-client.private.env.json
+wrote apic-demo/jobs.http
+wrote apic-demo/todos.http
+wrote apic-demo/http-client.env.json
+demo api listening on http://localhost:8089
 try: apic run login whoami -C apic-demo --env local
 ```
 
@@ -113,14 +131,15 @@ apic list -C apic-demo
 ```
 
 ```
-ID              METHOD  URL                        LINE  DESCRIPTION                                                               PHRASES
+ID                   METHOD   URL                                           LINE  DESCRIPTION                                                               PHRASES
 auth.http
-login           POST    {{baseUrl}}/auth/login     :9    Log in and keep the token                                                 I am logged in
-whoami          GET     {{baseUrl}}/me             :20   Who am I, using the token captured by login (which runs first if needed)  I ask who I am
-basic-auth      GET     {{baseUrl}}/basic-auth/{{user}}/{{password}}  :28   Basic auth, encoded for you
+login                POST     {{baseUrl}}/auth/login                        :9    Log in and keep the token                                                 I am logged in
+whoami               GET      {{baseUrl}}/me                                :20   Who am I, using the token captured by login (which runs first if needed)  I ask who I am
+basic-auth           GET      {{baseUrl}}/basic-auth/{{user}}/{{password}}  :28   Basic auth, encoded for you
 …
 todos.http
-list-todos      GET     {{baseUrl}}/todos          :8    List todos                                                                I list the todos
+list-todos           GET      {{baseUrl}}/todos                             :8    List todos                                                                I list the todos
+list-open-todos      GET      {{baseUrl}}/todos?done=false&page=1&limit=5   :18   Filter and paginate; the total comes back in a header                     I list the open todos
 …
 
 24 requests in 4 files · apic describe <id> · apic run <id> · apic ui
@@ -155,6 +174,9 @@ variables
   ✓ baseUrl   http://localhost:8089  http-client.env.json [local]
   ✓ user      alice  auth.http:1 @user
   ✓ password  ***  http-client.private.env.json [local]
+
+steps
+  I am logged in
 
 captures
   ↳ token = body.$.access_token
@@ -316,7 +338,7 @@ GET http://localhost:8089/health
   "service": "apic-demo",
   "status": "ok",
   "uptime_seconds": 12,
-  "version": "v0.2.0"
+  "version": "v0.1.3"
 }
 
 ✓ status == 200
@@ -340,7 +362,7 @@ only there when the request needs them.
 
 **Length.** 8 to 10 minutes.
 
-**Cold open (0:00).** An empty terminal. "In ten minutes you will have
+**Cold open (after the title card).** An empty terminal. "In ten minutes you will have
 sent a request from a text file, and understood every line of the
 file."
 

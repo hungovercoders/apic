@@ -1,5 +1,6 @@
 ---
 title: "Lesson 2: Variables and environments"
+description: "Lesson 2: every place a {{variable}} can come from, environment files, secrets, --var and APIC_VAR_, and the precedence order."
 ---
 **Goal.** Know every place a `{{variable}}` can come from, and which one
 wins when two of them have a value.
@@ -214,7 +215,7 @@ the project root, `KEY=value` per line, is read for every environment:
 <!-- learn -->
 ```sh
 echo "user=dave" > apic-demo/.env
-apic describe login -C apic-demo | grep user
+apic describe login -C apic-demo | grep ' user '
 ```
 
 ```
@@ -229,7 +230,7 @@ are treated as secrets, hence the `***`.
 
 <!-- learn -->
 ```sh
-apic describe login -C apic-demo --var user=erin | grep user
+apic describe login -C apic-demo --var user=erin | grep ' user '
 ```
 
 ```
@@ -241,7 +242,7 @@ passes a secret in without writing a file:
 
 <!-- learn -->
 ```sh
-APIC_VAR_user=frank apic describe login -C apic-demo | grep user
+APIC_VAR_user=frank apic describe login -C apic-demo | grep ' user '
 rm apic-demo/.env
 ```
 
@@ -372,7 +373,7 @@ right one.
 
 **Length.** 10 minutes.
 
-**Cold open (0:00).** `apic describe login` with the three-source
+**Cold open (after the title card).** `apic describe login` with the three-source
 variable table on screen. "Same request, three places the values come
 from. By the end you will know all eight, and the order."
 

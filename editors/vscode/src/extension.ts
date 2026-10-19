@@ -156,19 +156,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<ApicAp
     }),
   );
 
-  const activeRoot = (): string | undefined => projectRoot(vscode.window.activeTextEditor?.document.uri);
-
   context.subscriptions.push(
-    vscode.commands.registerCommand("apic.showVersion", async () => {
-      try {
-        const info = await apic.version();
-        const bin = await apic.binary();
-        const root = activeRoot();
-        void vscode.window.showInformationMessage(`apic ${info.version} (${info.os}/${info.arch}) at ${bin}${root ? ` · project ${root}` : ""}`);
-      } catch (err) {
-        await reportMissing(err);
-      }
-    }),
+    vscode.commands.registerCommand("apic.showVersion", () => showVersion(apic)),
     vscode.commands.registerCommand("apic.openInstallPage", () => vscode.env.openExternal(vscode.Uri.parse(INSTALL_URL))),
     vscode.commands.registerCommand("apic.runRequest", (root?: string, target?: string) => withTarget(root, target, (r, t) => runner.run(r, [t]))),
     vscode.commands.registerCommand("apic.describeRequest", (root?: string, target?: string) => withTarget(root, target, (r, t) => runner.describe(r, t))),
@@ -295,6 +284,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<ApicAp
     sessionView,
     tests,
   };
+}
+
+/** The project the active editor's file belongs to, if any. */
+function activeRoot(): string | undefined {
+  return projectRoot(vscode.window.activeTextEditor?.document.uri);
+}
+
+/** The binary's version, platform and path, and the active project, as a notification. */
+async function showVersion(apic: Apic): Promise<void> {
+  try {
+    const info = await apic.version();
+    const bin = await apic.binary();
+    const root = activeRoot();
+    const project = root ? ` · project ${root}` : "";
+    void vscode.window.showInformationMessage(`apic ${info.version} (${info.os}/${info.arch}) at ${bin}${project}`);
+  } catch (err) {
+    await reportMissing(err);
+  }
 }
 
 /** apic.projectDir resolved for every workspace folder that sets it: folder → project root. */

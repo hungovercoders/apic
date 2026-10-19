@@ -406,186 +406,246 @@ func Within(root, path string) (string, bool) {
 
 // Validate returns parse diagnostics plus project-level checks.
 func (p *Project) Validate() []httpfile.Diagnostic {
-	diags := append([]httpfile.Diagnostic(nil), p.Diagnostics...)
-	for name, rs := range p.byName {
-		if len(rs) > 1 {
-			for _, r := range rs {
-				line, col, end := r.DirectiveSpan("name")
-				diags = append(diags, diag(r.File.Path, "warning", "duplicate-name", line, col, end,
-					fmt.Sprintf("request name %q is also used elsewhere; `apic run %s` will be ambiguous", name, name)))
-			}
-		}
-	}
-	diags = append(diags, validateAuthConfigs(p.Root)...)
-	if p.Config.Auth.Default != "" {
-		if spec, err := auth.Parse(p.Config.Auth.Default); err != nil {
-			diags = append(diags, diag(ConfigFile, "error", "bad-config-auth", 0, 0, 0, "auth.default: "+err.Error()))
-		} else if spec.Type == "exec" && !p.Config.Auth.AllowExec {
-			diags = append(diags, diag(ConfigFile, "warning", "exec-disabled", 0, 0, 0, "auth.default: @auth exec will be refused until apic.yaml sets auth.allowExec: true"))
-		}
-	}
-	if p.Config.Retry != "" {
-		if _, _, err := httpfile.ParseRetry(p.Config.Retry); err != nil {
-			diags = append(diags, diag(ConfigFile, "error", "bad-retry", 0, 0, 0, fmt.Sprintf("retry %q: %v", p.Config.Retry, err)))
-		}
-	}
-	type declared struct {
-		req  *httpfile.Request
-		ph   *phrase.Phrase
-		line int // line of the # @step directive
-	}
-	var phrases []declared
+	v := &validator{p: p, diags: append([]httpfile.Diagnostic(nil), p.Diagnostics...)}
+	v.duplicateNames()
+	v.diags = append(v.diags, validateAuthConfigs(p.Root)...)
+	v.config()
 	for _, r := range p.Requests() {
-		for _, d := range r.Directives {
-			if d.Key != "step" {
-				continue
-			}
-			col, end := d.Column, d.Column+len(d.Value)
-			ph, err := phrase.Parse(d.Value)
-			if err != nil {
-				diags = append(diags, diag(r.File.Path, "error", "bad-step", d.Line, col, end, err.Error()))
-				continue
-			}
-			if err := ph.ConflictsWithBuiltin(); err != nil {
-				diags = append(diags, diag(r.File.Path, "error", "ambiguous-step", d.Line, col, end, err.Error()))
-			}
-			for _, other := range phrases {
-				if ph.ConflictsWith(other.ph) {
-					diags = append(diags, diag(r.File.Path, "error", "ambiguous-step", d.Line, col, end,
-						fmt.Sprintf("@step %q matches the same text as @step %q on %s (%s:%d)", ph.Text, other.ph.Text, other.req.ID(), other.req.File.Path, other.line)))
-				}
-			}
-			phrases = append(phrases, declared{r, ph, d.Line})
+		v.steps(r)
+		v.refs(r)
+		v.timingDirectives(r)
+		v.authDirectives(r)
+		v.asserts(r)
+		v.captures(r)
+		v.bodies(r)
+	}
+	sort.SliceStable(v.diags, func(i, j int) bool {
+		a, b := v.diags[i], v.diags[j]
+		if a.Path != b.Path {
+			return a.Path < b.Path
 		}
-		for _, ref := range r.Refs() {
-			col, end := ref.Column, ref.Column+len(ref.ID)
-			key := "@ref"
-			if ref.Force {
-				key = "@forceRef"
-			}
-			target, err := p.refTarget(ref)
-			if err != nil {
-				diags = append(diags, diag(r.File.Path, "error", "bad-ref", ref.Line, col, end, fmt.Sprintf("%s %s: %v", key, ref.ID, err)))
-				continue
-			}
-			if chain := p.refPath(target, r, nil); chain != nil {
-				ids := []string{r.ID()}
-				for _, c := range chain {
-					ids = append(ids, c.ID())
-				}
-				diags = append(diags, diag(r.File.Path, "error", "ref-cycle", ref.Line, col, end,
-					fmt.Sprintf("%s %s is a cycle: %s", key, ref.ID, strings.Join(ids, " -> "))))
-			}
+		if a.Line != b.Line {
+			return a.Line < b.Line
 		}
-		for _, d := range r.Directives {
-			switch d.Key {
-			case "retry":
-				if _, _, err := httpfile.ParseRetry(d.Value); err != nil {
-					col, end := d.Column, d.Column+len(d.Value)
-					diags = append(diags, diag(r.File.Path, "error", "bad-retry", d.Line, col, end, fmt.Sprintf("@retry %q: %v", d.Value, err)))
-				}
-			case "sleep":
-				if _, err := httpfile.ParseSleep(d.Value); err != nil {
-					col, end := d.Column, d.Column+len(d.Value)
-					diags = append(diags, diag(r.File.Path, "error", "bad-sleep", d.Line, col, end, "@sleep: "+err.Error()))
-				}
-			}
+		return a.Column < b.Column
+	})
+	return v.diags
+}
+
+// validator collects Validate's diagnostics, one check per concern. The
+// order the checks run in is the order ties keep after the stable sort.
+type validator struct {
+	p       *Project
+	diags   []httpfile.Diagnostic
+	phrases []declaredStep // every # @step so far, to find ambiguous pairs
+}
+
+type declaredStep struct {
+	req  *httpfile.Request
+	ph   *phrase.Phrase
+	line int // line of the # @step directive
+}
+
+func (v *validator) add(path, severity, code string, line, col, end int, msg string) {
+	v.diags = append(v.diags, diag(path, severity, code, line, col, end, msg))
+}
+
+func (v *validator) duplicateNames() {
+	for name, rs := range v.p.byName {
+		if len(rs) < 2 {
+			continue
 		}
-		for _, d := range r.Directives {
-			if d.Key != "auth" {
-				continue
-			}
-			col, end := d.Column, d.Column+len(d.Value)
-			spec, err := auth.Parse(d.Value)
-			if err != nil {
-				diags = append(diags, diag(r.File.Path, "error", "bad-auth", d.Line, col, end, err.Error()))
-			} else if spec.Type == "exec" && !p.Config.Auth.AllowExec {
-				diags = append(diags, diag(r.File.Path, "warning", "exec-disabled", d.Line, col, end, "@auth exec will be refused until apic.yaml sets auth.allowExec: true"))
-			}
+		for _, r := range rs {
+			line, col, end := r.DirectiveSpan("name")
+			v.add(r.File.Path, "warning", "duplicate-name", line, col, end,
+				fmt.Sprintf("request name %q is also used elsewhere; `apic run %s` will be ambiguous", name, name))
 		}
-		for _, a := range r.Asserts {
-			expr, err := assert.Parse(a.Expr)
-			if err != nil {
-				diags = append(diags, diag(r.File.Path, "error", "bad-assert", a.Line, a.Column, a.Column+len(a.Expr), err.Error()))
-				continue
-			}
-			if err := selector.Check(expr.Selector); err != nil {
-				// The selector opens the expression, so its span starts where
-				// the expression does.
-				diags = append(diags, diag(r.File.Path, "error", "unknown-selector", a.Line, a.Column, a.Column+len(expr.Selector),
-					fmt.Sprintf("assert %q: %s", a.Expr, selectorProblem(err))))
-			}
-			if expr.Op == "matchesSchema" && !strings.Contains(expr.Value, "{{") {
-				// Resolved as the runner reads it: relative to the file or
-				// absolute, through symlinks, confined to the root.
-				schema, err := Confine(p.Root, filepath.Join(p.Root, filepath.Dir(r.File.Path)), expr.Value)
-				if err == nil {
-					_, err = os.Stat(schema)
-				}
-				if err != nil {
-					col := a.Column + strings.LastIndex(a.Expr, expr.Value)
-					why := "not found"
-					if errors.Is(err, ErrOutsideRoot) {
-						why = "resolves outside the project root"
-					}
-					diags = append(diags, diag(r.File.Path, "error", "missing-schema-file", a.Line, col, col+len(expr.Value),
-						fmt.Sprintf("schema file %s %s", expr.Value, why)))
-				}
+	}
+}
+
+func (v *validator) config() {
+	cfg := v.p.Config
+	if cfg.Auth.Default != "" {
+		if spec, err := auth.Parse(cfg.Auth.Default); err != nil {
+			v.add(ConfigFile, "error", "bad-config-auth", 0, 0, 0, "auth.default: "+err.Error())
+		} else if spec.Type == "exec" && !cfg.Auth.AllowExec {
+			v.add(ConfigFile, "warning", "exec-disabled", 0, 0, 0, "auth.default: @auth exec will be refused until apic.yaml sets auth.allowExec: true")
+		}
+	}
+	if cfg.Retry != "" {
+		if _, _, err := httpfile.ParseRetry(cfg.Retry); err != nil {
+			v.add(ConfigFile, "error", "bad-retry", 0, 0, 0, fmt.Sprintf("retry %q: %v", cfg.Retry, err))
+		}
+	}
+}
+
+// steps checks each # @step phrase on its own and against every phrase
+// declared before it, here and in earlier requests.
+func (v *validator) steps(r *httpfile.Request) {
+	for _, d := range r.Directives {
+		if d.Key != "step" {
+			continue
+		}
+		col, end := d.Column, d.Column+len(d.Value)
+		ph, err := phrase.Parse(d.Value)
+		if err != nil {
+			v.add(r.File.Path, "error", "bad-step", d.Line, col, end, err.Error())
+			continue
+		}
+		if err := ph.ConflictsWithBuiltin(); err != nil {
+			v.add(r.File.Path, "error", "ambiguous-step", d.Line, col, end, err.Error())
+		}
+		for _, other := range v.phrases {
+			if ph.ConflictsWith(other.ph) {
+				v.add(r.File.Path, "error", "ambiguous-step", d.Line, col, end,
+					fmt.Sprintf("@step %q matches the same text as @step %q on %s (%s:%d)", ph.Text, other.ph.Text, other.req.ID(), other.req.File.Path, other.line))
 			}
 		}
-		for _, c := range r.Captures {
-			if err := selector.Check(c.Selector); err != nil {
-				diags = append(diags, diag(r.File.Path, "error", "unknown-selector", c.Line, c.Column, c.Column+len(c.Selector),
-					fmt.Sprintf("capture %q: %s", c.Name, selectorProblem(err))))
-			}
+		v.phrases = append(v.phrases, declaredStep{r, ph, d.Line})
+	}
+}
+
+func (v *validator) refs(r *httpfile.Request) {
+	for _, ref := range r.Refs() {
+		col, end := ref.Column, ref.Column+len(ref.ID)
+		key := "@ref"
+		if ref.Force {
+			key = "@forceRef"
 		}
-		if _, err := r.Multipart(); err != nil {
-			line := r.BodyLine
-			if line == 0 {
-				line = r.Line
-			}
-			diags = append(diags, diag(r.File.Path, "error", "bad-multipart", line, 0, 0, err.Error()))
+		target, err := v.p.refTarget(ref)
+		if err != nil {
+			v.add(r.File.Path, "error", "bad-ref", ref.Line, col, end, fmt.Sprintf("%s %s: %v", key, ref.ID, err))
+			continue
 		}
-		if sv := r.SaveTo; sv != nil {
-			target := sv.Path
-			if !filepath.IsAbs(target) {
-				target = filepath.Join(p.Root, filepath.Dir(r.File.Path), target)
-			}
-			if _, ok := Within(p.Root, target); !ok {
-				diags = append(diags, diag(r.File.Path, "error", "bad-save-path", sv.Line, sv.Column, sv.Column+len(sv.Path),
-					fmt.Sprintf(">> %s resolves outside the project root; the response body is only written inside it", sv.Path)))
-			}
+		chain := v.p.refPath(target, r, nil)
+		if chain == nil {
+			continue
 		}
-		if r.IsGraphQL() {
-			if _, _, err := r.GraphQL(); err != nil {
-				line := r.BodyLine
-				if line == 0 {
-					line = r.Line
-				}
-				diags = append(diags, diag(r.File.Path, "error", "bad-graphql", line, 0, 0, err.Error()))
-			}
+		ids := []string{r.ID()}
+		for _, c := range chain {
+			ids = append(ids, c.ID())
 		}
-		for _, ref := range r.BodyFiles() {
-			if _, err := os.Stat(filepath.Join(p.Root, filepath.Dir(r.File.Path), ref.Path)); errors.Is(err, fs.ErrNotExist) {
-				line := ref.Line
-				if line == 0 {
-					line = r.Line
-				}
-				diags = append(diags, diag(r.File.Path, "error", "missing-body-file", line, ref.Column, ref.Column+len(ref.Path),
-					fmt.Sprintf("body file %s not found", ref.Path)))
+		v.add(r.File.Path, "error", "ref-cycle", ref.Line, col, end,
+			fmt.Sprintf("%s %s is a cycle: %s", key, ref.ID, strings.Join(ids, " -> ")))
+	}
+}
+
+// timingDirectives checks # @retry and # @sleep.
+func (v *validator) timingDirectives(r *httpfile.Request) {
+	for _, d := range r.Directives {
+		col, end := d.Column, d.Column+len(d.Value)
+		switch d.Key {
+		case "retry":
+			if _, _, err := httpfile.ParseRetry(d.Value); err != nil {
+				v.add(r.File.Path, "error", "bad-retry", d.Line, col, end, fmt.Sprintf("@retry %q: %v", d.Value, err))
+			}
+		case "sleep":
+			if _, err := httpfile.ParseSleep(d.Value); err != nil {
+				v.add(r.File.Path, "error", "bad-sleep", d.Line, col, end, "@sleep: "+err.Error())
 			}
 		}
 	}
-	sort.SliceStable(diags, func(i, j int) bool {
-		if diags[i].Path != diags[j].Path {
-			return diags[i].Path < diags[j].Path
+}
+
+func (v *validator) authDirectives(r *httpfile.Request) {
+	for _, d := range r.Directives {
+		if d.Key != "auth" {
+			continue
 		}
-		if diags[i].Line != diags[j].Line {
-			return diags[i].Line < diags[j].Line
+		col, end := d.Column, d.Column+len(d.Value)
+		spec, err := auth.Parse(d.Value)
+		if err != nil {
+			v.add(r.File.Path, "error", "bad-auth", d.Line, col, end, err.Error())
+		} else if spec.Type == "exec" && !v.p.Config.Auth.AllowExec {
+			v.add(r.File.Path, "warning", "exec-disabled", d.Line, col, end, "@auth exec will be refused until apic.yaml sets auth.allowExec: true")
 		}
-		return diags[i].Column < diags[j].Column
-	})
-	return diags
+	}
+}
+
+func (v *validator) asserts(r *httpfile.Request) {
+	for _, a := range r.Asserts {
+		expr, err := assert.Parse(a.Expr)
+		if err != nil {
+			v.add(r.File.Path, "error", "bad-assert", a.Line, a.Column, a.Column+len(a.Expr), err.Error())
+			continue
+		}
+		if err := selector.Check(expr.Selector); err != nil {
+			// The selector opens the expression, so its span starts where
+			// the expression does.
+			v.add(r.File.Path, "error", "unknown-selector", a.Line, a.Column, a.Column+len(expr.Selector),
+				fmt.Sprintf("assert %q: %s", a.Expr, selectorProblem(err)))
+		}
+		if expr.Op == "matchesSchema" && !strings.Contains(expr.Value, "{{") {
+			v.schemaFile(r, a, expr)
+		}
+	}
+}
+
+// schemaFile checks the file a matchesSchema assertion names, resolved as
+// the runner reads it: relative to the file or absolute, through
+// symlinks, confined to the root.
+func (v *validator) schemaFile(r *httpfile.Request, a httpfile.Assert, expr assert.Expr) {
+	schema, err := Confine(v.p.Root, filepath.Join(v.p.Root, filepath.Dir(r.File.Path)), expr.Value)
+	if err == nil {
+		_, err = os.Stat(schema)
+	}
+	if err == nil {
+		return
+	}
+	col := a.Column + strings.LastIndex(a.Expr, expr.Value)
+	why := "not found"
+	if errors.Is(err, ErrOutsideRoot) {
+		why = "resolves outside the project root"
+	}
+	v.add(r.File.Path, "error", "missing-schema-file", a.Line, col, col+len(expr.Value),
+		fmt.Sprintf("schema file %s %s", expr.Value, why))
+}
+
+func (v *validator) captures(r *httpfile.Request) {
+	for _, c := range r.Captures {
+		if err := selector.Check(c.Selector); err != nil {
+			v.add(r.File.Path, "error", "unknown-selector", c.Line, c.Column, c.Column+len(c.Selector),
+				fmt.Sprintf("capture %q: %s", c.Name, selectorProblem(err)))
+		}
+	}
+}
+
+// bodies checks what a request sends and where its response goes: the
+// multipart body, the >> save path, a GraphQL body and < body files.
+func (v *validator) bodies(r *httpfile.Request) {
+	bodyLine := r.BodyLine
+	if bodyLine == 0 {
+		bodyLine = r.Line
+	}
+	if _, err := r.Multipart(); err != nil {
+		v.add(r.File.Path, "error", "bad-multipart", bodyLine, 0, 0, err.Error())
+	}
+	if sv := r.SaveTo; sv != nil {
+		target := sv.Path
+		if !filepath.IsAbs(target) {
+			target = filepath.Join(v.p.Root, filepath.Dir(r.File.Path), target)
+		}
+		if _, ok := Within(v.p.Root, target); !ok {
+			v.add(r.File.Path, "error", "bad-save-path", sv.Line, sv.Column, sv.Column+len(sv.Path),
+				fmt.Sprintf(">> %s resolves outside the project root; the response body is only written inside it", sv.Path))
+		}
+	}
+	if r.IsGraphQL() {
+		if _, _, err := r.GraphQL(); err != nil {
+			v.add(r.File.Path, "error", "bad-graphql", bodyLine, 0, 0, err.Error())
+		}
+	}
+	for _, ref := range r.BodyFiles() {
+		if _, err := os.Stat(filepath.Join(v.p.Root, filepath.Dir(r.File.Path), ref.Path)); !errors.Is(err, fs.ErrNotExist) {
+			continue
+		}
+		line := ref.Line
+		if line == 0 {
+			line = r.Line
+		}
+		v.add(r.File.Path, "error", "missing-body-file", line, ref.Column, ref.Column+len(ref.Path),
+			fmt.Sprintf("body file %s not found", ref.Path))
+	}
 }
 
 // selectorProblem is how validate words a selector it cannot read: the

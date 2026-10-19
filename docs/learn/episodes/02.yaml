@@ -1,0 +1,195 @@
+# Lesson 2's episode. The lesson assumes `apic demo` is running, so the
+# project is written and the API served before the first shot; the clips
+# that need the lesson's edits to the env files get them from its runnable
+# blocks as setup, off camera, and show the result.
+lesson: 2
+summary: Know every place a {{variable}} can come from, and which one wins when two of them have a value.
+project: true
+thumbnail:
+  words: "Variables and\nenvironments"
+  clip: env2
+
+shots:
+  - chapter: Where do values come from
+    card:
+      series: From zero to apic · lesson 2
+      title: "Variables and\nenvironments"
+      text: "$ `apic describe login -C apic-demo --env staging`"
+    say:
+      - This is lesson two of From zero to apic. Everything still runs against the demo API, so keep apic demo running in another terminal.
+
+  - chapter: Where do values come from
+    clip: describe
+    tape: |
+      Type "apic describe login -C apic-demo" Enter Sleep 5s
+    say:
+      - "Same request as lesson one, and three places its values come from: a file variable, the environment file and the private file."
+      - By the end of this episode you will know all eight places a value can come from, and the order apic looks in.
+
+  - chapter: Where do values come from
+    zoom: { col: 66, row: 15 }
+    say:
+      - This column is the story of the lesson. Each value, and next to it, where it was found.
+
+  - chapter: File variables
+    clip: file
+    tape: |
+      Type "head -n 2 apic-demo/auth.http" Enter Sleep 3s
+    say:
+      - The top of auth.http declares two variables. They are available to every request in that file.
+      - describe reports the source as auth.http line one, at user. It is the least specific source there is, so almost anything can override it.
+
+  - chapter: The environment file
+    clip: envfile
+    tape: |
+      Type "cat apic-demo/http-client.env.json" Enter Sleep 4s
+    say:
+      - baseUrl comes from http-client.env.json, the same file VS Code's REST Client and JetBrains read.
+      - One environment, local, one variable. A real project has dev, staging and prod here, each with its own baseUrl. Values every environment shares go under dollar shared.
+
+  - chapter: The environment file
+    clip: env2
+    setup:
+      - blocks: [3]
+    tape: |
+      Type "cat apic-demo/http-client.env.json" Enter Sleep 4s
+      Type "apic env -C apic-demo" Enter Sleep 5s
+    say:
+      - Give the demo a second environment. baseUrl moves to dollar shared, so both environments use the same API, and staging gets a different user, bob.
+      - apic env lists the environments, the star marking the current one, and every variable it sees for it. A dollar shared value is reported under the environment it was resolved for.
+
+  - chapter: --env and apic.yaml
+    clip: staging
+    tape: |
+      Type "apic describe login -C apic-demo --env staging" Enter Sleep 5s
+    say:
+      - Dash dash env picks one. Two things happened.
+      - user is now bob, from the staging block, which beats the file's alice. And password is missing, because the private file only knows local.
+
+  - chapter: --env and apic.yaml
+    zoom: { col: 46, row: 15 }
+    say:
+      - "Missing variables come first, with the way to fix them: pass dash dash var password, or give the environment one."
+
+  - chapter: --env and apic.yaml
+    clip: yaml
+    tape: |
+      Type "cat apic-demo/apic.yaml" Enter Sleep 3s
+    say:
+      - "Why did lesson one never need dash dash env? Because apic.yaml sets the default environment: local."
+
+  - chapter: Secrets
+    clip: private
+    tape: |
+      Type "cat apic-demo/http-client.private.env.json" Enter Sleep 4s
+    say:
+      - The private file has the same shape and holds the values that must not be committed. apic init adds it to .gitignore.
+      - Anything from this file shows as three stars in describe, env and run output, so a secret never lands in a terminal log by accident.
+
+  - chapter: Secrets
+    clip: staging2
+    setup:
+      - blocks: [7]
+        replace: ["apic describe login -C apic-demo --env staging\n", ""]
+    tape: |
+      Type "apic describe login -C apic-demo --env staging" Enter Sleep 4s
+    say:
+      - Give staging a password too, and the request is ready.
+
+  - chapter: Secrets
+    clip: wrong
+    tape: |
+      Type `apic run login -C apic-demo --env staging || echo "exit $?"` Enter Sleep 4s
+    say:
+      - The demo API only knows alice, so sending it as bob gets a 401. This is exactly what a wrong environment looks like.
+
+  - chapter: Secrets
+    zoom: { col: 50, row: 11 }
+    say:
+      - "The assertion fails, the capture finds nothing, exit one. Two red lines, and a clear reason. The exercise fixes it."
+
+  - chapter: .env, --var, the shell
+    clip: sources
+    tape: |
+      Type "echo user=dave > apic-demo/.env" Enter Sleep 1s
+      Type "apic describe login -C apic-demo | grep ' user '" Enter Sleep 3s
+      Type "apic describe login -C apic-demo --var user=erin | grep ' user '" Enter Sleep 3s
+      Type "APIC_VAR_user=frank apic describe login -C apic-demo | grep ' user '" Enter Sleep 4s
+    say:
+      - Three more sources, from the least to the most specific. A dot env file in the project root, key equals value per line, is read for every environment.
+      - dave beat the file's alice. Values from dot env are treated as secrets, hence the stars.
+      - Dash dash var on the command line beats everything.
+      - And APIC underscore VAR underscore name in the shell sits just under dash dash var. That is how CI passes a secret in without writing a file.
+
+  - chapter: .env, --var, the shell
+    zoom: { col: 70, row: 8 }
+    say:
+      - "Watch the source column change each time: dot env, then dash dash var, then shell APIC underscore VAR underscore user."
+
+  - chapter: The order
+    card:
+      heading: "The order: highest first"
+      table:
+        - ["--var name=value", "`apic run login --var user=erin`"]
+        - ["APIC_VAR_name in the shell", "`APIC_VAR_user=frank apic run login`"]
+        - ["Captured earlier in this run", "`# @capture token = …` on a request that ran first"]
+        - ["The session", "`.apic/session.json`, from a previous run"]
+        - ["http-client.private.env.json", "the current environment, then `$shared`"]
+        - ["http-client.env.json", "the current environment, then `$shared`"]
+        - [".env", "`user=dave`"]
+        - ["@name = value in the file", "`@user = alice`"]
+      foot: The first source that has the name wins · `apic.sh/cheatsheet/`
+    say:
+      - Highest first. The first source that has the name wins.
+      - Dash dash var, then the shell, then a value captured earlier in this run, then the session from a previous run.
+      - Then the private file, the environment file, dot env, and last the file variable. Lesson three is about the two in the middle.
+
+  - chapter: Built-ins
+    clip: builtins
+    setup:
+      - sh: rm -f apic-demo/.env
+      - blocks: [12]
+        replace: ["apic run login create-unique-todo -C apic-demo\n", ""]
+    tape: |
+      Type "cat apic-demo/builtins.http" Enter Sleep 4s
+    say:
+      - "Some values are generated per request rather than looked up: dollar uuid, dollar isoTimestamp, dollar randomInt and a few more. Here are two in a body."
+
+  - chapter: Built-ins
+    clip: unique
+    tape: |
+      Type "apic run login create-unique-todo -C apic-demo" Enter Sleep 5s
+    say:
+      - login went first in the same command, so token was captured before the todo was created. The title is never the same twice.
+
+  - chapter: Checkpoint and exercise
+    clip: checkpoint
+    tape: |
+      Type `apic describe whoami -C apic-demo --var baseUrl=http://example.com --json | grep -o '"source": "--var"'` Enter Sleep 4s
+    say:
+      - The checkpoint. describe dash dash json reports the source of each variable. Override baseUrl from the command line, and the command line wins.
+
+  - chapter: Checkpoint and exercise
+    card:
+      heading: Exercise
+      text: |-
+        Make `staging` log in. The demo API accepts only `alice`,
+        so staging needs that user. Then log in with `--env staging`
+        and show that its token is kept apart from local's:
+
+        $ `apic session -C apic-demo`
+      foot: Solution on the lesson page · `apic.sh/learn/02-variables-and-environments/`
+    say:
+      - "Your exercise. Make staging log in: the demo API accepts only alice, so staging needs that user."
+      - Then log in with dash dash env staging and run apic session. Captured values are stored per environment, so each one has its own token.
+
+  - chapter: Checkpoint and exercise
+    card:
+      series: Next · lesson 3
+      title: "Capture, the session\nand flows"
+      text: |-
+        Every command in this episode: `apic.sh/learn/02-variables-and-environments/`
+        The whole course: `apic.sh/learn/`
+    say:
+      - "Next, lesson three: capture, the session and flows. The two sources in the middle of the order."
+      - Every command from this episode is on the lesson page. See you there.

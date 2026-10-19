@@ -96,9 +96,11 @@ jobs:
               exit 0
             fi
           fi
-          # Same shape as the resolve-url action's validator: the URL is passed to
-          # `gh workflow run`, so only URL-safe characters pass.
-          [[ "$url" =~ ^https?://[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~%/-]*)?$ ]] || { echo "::error::Invalid URL format: $url"; exit 1; }
+          if ! python -c 'import sys; from urllib.parse import urlsplit; value=sys.argv[1]; parsed=urlsplit(value); parsed.port; sys.exit(not (parsed.scheme in ("http", "https") and parsed.hostname and not any(char.isspace() for char in value)))' "$url" 2>/dev/null
+          then
+            echo "::error::Invalid URL format"
+            exit 1
+          fi
           echo "Deployed ${SHA:0:7} on $BRANCH to $url"
           {
             echo "url=$url"

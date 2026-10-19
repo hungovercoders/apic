@@ -41,3 +41,12 @@
 .sl-markdown-content details[open] > summary {
 	margin-bottom: 0.75rem;
 }
+
+/* On a phone the 400px logo fills the first screen and pushes the tagline
+   and the buttons below the fold; the header already shows the logo, so the
+   hero leads with the words there instead. */
+@media (max-width: 50rem) {
+	.hero > img {
+		display: none;
+	}
+}

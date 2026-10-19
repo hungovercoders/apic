@@ -78,7 +78,9 @@ func TestDemoStopsWhenCancelled(t *testing.T) {
 }
 
 // A port already in use is E214, the code whose catalogue entry names
-// this command, not the uncoded E200.
+// this command, not the uncoded E200. It fails before anything is
+// written or announced: no startup object or "listening" line on stdout,
+// and no project on disk.
 func TestDemoPortInUseIsAServerError(t *testing.T) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -86,7 +88,8 @@ func TestDemoPortInUseIsAServerError(t *testing.T) {
 	}
 	defer func() { _ = ln.Close() }()
 	port := ln.Addr().(*net.TCPAddr).Port
-	code, _, errb := execute(t, "--json", "demo", "--out", t.TempDir(), "--port", fmt.Sprint(port))
+	dir := filepath.Join(t.TempDir(), "apic-demo")
+	code, out, errb := execute(t, "--json", "demo", "--out", dir, "--port", fmt.Sprint(port))
 	var got struct {
 		Error runner.ErrorInfo `json:"error"`
 	}
@@ -95,6 +98,16 @@ func TestDemoPortInUseIsAServerError(t *testing.T) {
 	}
 	if code != 2 || got.Error.Code != runner.CodeServer {
 		t.Errorf("code=%d %s: %s", code, got.Error.Code, got.Error.Message)
+	}
+	if out != "" {
+		t.Errorf("stdout should be empty when the port is taken:\n%s", out)
+	}
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		t.Errorf("the project should not be written when the port is taken: %v", err)
+	}
+	code, out, _ = execute(t, "demo", "--out", dir, "--port", fmt.Sprint(port))
+	if code != 2 || strings.Contains(out, "listening") {
+		t.Errorf("text mode: code=%d stdout:\n%s", code, out)
 	}
 }
 

@@ -24,7 +24,7 @@ func (a *App) selectCmd() *cobra.Command {
 	var entry int
 	cmd := &cobra.Command{
 		Use:   "select <request> <selector>",
-		Short: "Read a value from a request's last recorded response, without sending it again",
+		Short: "Read a value out of a request's last recorded response, without sending it again",
 		Long: `select evaluates a selector, the kind "# @assert" and "# @capture" take,
 against the newest response recorded for a request in the current
 environment (or entry N with --entry, 1 being the newest), and prints the

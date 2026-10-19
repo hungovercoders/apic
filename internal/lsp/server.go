@@ -201,108 +201,169 @@ func (s *server) handle(m *message) (any, error) {
 	case down && m.ID != nil:
 		return nil, &rpcError{Code: codeInvalidRequest, Message: "the server is shutting down"}
 	}
-	switch m.Method {
-	case "initialized":
-		s.registerWatchers()
-		s.validateWorkspace()
-		return nil, nil
-	case "shutdown":
-		s.mu.Lock()
-		s.shutdown = true
-		s.mu.Unlock()
-		return nil, nil
-	case "textDocument/didOpen":
-		var p didOpenParams
-		if err := decode(m.Params, &p); err != nil {
-			return nil, err
-		}
-		s.open(p.TextDocument.URI, p.TextDocument.Text)
-		return nil, nil
-	case "textDocument/didChange":
-		var p didChangeParams
-		if err := decode(m.Params, &p); err != nil {
-			return nil, err
-		}
-		s.change(p)
-		return nil, nil
-	case "textDocument/didSave":
-		return nil, nil // the buffer already holds what was saved
-	case "textDocument/didClose":
-		var p didCloseParams
-		if err := decode(m.Params, &p); err != nil {
-			return nil, err
-		}
-		s.close(p.TextDocument.URI)
-		return nil, nil
-	case "workspace/didChangeWatchedFiles":
-		var p didChangeWatchedFilesParams
-		if err := decode(m.Params, &p); err != nil {
-			return nil, err
-		}
-		s.watched(p)
-		return nil, nil
-	case "workspace/didChangeConfiguration":
-		var p struct {
-			Settings struct {
-				Apic struct {
-					Env  *string           `json:"env"`
-					Envs map[string]string `json:"envs"`
-				} `json:"apic"`
-			} `json:"settings"`
-		}
-		if err := decode(m.Params, &p); err != nil {
-			return nil, err
-		}
-		s.mu.Lock()
-		if e := p.Settings.Apic.Env; e != nil {
-			s.env = *e
-		}
-		s.setEnvs(p.Settings.Apic.Envs)
-		s.runners = map[string]*runner.Runner{}
-		s.mu.Unlock()
-		return nil, nil
-	case "textDocument/completion":
-		var p textDocumentPositionParams
-		if err := decode(m.Params, &p); err != nil {
-			return nil, err
-		}
-		s.settle(p.TextDocument.URI)
-		return s.completion(p)
-	case "textDocument/hover":
-		var p textDocumentPositionParams
-		if err := decode(m.Params, &p); err != nil {
-			return nil, err
-		}
-		s.settle(p.TextDocument.URI)
-		return s.hover(p)
-	case "textDocument/codeLens":
-		var p struct {
-			TextDocument textDocumentIdentifier `json:"textDocument"`
-		}
-		if err := decode(m.Params, &p); err != nil {
-			return nil, err
-		}
-		s.settle(p.TextDocument.URI)
-		return s.codeLenses(p.TextDocument.URI), nil
-	case "textDocument/formatting":
-		var p struct {
-			TextDocument textDocumentIdentifier `json:"textDocument"`
-		}
-		if err := decode(m.Params, &p); err != nil {
-			return nil, err
-		}
-		return s.format(p.TextDocument.URI), nil
-	case "workspace/executeCommand":
-		var p executeCommandParams
-		if err := decode(m.Params, &p); err != nil {
-			return nil, err
-		}
-		return s.execute(m.ID, p)
+	if h, ok := methods[m.Method]; ok {
+		return h(s, m)
 	}
 	if m.ID == nil || strings.HasPrefix(m.Method, "$/") {
 		return nil, nil // unknown notifications, and $/ requests, are ignored
 	}
 	return nil, &rpcError{Code: codeMethodNotFound, Message: "apic does not handle " + m.Method}
+}
+
+// methods maps each method the server handles, after initialize, to its
+// handler.
+var methods = map[string]func(*server, *message) (any, error){
+	"initialized":                      (*server).onInitialized,
+	"shutdown":                         (*server).onShutdown,
+	"textDocument/didOpen":             (*server).onDidOpen,
+	"textDocument/didChange":           (*server).onDidChange,
+	"textDocument/didSave":             (*server).onDidSave,
+	"textDocument/didClose":            (*server).onDidClose,
+	"workspace/didChangeWatchedFiles":  (*server).onDidChangeWatchedFiles,
+	"workspace/didChangeConfiguration": (*server).onDidChangeConfiguration,
+	"textDocument/completion":          (*server).onCompletion,
+	"textDocument/hover":               (*server).onHover,
+	"textDocument/codeLens":            (*server).onCodeLens,
+	"textDocument/formatting":          (*server).onFormatting,
+	"workspace/executeCommand":         (*server).onExecuteCommand,
+}
+
+// onInitialized registers the file watchers and checks the workspace.
+func (s *server) onInitialized(*message) (any, error) {
+	s.registerWatchers()
+	s.validateWorkspace()
+	return nil, nil
+}
+
+// onShutdown marks the server as shutting down.
+func (s *server) onShutdown(*message) (any, error) {
+	s.mu.Lock()
+	s.shutdown = true
+	s.mu.Unlock()
+	return nil, nil
+}
+
+// onDidOpen tracks a document the client opened.
+func (s *server) onDidOpen(m *message) (any, error) {
+	var p didOpenParams
+	if err := decode(m.Params, &p); err != nil {
+		return nil, err
+	}
+	s.open(p.TextDocument.URI, p.TextDocument.Text)
+	return nil, nil
+}
+
+// onDidChange applies an edit to an open document.
+func (s *server) onDidChange(m *message) (any, error) {
+	var p didChangeParams
+	if err := decode(m.Params, &p); err != nil {
+		return nil, err
+	}
+	s.change(p)
+	return nil, nil
+}
+
+// onDidSave does nothing.
+func (s *server) onDidSave(*message) (any, error) {
+	return nil, nil // the buffer already holds what was saved
+}
+
+// onDidClose forgets a document the client closed.
+func (s *server) onDidClose(m *message) (any, error) {
+	var p didCloseParams
+	if err := decode(m.Params, &p); err != nil {
+		return nil, err
+	}
+	s.close(p.TextDocument.URI)
+	return nil, nil
+}
+
+// onDidChangeWatchedFiles reacts to files changed outside the editor.
+func (s *server) onDidChangeWatchedFiles(m *message) (any, error) {
+	var p didChangeWatchedFilesParams
+	if err := decode(m.Params, &p); err != nil {
+		return nil, err
+	}
+	s.watched(p)
+	return nil, nil
+}
+
+// onDidChangeConfiguration takes the client's environment settings and
+// drops the runners built for the old ones.
+func (s *server) onDidChangeConfiguration(m *message) (any, error) {
+	var p struct {
+		Settings struct {
+			Apic struct {
+				Env  *string           `json:"env"`
+				Envs map[string]string `json:"envs"`
+			} `json:"apic"`
+		} `json:"settings"`
+	}
+	if err := decode(m.Params, &p); err != nil {
+		return nil, err
+	}
+	s.mu.Lock()
+	if e := p.Settings.Apic.Env; e != nil {
+		s.env = *e
+	}
+	s.setEnvs(p.Settings.Apic.Envs)
+	s.runners = map[string]*runner.Runner{}
+	s.mu.Unlock()
+	return nil, nil
+}
+
+// onCompletion answers textDocument/completion once the document's check
+// has run.
+func (s *server) onCompletion(m *message) (any, error) {
+	var p textDocumentPositionParams
+	if err := decode(m.Params, &p); err != nil {
+		return nil, err
+	}
+	s.settle(p.TextDocument.URI)
+	return s.completion(p)
+}
+
+// onHover answers textDocument/hover once the document's check has run.
+func (s *server) onHover(m *message) (any, error) {
+	var p textDocumentPositionParams
+	if err := decode(m.Params, &p); err != nil {
+		return nil, err
+	}
+	s.settle(p.TextDocument.URI)
+	return s.hover(p)
+}
+
+// onCodeLens answers textDocument/codeLens once the document's check has
+// run.
+func (s *server) onCodeLens(m *message) (any, error) {
+	var p struct {
+		TextDocument textDocumentIdentifier `json:"textDocument"`
+	}
+	if err := decode(m.Params, &p); err != nil {
+		return nil, err
+	}
+	s.settle(p.TextDocument.URI)
+	return s.codeLenses(p.TextDocument.URI), nil
+}
+
+// onFormatting answers textDocument/formatting.
+func (s *server) onFormatting(m *message) (any, error) {
+	var p struct {
+		TextDocument textDocumentIdentifier `json:"textDocument"`
+	}
+	if err := decode(m.Params, &p); err != nil {
+		return nil, err
+	}
+	return s.format(p.TextDocument.URI), nil
+}
+
+// onExecuteCommand runs one of the server's commands.
+func (s *server) onExecuteCommand(m *message) (any, error) {
+	var p executeCommandParams
+	if err := decode(m.Params, &p); err != nil {
+		return nil, err
+	}
+	return s.execute(m.ID, p)
 }
 
 func decode(raw json.RawMessage, v any) error {

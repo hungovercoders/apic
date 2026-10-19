@@ -1,5 +1,6 @@
 ---
 title: "Migrating from Postman"
+description: "Move a Postman collection to apic in one command: what apic import translates, what it lists as untranslated, and how to finish by hand."
 ---
 A Postman collection comes across in one command. `apic import` turns
 folders into `.http` files, requests into named requests, environments into

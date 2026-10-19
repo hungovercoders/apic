@@ -97,7 +97,9 @@ jobs:
           done
 
       - name: Run smoke tests
-        run: task ss:reliability:smoke -- ${{ steps.url.outputs.url }} --ci
+        env:
+          TARGET_URL: ${{ steps.url.outputs.url }}
+        run: task ss:reliability:smoke -- "$TARGET_URL" --ci
 
       - name: Stop local server
         if: steps.url.outputs.use_local == 'true' && always()

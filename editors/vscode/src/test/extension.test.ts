@@ -14,7 +14,7 @@ import * as vscode from "vscode";
 import { compareVersions, findOnPath } from "../apic";
 import type { ApicApi } from "../extension";
 
-const extensionId = "dataGriff.apic";
+const extensionId = "hungovercoders.apic";
 
 async function api(): Promise<ApicApi> {
   const ext = vscode.extensions.getExtension<ApicApi>(extensionId);

@@ -1,5 +1,6 @@
 ---
 title: "Lesson 0: What apic is and why"
+description: "Lesson 0: the problem apic solves, what it is and is not, and what the course builds."
 ---
 **Goal.** Understand what apic is, what it is not, and what this course
 builds, so that lesson 1 is worth your time.
@@ -176,7 +177,7 @@ a curl line. "Same API. Three copies. Which one is right?"
 5. What it is not, in one breath, and why that is a feature.
 6. What the course builds and what you need for lesson 1 (nothing).
 
-**Shot list.** B-roll: `docs/assets/apic-demo.svg` full screen; a
+**Shot list.** B-roll: `website/public/assets/apic-demo.svg` full screen; a
 Postman window next to the `.http` file; `apic run login whoami` in a
 100x30 terminal; the same `.http` file in VS Code with the REST Client
 link clicked. No tape for this lesson: the terminal shots are

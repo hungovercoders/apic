@@ -1,5 +1,6 @@
 ---
 title: "Cheat sheet"
+description: "Every directive, variable source, selector, assertion operator, auth type, command and exit code apic understands, on one page."
 ---
 Everything apic understands, on one page. Each section links to the full
 explanation.
@@ -45,7 +46,7 @@ Content-Type: application/json
 | `apic describe <id>` | Variables, sources, captures, asserts, readiness |
 | `apic env` | Environments and the variables in effect |
 | `apic session [clear]` | Captured values; `clear --all` for every environment |
-| `apic history <id>` | Past responses (needs `history: 20` in `apic.yaml`); `--show 2`, `diff`, `clear <id>` or `clear --all` |
+| `apic history <id>` | Past responses (needs `history: N` in `apic.yaml`; `apic init` sets 10); `--show 2`, `diff`, `clear <id>` or `clear --all` |
 | `apic select <id> <selector>` | A value from the last recorded response, without sending again; `--entry 2` for the one before |
 | `apic curl <id>` | The equivalent curl command |
 | `apic snippet <id> --lang python` | The request as httpie, powershell, python, js or go code |
@@ -64,7 +65,7 @@ Content-Type: application/json
 
 **Global flags:** `-C/--dir`, `-e/--env`, `--var k=v`, `--json`,
 `--no-color`, `--timeout`, `--no-session`, `--insecure`, `--cacert`,
-`--cert`, `--key`, `--redact`, `--cookies`.
+`--cert`, `--key`, `--redact`, `--cookies`, `--proxy`, `--no-proxy`.
 
 **Exit codes:** `0` ok · `1` assertion or capture failed · `2` usage, parse
 error, unknown request or missing variable · `3` network error.
@@ -194,7 +195,7 @@ everything available in the current project.
 
 ```
 api/
-  apic.yaml                      env, dir, timeout, retry, cookies, tls, auth.default, auth.allowExec, test.paths
+  apic.yaml                      env, dir, timeout, retry, cookies, history, proxy, noProxy, maxBodyBytes, tls, auth.default, auth.allowExec, test.paths
   features/*.feature             Gherkin specs run by `apic test`
   http-client.env.json           public per-environment variables
   http-client.private.env.json   secrets (gitignored)
@@ -208,7 +209,7 @@ api/
 ## Terminal UI keys
 
 <kbd>enter</kbd> run · <kbd>f</kbd> run the file · <kbd>a</kbd> run all ·
-<kbd>/</kbd> filter · <kbd>1</kbd>-<kbd>4</kbd> tabs · <kbd>H</kbd> headers ·
+<kbd>/</kbd> filter · <kbd>1</kbd>-<kbd>5</kbd> tabs · <kbd>H</kbd> headers ·
 <kbd>c</kbd> curl · <kbd>e</kbd> environment · <kbd>r</kbd> reload ·
 <kbd>o</kbd> edit · <kbd>x</kbd> clear session · <kbd>?</kbd> help ·
 <kbd>q</kbd> quit. Full list in [the TUI guide](tui.md#keys).

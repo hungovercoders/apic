@@ -9,8 +9,10 @@ the prose checks. The site's content is not reference for working on apic;
 
 - Astro with Starlight, pages in `src/content/docs/` (Markdown;
   `getting-started.mdx` and `index.mdx` are MDX for the tab components), the
-  sidebar in `astro.config.mjs`, apic's colours in `src/styles/custom.css`.
-  Every page needs a `title:` in its front matter, not an H1. Asides are
+  sidebar in `src/sidebar.mjs` (which `astro.config.mjs`, `llms.txt` and
+  `llms-full.txt` all read), apic's colours in `src/styles/custom.css`.
+  Every page needs a `title:` and a one-line `description:` in its front
+  matter, not an H1. Asides are
   `:::tip[Title]` … `:::`; collapsible blocks are `<details>` with a
   `<summary>`. A lesson stays Markdown (`<!-- learn -->` is an HTML comment,
   which MDX rejects and `scripts/learncheck` needs).
@@ -38,9 +40,11 @@ the prose checks. The site's content is not reference for working on apic;
   `public/_headers` is the template for the response headers Cloudflare
   sends (a Content-Security-Policy, frame and sniffing protection);
   `plugins/security-headers.mjs` writes the built copy with a hash of every
-  inline script, so the policy allows Starlight's own scripts and nothing else. `robots.txt` and
-  `llms.txt` are generated under `src/pages/` from the site URL and the
-  docs collection, so neither can drift from the pages. slopstopper's
+  inline script, so the policy allows Starlight's own scripts and nothing else. `robots.txt`,
+  `llms.txt` and `llms-full.txt` (every page as one Markdown document) are
+  generated under `src/pages/` from the site URL and the docs collection,
+  so none can drift from the pages; every page's `description:` is its
+  summary in `llms.txt` and its meta description, so a new page needs one. slopstopper's
   reliability checks assert all of this against the built site; see `ci.md`.
 
 ## Deploys
@@ -52,7 +56,10 @@ request gets a preview URL. `docs.yml` builds the site on each change to
 prove it, and keeps GitHub Pages (`hungovercoders.github.io/apic/`, where the
 docs lived before apic.sh) serving the schemas as real files and a redirect
 page per route, because the 0.1.x binaries and the `apic.yaml` files they
-wrote link there (`website/scripts/legacy.mjs`).
+wrote link there (`website/scripts/legacy.mjs`). That Pages deployment
+declares no environment `url` on purpose: the slopstopper checks that run on
+`deployment_status` would otherwise audit the redirect stubs as the site
+(see `ci.md`).
 
 ## Commands
 
@@ -96,3 +103,13 @@ wrote link there (`website/scripts/legacy.mjs`).
   backslash escapes, so a command that needs both quote kinds goes in
   backticks. A test fails when a numbered lesson has neither a tape nor "No
   tape for this lesson" in its episode script.
+- `task episodes`: build the course's YouTube episodes, bar the voice,
+  into `dist/episodes/NN` with `scripts/episodes` from the shot lists in
+  `learn/episodes/` (in this directory, one YAML file per lesson): the cards, the terminal
+  clips as VHS tapes recorded against the demo API, the push-ins, and the
+  lines the voice says over each shot, which set the timing. Each episode
+  comes out as a captioned MP4 with a silent track, a clean MP4, the SRT,
+  the title, chapters and description from `_episode-template.md`, the
+  narration script and the thumbnail. Needs vhs, ttyd, ffmpeg and a
+  chromium. `task episodes:check` validates the shot lists and tapes with
+  vhs alone, as CI does; `go test` checks the shot lists without it.

@@ -1,0 +1,195 @@
+# Lesson 8's episode. The lesson assumes `apic demo` is running, so the
+# project is written and the API served before the first shot. The
+# workflow file and the Actions run are cards, since the builder cannot
+# run GitHub Actions; every command the workflow runs is shown in the
+# terminal against the demo API. The validate clip breaks a file as
+# setup so the annotation line is real, and the matrix exercise writes
+# lesson 2's staging environment as setup.
+lesson: 8
+summary: "Run a smoke flow and a feature suite in GitHub Actions with the secret from the environment, --redact and a JUnit report, and nothing a person could copy out of the log."
+project: true
+thumbnail:
+  words: "CI without\nleaking secrets"
+  clip: redact
+
+shots:
+  - chapter: The leak
+    card:
+      series: From zero to apic · lesson 8
+      title: "CI without\nleaking secrets"
+      text: "$ `APIC_VAR_password=… apic run login whoami --json --redact`"
+    say:
+      - "This is lesson eight of From zero to apic. A pipeline that runs your requests, with the secret from the environment and a log that is safe to keep."
+
+  - chapter: The leak
+    card:
+      heading: The leak
+      text: |-
+        A CI log, somewhere, right now:
+
+        `> curl -v -H "Authorization: Bearer 4f8c21a7e9b0d3c6f5a2e18b7d9c0a4f…" https://api.example.com/me`
+        `< 200 OK`
+        `{"email": "alice@example.com", "role": "admin"}`
+      foot: Stored for ninety days, readable by everyone with access to the repository
+    say:
+      - "This is how most API tests leak. A curl with a real token in a job log, stored for ninety days, readable by everyone with access to the repository. Ten minutes to a pipeline that cannot."
+
+  - chapter: Four jobs, one rule
+    card:
+      heading: Four jobs, one rule
+      table:
+        - ["Install", "`setup-apic`, or `install.sh` on any other runner"]
+        - ["Validate", "`apic validate --format github`, before anything is sent"]
+        - ["Run", "`APIC_VAR_<name>` carries the secret from the environment; `--redact` masks the output; `--json` and the exit codes give the step something to act on"]
+        - ["Report", "`apic test --format junit` for the dashboard"]
+      foot: The rule · no secret in the workflow file, on the runner's disk, or in the log
+    say:
+      - "A CI job for an API project has four jobs of its own: install apic, check the files before sending anything, run the requests, and report. And it has one rule: no secret in the workflow file, on the runner's disk, or in the log."
+      - "apic was built to make that the easy path. An APIC_VAR variable supplies a value from the environment, so a secret travels from the repository secret to the request without touching a file. Dash dash redact masks the output. And nothing prompts, ever, so a job never hangs waiting for input."
+
+  - chapter: Validate as the gate
+    clip: validate
+    setup:
+      - sh: |
+          printf '### Health, with a typo\n# @name health-check\n# @assert stauts == 200\nGET {{baseUrl}}/health\n' > apic-demo/broken.http
+    tape: |
+      Type `apic validate -C apic-demo --format github || echo "exit $?"` Enter Sleep 5s
+      Type "rm apic-demo/broken.http" Enter Sleep 1s
+      Type "apic validate -C apic-demo --format github" Enter Sleep 4s
+    say:
+      - "apic validate parses every file and reports problems without sending a request, which makes it a cheap first step. With format github, each finding is a workflow command, which Actions turns into an annotation on the pull request at the exact line and column."
+      - "Errors exit two and fail the step. Warnings alone do not. Remove the broken file, and the gate is green."
+
+  - chapter: The secret from the environment
+    clip: redact
+    tape: |
+      Type "APIC_VAR_password=s3cret apic run login whoami -C apic-demo --json --redact" Enter Sleep 6s
+    say:
+      - "The demo's password lives in the private env file, which is gitignored in a real project and so does not exist on the runner. In CI it arrives as an environment variable instead, and dash dash redact keeps it out of the log."
+
+  - chapter: The secret from the environment
+    zoom: { col: 60, row: 3 }
+    say:
+      - "What survives redaction is exactly what a pipeline needs: ok, the status, the timing, and whether each assertion passed. What does not survive is anything a person could copy out of the log. The body, the headers, the captured token, three stars."
+      - "The environment variable beat the private file because the shell sits above every file in the precedence order from lesson two."
+
+  - chapter: The secret from the environment
+    clip: wrong
+    tape: |
+      Type `APIC_VAR_password=wrong apic run login -C apic-demo --json --redact || echo "exit $?"` Enter Sleep 5s
+    say:
+      - "Prove the secret really came from the environment by passing a wrong one. 401, the capture finds nothing, exit code one, and the step fails. A network error would be three, a missing variable two. The exit codes are the contract."
+
+  - chapter: The JUnit report
+    clip: junit
+    tape: |
+      Type "apic test -C apic-demo --format junit --output report.xml --redact" Enter Sleep 3s
+      Type "head -2 report.xml" Enter Sleep 4s
+      Type "rm report.xml" Enter Sleep 1s
+    say:
+      - "apic test writes JUnit XML, the format every CI dashboard reads, one test per scenario, and dash dash redact applies to it too. A reporter action turns that file into a check with one line per scenario on the pull request."
+
+  - chapter: The workflow
+    card:
+      heading: "The workflow, part one"
+      text: |-
+        # .github/workflows/api.yml
+        on: [push, pull_request]
+        permissions: { contents: read, checks: write }
+        jobs:
+          api:
+            runs-on: ubuntu-latest
+            steps:
+              - uses: actions/checkout@v7
+              - uses: `hungovercoders/apic/setup-apic@v0`
+                with: { version: v0.1.3 }   # the release you tested against
+              - run: `apic demo --out apic-demo --port 8089 &`
+              - run: until curl -fs localhost:8089/health; do sleep 0.2; done
+    say:
+      - "Everything above, in one file. It installs a pinned apic with the setup-apic action, and starts the demo API inside the job so the workflow is self-contained. A real project points dash dash env at a deployed environment instead and drops those two steps."
+      - "The demo is started in the background with an ampersand, and the job waits for health before using it."
+
+  - chapter: The workflow
+    card:
+      heading: "The workflow, part two"
+      text: |-
+              - name: Validate the request files
+                run: `apic validate -C apic-demo --format github`
+              - name: Smoke flow
+                run: `apic run login whoami todos.http -C apic-demo --keep-going`
+                     `--json --redact --no-session`
+                env: { APIC_VAR_password: `${{ secrets.API_PASSWORD }}` }
+              - name: Feature suite
+                `if: always()`
+                run: `apic test -C apic-demo --format junit --output report.xml --redact`
+                env: { APIC_VAR_password: `${{ secrets.API_PASSWORD }}` }
+              - uses: dorny/test-reporter@v1
+                `if: always()`
+                with: { name: API features, path: report.xml, reporter: java-junit }
+      foot: Copy it into any repository, add a secret `API_PASSWORD` with the value `s3cret`, and push
+    say:
+      - "Then the three steps. The password never appears: it goes from a repository secret to an environment variable to the request. no-session keeps the token login captures off the runner's disk, and the captures still pass between the requests of one invocation. And if always runs the suite and the reporter even when the smoke step failed, so one broken request does not hide the rest of the report."
+      - "Push it and the smoke step goes red on the deliberate not-found failure in todos.http, which is the point: a failed assertion fails the build, and the log shows which one without showing a single value. Drop that request, and it goes green."
+
+  - chapter: Other CI
+    card:
+      heading: Any other runner
+      text: |-
+        Where the runner is not GitHub Actions, the installer does what the action does:
+
+        `curl -fsSL https://raw.githubusercontent.com/hungovercoders/apic/main/install.sh | sh`
+
+        One static binary, no runtime. The same three steps follow.
+      foot: Verifying a release · `apic.sh/verifying/`
+    say:
+      - "Where the runner is not GitHub Actions, install.sh does what the action does: one static binary, no runtime, and the same three steps follow. The verifying page covers signatures and checksums for the paranoid runner."
+
+  - chapter: Checkpoint and exercise
+    clip: checkpoint
+    tape: |
+      Type `APIC_VAR_password=s3cret apic run login whoami -C apic-demo --json --redact | grep -c '"ok":true'` Enter Sleep 4s
+    say:
+      - "The checkpoint. The redacted, JSON, environment-fed run is the whole lesson in one line. ok true for both requests, and nothing a person could reuse."
+
+  - chapter: Checkpoint and exercise
+    card:
+      heading: Exercise
+      text: |-
+        Run the smoke flow against two environments in one workflow, with a matrix:
+        `strategy:`
+        `  matrix:`
+        `    env: [local, staging]`
+
+        Lesson 2's exercise gave the demo a `staging` environment.
+        If you skipped it, add one now with the same `baseUrl`.
+      foot: Solution on the lesson page · `apic.sh/learn/08-ci/`
+    say:
+      - "Your exercise: run the smoke flow against two environments in one workflow, with a matrix. Lesson two's exercise gave the demo a staging environment. If you skipped it, add one now with the same base URL."
+
+  - chapter: Checkpoint and exercise
+    clip: matrix
+    setup:
+      - sh: |
+          base=$(grep -o 'http://[^"]*' apic-demo/http-client.env.json | head -1)
+          cat > apic-demo/http-client.env.json <<EOF
+          {
+            "\$shared": { "baseUrl": "$base" },
+            "local":    {},
+            "staging":  {}
+          }
+          EOF
+    tape: |
+      Type `for env in local staging; do APIC_VAR_password=s3cret apic run login whoami -C apic-demo --env "$env" --json --redact | grep -c '"ok":true'; done` Enter Sleep 5s
+    say:
+      - "Locally, the same thing is a loop over the two environments, and dash dash env picks the base URL. The password is the same secret for both here. A real project uses one secret per environment, or a GitHub environment per matrix row."
+
+  - chapter: Checkpoint and exercise
+    card:
+      series: Next · lesson 9
+      title: "From OpenAPI\nto a project"
+      text: |-
+        Every command in this episode: `apic.sh/learn/08-ci/`
+        The whole course: `apic.sh/learn/`
+    say:
+      - "Next, lesson nine: from OpenAPI to a project, and back to curl. An OpenAPI document, a Postman collection or a curl command turned into request files, tidied, and exported again."
+      - Every command from this episode is on the lesson page. See you there.

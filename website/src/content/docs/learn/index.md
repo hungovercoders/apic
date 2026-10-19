@@ -1,7 +1,8 @@
 ---
 title: "From zero to apic"
+description: "From zero to apic, a course in fourteen short lessons that takes you from nothing installed to running, testing and automating an API from .http files."
 ---
-A course in fourteen short lessons, each with a matching YouTube episode.
+A course in fourteen short lessons, each with a YouTube episode to follow.
 You start with nothing installed and finish able to describe an API in
 `.http` files, run it from the terminal, CI and an AI agent, and test it
 with Gherkin. Every lesson runs against `apic demo`, the fake API that
@@ -24,7 +25,10 @@ are:
 | **Episode script** | Collapsed at the end: what the video says and shows, with chapter timestamps. |
 
 The commands in every lesson are run in CI against the demo API, so a
-lesson cannot quietly stop working when apic changes.
+lesson cannot quietly stop working when apic changes. The course is
+written for apic v0.1.3 or newer. The sample output comes from the
+current build, so a release can word an error's hint or link slightly
+differently; the commands and the results are the same.
 
 ## Syllabus
 
@@ -41,7 +45,7 @@ lesson cannot quietly stop working when apic changes.
 | 8 | [CI without leaking secrets](08-ci.md) | GitHub Actions, `--redact`, JUnit | coming soon |
 | 9 | [From OpenAPI to a project, and back to curl](09-import-export.md) | `import`, `curl`, Postman import | coming soon |
 | 10 | [Agents and MCP](10-agents.md) | The shell contract, `claude mcp add` | coming soon |
-| 11 | [Real APIs and the Taskfile front door](11-real-apis.md) | The GitHub and Spotify examples | coming soon |
+| 11 | [Real APIs and the Taskfile front door](11-real-apis.md) | The httpbin, GitHub and Spotify examples | coming soon |
 | 12 | [Editors](12-editors.md) | The VS Code extension, JetBrains, Neovim | coming soon |
 | 13 | [How apic works inside, and contributing](13-inside-apic.md) | Architecture, a first pull request | coming soon |
 
@@ -62,7 +66,7 @@ apic ui --demo
 
 Press <kbd>enter</kbd> to send the request under the cursor, <kbd>?</kbd>
 for the keys, <kbd>q</kbd> to quit. That is the whole tool in thirty
-seconds; the course is the other twelve hours of what you can do with it.
+seconds; the rest of the course is what you can do with it.
 
 ## Writing a lesson
 

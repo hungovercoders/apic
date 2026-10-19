@@ -87,7 +87,7 @@ var KnownDirectives = map[string]string{
 	"description": "one-line description shown by list/describe",
 	"capture":     "store a response value: `# @capture name = selector`",
 	"assert":      "assert on the response: `# @assert selector op value`",
-	"auth":        "authentication: `# @auth bearer|basic|aws|oauth2|exec|none ...`",
+	"auth":        "authentication: `# @auth bearer|basic|apikey|digest|aws|oauth2|exec|none ...`",
 	"step":        "Gherkin phrase that runs this request: `# @step a user named {name} exists`",
 	"ref":         "run another request first when a variable is missing: `# @ref login`",
 	"forceRef":    "run another request first, every time: `# @forceRef login`",
@@ -203,8 +203,31 @@ func (p *parser) errorf(code string, line, col, end int, format string, args ...
 // request (e.g. only file variables or comments).
 func (p *parser) parseBlock(b *block) *Request {
 	req := &Request{Title: b.title}
+	i := p.parsePreamble(b, req)
+	if i >= len(b.lines) {
+		if len(req.Directives) > 0 {
+			first := req.Directives[0]
+			col, end := Span(p.rawLine(b, first.Line), "@"+first.Key, 0)
+			p.errorf("orphan-directives", first.Line, col, end, "directives without a request line")
+		}
+		return nil
+	}
+	i = p.parseRequestLine(b, req, i)
+	i = p.parseHeaders(b, req, i)
+	if i < len(b.lines) {
+		p.parseBody(b, req, i)
+	}
+	if req.Description == "" {
+		req.Description = req.Title
+	}
+	return req
+}
+
+// parsePreamble reads the comments, directives, file variables and blank
+// lines before the request line, and returns the index of the first line
+// that is none of those.
+func (p *parser) parsePreamble(b *block, req *Request) int {
 	i := 0
-	// Preamble: comments, directives, file variables, blank lines.
 	for ; i < len(b.lines); i++ {
 		line := b.lines[i]
 		n := b.nums[i]
@@ -222,16 +245,13 @@ func (p *parser) parseBlock(b *block) *Request {
 		}
 		break
 	}
-	if i >= len(b.lines) {
-		if len(req.Directives) > 0 {
-			first := req.Directives[0]
-			col, end := Span(p.rawLine(b, first.Line), "@"+first.Key, 0)
-			p.errorf("orphan-directives", first.Line, col, end, "directives without a request line")
-		}
-		return nil
-	}
+	return i
+}
 
-	// Request line.
+// parseRequestLine reads the request line at b.lines[i] and the query
+// continuation lines after it (indented lines starting with ? or &), and
+// returns the index after them.
+func (p *parser) parseRequestLine(b *block, req *Request, i int) int {
 	line := strings.TrimSpace(b.lines[i])
 	req.Line = b.nums[i]
 	if m := reRequestLine.FindStringSubmatch(line); m != nil {
@@ -248,24 +268,23 @@ func (p *parser) parseBlock(b *block) *Request {
 		col, end := Span(raw, req.HTTPVersion, strings.LastIndex(raw, req.HTTPVersion))
 		p.errorf("bad-http-version", req.Line, col, end, "%v", err)
 	}
-	i++
-	// Query continuation lines: indented lines starting with ? or &.
-	for i < len(b.lines) {
+	for i++; i < len(b.lines); i++ {
 		t := strings.TrimSpace(b.lines[i])
-		if (strings.HasPrefix(t, "?") || strings.HasPrefix(t, "&")) && b.lines[i] != t {
-			req.URL += t
-			i++
-			continue
+		if (!strings.HasPrefix(t, "?") && !strings.HasPrefix(t, "&")) || b.lines[i] == t {
+			break
 		}
-		break
+		req.URL += t
 	}
+	return i
+}
 
-	// Headers until the first blank line.
+// parseHeaders reads the headers until the first blank line, and returns
+// the index after that line.
+func (p *parser) parseHeaders(b *block, req *Request, i int) int {
 	for ; i < len(b.lines); i++ {
 		t := strings.TrimSpace(b.lines[i])
 		if t == "" {
-			i++
-			break
+			return i + 1
 		}
 		if reComment.MatchString(t) {
 			continue
@@ -277,58 +296,64 @@ func (p *parser) parseBlock(b *block) *Request {
 		col, end := Span(b.lines[i], t, 0)
 		p.errorf("bad-header", b.nums[i], col, end, "expected a header (`Name: value`) or a blank line before the body, got %q", t)
 	}
+	return i
+}
 
-	// Body: the rest of the block, trailing blank lines trimmed. Editor-only
-	// handler blocks are lifted out first so they are ignored rather than sent.
-	if i < len(b.lines) {
-		bodyLines, handlers, saves := splitHandlerBlocks(b.lines[i:], b.nums[i:])
-		for _, h := range handlers {
-			col, end := Span(p.rawLine(b, h.line), h.text, 0)
-			p.warn("editor-script", h.line, col, end, "ignoring %s (apic has no scripting; see https://apic.sh/comparison/)", h.what)
+// parseBody reads the rest of the block from b.lines[i] as the body,
+// trailing blank lines trimmed. Editor-only handler blocks are lifted out
+// first so they are ignored rather than sent.
+func (p *parser) parseBody(b *block, req *Request, i int) {
+	bodyLines, handlers, saves := splitHandlerBlocks(b.lines[i:], b.nums[i:])
+	for _, h := range handlers {
+		col, end := Span(p.rawLine(b, h.line), h.text, 0)
+		p.warn("editor-script", h.line, col, end, "ignoring %s (apic has no scripting; see https://apic.sh/comparison/)", h.what)
+	}
+	for _, sv := range saves {
+		p.parseSave(b, req, sv)
+	}
+	body := strings.Join(bodyLines, "\n")
+	body = strings.TrimRight(body, "\n\t ")
+	body = strings.TrimLeft(body, "\n")
+	// The line the body starts on, for diagnostics inside it.
+	first := -1
+	for j := i; j < len(b.lines); j++ {
+		if strings.TrimSpace(b.lines[j]) != "" {
+			first, req.BodyLine = j, b.nums[j]
+			break
 		}
-		for _, sv := range saves {
-			raw := p.rawLine(b, sv.line)
-			marker := ">>"
-			if sv.overwrite {
-				marker = ">>!"
-			}
-			col, end := Span(raw, sv.path, strings.Index(raw, marker)+len(marker))
-			switch {
-			case sv.path == "":
-				mcol, mend := Span(raw, marker, 0)
-				p.errorf("bad-save-path", sv.line, mcol, mend, "%s needs a file path to save the response body to", marker)
-			case req.SaveTo != nil:
-				p.errorf("bad-save-path", sv.line, col, end, "the response body is already saved to %s on line %d; one %s per request", req.SaveTo.Path, req.SaveTo.Line, marker)
-			default:
-				req.SaveTo = &SaveTo{Path: sv.path, Overwrite: sv.overwrite, Line: sv.line, Column: col}
-			}
-		}
-		body := strings.Join(bodyLines, "\n")
-		body = strings.TrimRight(body, "\n\t ")
-		body = strings.TrimLeft(body, "\n")
-		// The line the body starts on, for diagnostics inside it.
-		first := -1
-		for j := i; j < len(b.lines); j++ {
-			if strings.TrimSpace(b.lines[j]) != "" {
-				first, req.BodyLine = j, b.nums[j]
-				break
-			}
-		}
-		if t := strings.TrimSpace(body); strings.HasPrefix(t, "<@ ") || strings.HasPrefix(t, "< ") {
-			req.BodyFileTemplated = strings.HasPrefix(t, "<@")
-			req.BodyFile = strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(t, "<@"), "<"))
-			if first >= 0 {
-				req.BodyFileLine = req.BodyLine
-				req.BodyFileColumn, _ = Span(b.lines[first], req.BodyFile, strings.Index(b.lines[first], "<"))
-			}
-		} else if body != "" {
+	}
+	t := strings.TrimSpace(body)
+	if !strings.HasPrefix(t, "<@ ") && !strings.HasPrefix(t, "< ") {
+		if body != "" {
 			req.Body = body
 		}
+		return
 	}
-	if req.Description == "" {
-		req.Description = req.Title
+	req.BodyFileTemplated = strings.HasPrefix(t, "<@")
+	req.BodyFile = strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(t, "<@"), "<"))
+	if first >= 0 {
+		req.BodyFileLine = req.BodyLine
+		req.BodyFileColumn, _ = Span(b.lines[first], req.BodyFile, strings.Index(b.lines[first], "<"))
 	}
-	return req
+}
+
+// parseSave records a `>> file` line; one per request.
+func (p *parser) parseSave(b *block, req *Request, sv saveLine) {
+	raw := p.rawLine(b, sv.line)
+	marker := ">>"
+	if sv.overwrite {
+		marker = ">>!"
+	}
+	col, end := Span(raw, sv.path, strings.Index(raw, marker)+len(marker))
+	switch {
+	case sv.path == "":
+		mcol, mend := Span(raw, marker, 0)
+		p.errorf("bad-save-path", sv.line, mcol, mend, "%s needs a file path to save the response body to", marker)
+	case req.SaveTo != nil:
+		p.errorf("bad-save-path", sv.line, col, end, "the response body is already saved to %s on line %d; one %s per request", req.SaveTo.Path, req.SaveTo.Line, marker)
+	default:
+		req.SaveTo = &SaveTo{Path: sv.path, Overwrite: sv.overwrite, Line: sv.line, Column: col}
+	}
 }
 
 // parseComment handles one comment line. raw is the line as written, for

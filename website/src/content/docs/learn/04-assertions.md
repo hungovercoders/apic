@@ -1,5 +1,6 @@
 ---
 title: "Lesson 4: Assertions, validation and polling"
+description: "Lesson 4: assert on status, headers and JSON with selectors and operators, read a failure, validate a project, and poll with # @retry."
 ---
 **Goal.** Assert on the status, headers and JSON of a response, read a
 failure, validate a project before running it, and wait for an API to
@@ -47,7 +48,7 @@ GET http://localhost:8089/health
   "service": "apic-demo",
   "status": "ok",
   "uptime_seconds": 12,
-  "version": "v0.2.0"
+  "version": "v0.1.3"
 }
 
 ✓ status == 200
@@ -118,8 +119,11 @@ apic run list-open-todos -C apic-demo -v
 GET http://localhost:8089/todos?done=false&page=1&limit=5
 Authorization: ***
 
-200 OK · 1 ms · 90 B
+HTTP/1.1 200 OK · 1 ms · 90 B
+dns 0 ms · connect 0 ms · tls 0 ms · ttfb 1 ms · total 1 ms · new connection
+content-length: 90
 content-type: application/json
+date: Mon, 01 Jun 2026 09:00:00 GMT
 x-page: 1
 x-total-count: 2
 
@@ -331,7 +335,7 @@ apic run todos.http -C apic-demo --keep-going --json | grep -c '"ok":false'
 
 ## Exercise
 
-Write a request for the second page of todos, two per page
+Write a request for the first page of todos, two per page
 (`GET {{baseUrl}}/todos?page=1&limit=2`), with three assertions: the number
 of todos on the page, a response header, and a value inside the first
 todo.

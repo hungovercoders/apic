@@ -1,7 +1,7 @@
 # apic for VS Code
 
-[![Visual Studio Marketplace](https://img.shields.io/visual-studio-marketplace/v/dataGriff.apic?label=Marketplace)](https://marketplace.visualstudio.com/items?itemName=dataGriff.apic)
-[![Open VSX](https://img.shields.io/open-vsx/v/dataGriff/apic?label=Open%20VSX)](https://open-vsx.org/extension/dataGriff/apic)
+[![Visual Studio Marketplace](https://img.shields.io/visual-studio-marketplace/v/hungovercoders.apic?label=Marketplace)](https://marketplace.visualstudio.com/items?itemName=hungovercoders.apic)
+[![Open VSX](https://img.shields.io/open-vsx/v/hungovercoders/apic?label=Open%20VSX)](https://open-vsx.org/extension/hungovercoders/apic)
 
 Run the `.http` files you already have with [apic](https://apic.sh/):
 environments, captured variables that persist, assertions, AWS and OAuth2
@@ -110,7 +110,7 @@ Spans in the Problems panel, `# @ref`, the Session view's cookies and
 | `apic.run.verbose` | Pass `-v`, so the panel shows request and response headers. |
 | `apic.validate.auto` | Validate on activation and whenever a request file, `apic.yaml` or an env file changes on disk. Off, only **apic: Validate the project** runs it. Default on. |
 | `apic.validate.debounceMs` | Wait this long after a change before validating, so a burst becomes one run. Default 300. |
-| `apic.languageServer.enable` | Take diagnostics, completion and hover from `apic lsp` (apic 0.2.0 or later), so problems show as you type rather than on save. Lenses, formatting, the panel, the views and the Test Explorer are unchanged. Default off; reload the window after changing it. |
+| `apic.languageServer.enable` | Take diagnostics, completion and hover from `apic lsp` (in every apic release), so problems show as you type rather than on save. Lenses, formatting, the panel, the views and the Test Explorer are unchanged. Default off; reload the window after changing it. |
 | `apic.format.enable` | Offer **Format Document** through `apic fmt`. Default on. |
 | `apic.test.showOutput` | Alongside every Test Explorer run, also run `apic test --format pretty` and show its output in the apic channel. Runs the features a second time. Default off. |
 

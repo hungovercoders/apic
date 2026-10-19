@@ -3,7 +3,7 @@
   "displayName": "apic",
   "description": "Run .http request files with apic from the editor: CodeLens to run, describe and copy as curl, a response panel, problems from apic validate, environments, captured variables, assertions and Gherkin tests, from one static binary.",
   "version": "0.1.0",
-  "publisher": "dataGriff",
+  "publisher": "hungovercoders",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -196,7 +196,7 @@
         "apic.languageServer.enable": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Take diagnostics, completion and hover from `apic lsp` (apic 0.2.0 or later), so problems show as you type rather than on save. The code lenses, the formatter, the response panel, the views and the Test Explorer are unchanged. Reload the window after changing it."
+          "markdownDescription": "Take diagnostics, completion and hover from `apic lsp` (in every apic release), so problems show as you type rather than on save. The code lenses, the formatter, the response panel, the views and the Test Explorer are unchanged. Reload the window after changing it."
         },
         "apic.format.enable": {
           "type": "boolean",

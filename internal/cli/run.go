@@ -21,11 +21,15 @@ import (
 	"github.com/hungovercoders/apic/internal/selector"
 )
 
+// runFlags are apic run's flags.
+type runFlags struct {
+	verbose, bodyOnly, keepGoing, noRetry, dryRun, shareSession bool
+	asserts, captures                                           []string
+	retry, report, output, data, bodyLimit                      string
+}
+
 func (a *App) runCmd() *cobra.Command {
-	var verbose, bodyOnly, keepGoing, noRetry, dryRun bool
-	var adHocAsserts, adHocCaptures []string
-	var retry, reportPath, outputPath, dataPath, bodyLimit string
-	var shareSession bool
+	var f runFlags
 	cmd := &cobra.Command{
 		Use:   "run <request|file.http|file.http#name>...",
 		Short: "Send one request, or every request in a file as a flow",
@@ -59,200 +63,263 @@ sending it: no dependency runs, no auth is applied and nothing is captured.`,
   apic run create-todo --capture id=body.$.id --json
   apic run delete-todo --var todoId=3 --dry-run`,
 		Args: cobra.MinimumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			extraAsserts, extraCaptures, err := adHoc(adHocAsserts, adHocCaptures)
-			if err != nil {
-				return err
-			}
-			limit, err := parseSize(bodyLimit)
-			if err != nil {
-				return runner.Usage(runner.CodeFlag, fmt.Sprintf("--body-limit %q: %v", bodyLimit, err))
-			}
-			p, err := a.loadProject()
-			if err != nil {
-				return err
-			}
-			// A data run records no history: a response per row would push
-			// out what the history is for.
-			r, err := a.runnerFor(p, func(o *runner.Options) { o.NoHistory = dataPath != "" })
-			if err != nil {
-				return err
-			}
-			if dryRun {
-				switch {
-				case dataPath != "":
-					return runner.Usage(runner.CodeFlag, "--dry-run shows one request per target; it does not take --data")
-				case outputPath != "" || reportPath != "":
-					return runner.Usage(runner.CodeFlag, "--dry-run sends nothing, so there is no response to save or report")
-				}
-			}
-			var rows []datafile.Row
-			if dataPath != "" {
-				if rows, err = a.readRows(dataPath); err != nil {
-					return err
-				}
-			}
-			// configure applies the run's flags to a runner: the first one,
-			// and each iteration's own under --data.
-			configure := func(r *runner.Runner) {
-				r.Opts.KeepGoing = keepGoing
-				r.Opts.Retry, r.Opts.NoRetry = retry, noRetry
-				r.Opts.Asserts, r.Opts.Captures = extraAsserts, extraCaptures
-				if !a.g.json && !bodyOnly {
-					r.Progress = func(p runner.Progress) { fmt.Fprint(a.Stdout, output.Attempt(output.Default(), p)) }
-				}
-			}
-			configure(r)
-			reqs, err := targets(r, args)
-			if err != nil {
-				return err
-			}
-			flow := len(reqs) > 1
-			if dryRun {
-				return a.dryRun(r, reqs, verbose, bodyOnly)
-			}
-			if reportPath != "" {
-				if err := outputOverlapsSources(reportPath, r.Project, nil); err != nil {
-					return err
-				}
-			}
-			if outputPath != "" {
-				switch {
-				case flow:
-					return runner.Usage(runner.CodeFlag, fmt.Sprintf("--output saves one response; the targets name %d requests (add `>> file` lines to the requests instead)", len(reqs)))
-				case len(rows) > 0:
-					return runner.Usage(runner.CodeFlag, fmt.Sprintf("--output saves one response; --data runs the request %d times (add a `>> file` line with a {{placeholder}} in the path instead)", len(rows)))
-				}
-				if err := outputOverlapsSources(outputPath, r.Project, nil); err != nil {
-					return err
-				}
-				r.Opts.Output = outputPath
-			}
-			started := time.Now()
-			// Each result is printed as it lands, so a flow shows progress
-			// (and the attempt lines of a retried request sit under the
-			// right request) instead of everything at the end.
-			var printErr error
-			printed := 0
-			var iteration *runner.Iteration // the row being run under --data
-			onResult := func(res *runner.Result, err error) {
-				defer func() { printed++ }()
-				if iteration != nil {
-					tagIteration(res, iteration)
-				}
-				if limit > 0 {
-					limitBodies(res, limit)
-				}
-				switch {
-				case a.g.json:
-					if e := output.JSON(a.Stdout, res); e != nil && printErr == nil {
-						printErr = e
-					}
-				case bodyOnly:
-					output.Body(a.Stdout, res)
-				default:
-					if flow && printed > 0 {
-						fmt.Fprintln(a.Stdout)
-					}
-					if res.Response == nil && err != nil {
-						// The error is printed by Execute; show what ran first
-						// and the request line for context.
-						output.Deps(a.Stdout, res, verbose)
-						fmt.Fprintf(a.Stdout, "%s %s\n", res.Request.Method, res.Request.DisplayURL(res.Redact))
-						return
-					}
-					output.Human(a.Stdout, res, verbose)
-				}
-			}
-			var results []*runner.Result
-			var runErr error
-			passedRows, failedRows := 0, 0
-			if len(rows) == 0 {
-				r.OnResult = onResult
-				results, runErr = r.RunAll(cmd.Context(), reqs)
-				if flow && !a.g.json && !bodyOnly {
-					output.Summary(a.Stdout, results)
-				}
-			} else {
-				results, runErr = a.runRows(cmd, r, rows, args, shareSession, keepGoing, func(it *runner.Iteration, ir *runner.Runner) {
-					iteration, printed = it, 0
-					configure(ir)
-					ir.OnResult = onResult
-					if !a.g.json && !bodyOnly {
-						if it.Index > 1 {
-							fmt.Fprintln(a.Stdout)
-						}
-						heading := fmt.Sprintf("iteration %d/%d", it.Index, it.Total)
-						if row := rows[it.Index-1].String(); row != "" && !a.g.redact {
-							heading += " " + theme.Dim.Render("· "+row)
-						}
-						fmt.Fprintln(a.Stdout, theme.Bold.Render(heading))
-					}
-				}, func(iterResults []*runner.Result) {
-					if flow && !a.g.json && !bodyOnly {
-						output.Summary(a.Stdout, iterResults)
-					}
-					ok := len(iterResults) > 0
-					for _, res := range iterResults {
-						ok = ok && res.OK
-					}
-					if ok {
-						passedRows++
-					} else {
-						failedRows++
-					}
-				})
-				if !a.g.json && !bodyOnly {
-					line := theme.OK.Render(fmt.Sprintf("%d passed", passedRows))
-					if failedRows > 0 {
-						line = theme.Fail.Render(fmt.Sprintf("%d failed", failedRows)) + fmt.Sprintf(", %d passed", passedRows)
-					}
-					fmt.Fprintf(a.Stdout, "\n%s %s\n", theme.Bold.Render(fmt.Sprintf("%d of %d iterations:", passedRows+failedRows, len(rows))), line)
-				}
-			}
-			if printErr != nil {
-				return printErr
-			}
-			failed := false
-			for _, res := range results {
-				if !res.OK {
-					failed = true
-				}
-			}
-			if reportPath != "" {
-				var buf bytes.Buffer
-				meta := report.Meta{Version: Version, Env: r.Opts.Env, Time: started, Redacted: a.g.redact, Project: r.Project.Root}
-				if err := report.Run(&buf, meta, results); err != nil {
-					return runner.Usage(runner.CodeFile, fmt.Sprintf("write report %s: %v", reportPath, err))
-				}
-				if err := os.WriteFile(reportPath, buf.Bytes(), 0o644); err != nil { //nolint:gosec // a report the user asked for, at the path they named
-					return runner.Usage(runner.CodeFile, fmt.Sprintf("write report %s: %v (run result: %v)", reportPath, err, describeOutcome(runErr)))
-				}
-			}
-			if runErr != nil {
-				return runErr
-			}
-			if failed {
-				return &exitError{code: runner.ExitAssert}
-			}
-			return nil
-		},
+		RunE: func(cmd *cobra.Command, args []string) error { return a.run(cmd, args, &f) },
 	}
 	cmd.ValidArgsFunction = a.completeRequests
-	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "show request and response headers")
-	cmd.Flags().BoolVar(&bodyOnly, "body-only", false, "print only the response body (for piping)")
-	cmd.Flags().BoolVar(&keepGoing, "keep-going", false, "in a flow, continue after a failure")
-	cmd.Flags().StringVar(&retry, "retry", "", "re-send until the assertions pass: \"<attempts> [interval]\", e.g. \"10 2s\" (requests with # @retry keep their own)")
-	cmd.Flags().BoolVar(&noRetry, "no-retry", false, "send every request once, ignoring # @retry, --retry and apic.yaml")
-	cmd.Flags().StringVar(&reportPath, "report", "", "also write a self-contained HTML report of the run to this file")
-	cmd.Flags().StringVar(&outputPath, "output", "", "save the response body to this file (one request only; like a \">>! file\" line in the request)")
-	cmd.Flags().StringVar(&dataPath, "data", "", "run the targets once per row of a CSV file (header row names the variables) or JSON array of objects; - reads stdin")
-	cmd.Flags().BoolVar(&shareSession, "data-share-session", false, "with --data, let captures from one iteration reach the next and the session file")
-	cmd.Flags().StringArrayVar(&adHocAsserts, "assert", nil, "check the response with an expression, as # @assert would, for this run only (repeatable)")
-	cmd.Flags().StringArrayVar(&adHocCaptures, "capture", nil, "capture a value, name=selector, as # @capture would, for this run only (repeatable)")
-	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "resolve the targets and print the requests that would be sent, without sending them")
-	cmd.Flags().StringVar(&bodyLimit, "body-limit", "", "show at most this much of each response body, e.g. 4k or 64k; the result says body_truncated and the history keeps it all")
+	cmd.Flags().BoolVarP(&f.verbose, "verbose", "v", false, "show request and response headers")
+	cmd.Flags().BoolVar(&f.bodyOnly, "body-only", false, "print only the response body (for piping)")
+	cmd.Flags().BoolVar(&f.keepGoing, "keep-going", false, "in a flow, continue after a failure")
+	cmd.Flags().StringVar(&f.retry, "retry", "", "re-send until the assertions pass: \"<attempts> [interval]\", e.g. \"10 2s\" (requests with # @retry keep their own)")
+	cmd.Flags().BoolVar(&f.noRetry, "no-retry", false, "send every request once, ignoring # @retry, --retry and apic.yaml")
+	cmd.Flags().StringVar(&f.report, "report", "", "also write a self-contained HTML report of the run to this file")
+	cmd.Flags().StringVar(&f.output, "output", "", "save the response body to this file (one request only; like a \">>! file\" line in the request)")
+	cmd.Flags().StringVar(&f.data, "data", "", "run the targets once per row of a CSV file (header row names the variables) or JSON array of objects; - reads stdin")
+	cmd.Flags().BoolVar(&f.shareSession, "data-share-session", false, "with --data, let captures from one iteration reach the next and the session file")
+	cmd.Flags().StringArrayVar(&f.asserts, "assert", nil, "check the response with an expression, as # @assert would, for this run only (repeatable)")
+	cmd.Flags().StringArrayVar(&f.captures, "capture", nil, "capture a value, name=selector, as # @capture would, for this run only (repeatable)")
+	cmd.Flags().BoolVar(&f.dryRun, "dry-run", false, "resolve the targets and print the requests that would be sent, without sending them")
+	cmd.Flags().StringVar(&f.bodyLimit, "body-limit", "", "show at most this much of each response body, e.g. 4k or 64k; the result says body_truncated and the history keeps it all")
 	return cmd
+}
+
+// run is apic run: it checks the flags, runs the targets (once, or once
+// per --data row), prints each result as it lands and writes the report.
+func (a *App) run(cmd *cobra.Command, args []string, f *runFlags) error {
+	extraAsserts, extraCaptures, err := adHoc(f.asserts, f.captures)
+	if err != nil {
+		return err
+	}
+	limit, err := parseSize(f.bodyLimit)
+	if err != nil {
+		return runner.Usage(runner.CodeFlag, fmt.Sprintf("--body-limit %q: %v", f.bodyLimit, err))
+	}
+	p, err := a.loadProject()
+	if err != nil {
+		return err
+	}
+	// A data run records no history: a response per row would push
+	// out what the history is for.
+	r, err := a.runnerFor(p, func(o *runner.Options) { o.NoHistory = f.data != "" })
+	if err != nil {
+		return err
+	}
+	if err := f.checkDryRun(); err != nil {
+		return err
+	}
+	j := &runJob{a: a, f: f, limit: limit, asserts: extraAsserts, captures: extraCaptures}
+	if f.data != "" {
+		if j.rows, err = a.readRows(f.data); err != nil {
+			return err
+		}
+	}
+	j.configure(r)
+	reqs, err := targets(r, args)
+	if err != nil {
+		return err
+	}
+	j.flow = len(reqs) > 1
+	if f.dryRun {
+		return a.dryRun(r, reqs, f.verbose, f.bodyOnly)
+	}
+	if err := j.checkOutputs(r, len(reqs)); err != nil {
+		return err
+	}
+	started := time.Now()
+	var results []*runner.Result
+	var runErr error
+	if len(j.rows) == 0 {
+		r.OnResult = j.onResult
+		results, runErr = r.RunAll(cmd.Context(), reqs)
+		if j.flow && j.human() {
+			output.Summary(a.Stdout, results)
+		}
+	} else {
+		results, runErr = j.runRows(cmd, r, args)
+	}
+	if j.printErr != nil {
+		return j.printErr
+	}
+	if f.report != "" {
+		if err := j.writeReport(r, started, results, runErr); err != nil {
+			return err
+		}
+	}
+	if runErr != nil {
+		return runErr
+	}
+	for _, res := range results {
+		if !res.OK {
+			return &exitError{code: runner.ExitAssert}
+		}
+	}
+	return nil
+}
+
+// checkDryRun refuses the flags --dry-run has nothing to do with.
+func (f *runFlags) checkDryRun() error {
+	switch {
+	case !f.dryRun:
+		return nil
+	case f.data != "":
+		return runner.Usage(runner.CodeFlag, "--dry-run shows one request per target; it does not take --data")
+	case f.output != "" || f.report != "":
+		return runner.Usage(runner.CodeFlag, "--dry-run sends nothing, so there is no response to save or report")
+	}
+	return nil
+}
+
+// runJob is one apic run: its flags, its --data rows, and the state of
+// printing results as they land.
+type runJob struct {
+	a        *App
+	f        *runFlags
+	limit    int
+	asserts  []httpfile.Assert
+	captures []httpfile.Capture
+	rows     []datafile.Row
+	flow     bool
+
+	printErr  error
+	printed   int
+	iteration *runner.Iteration // the row being run under --data
+}
+
+// human reports whether results are printed for a person to read.
+func (j *runJob) human() bool { return !j.a.g.json && !j.f.bodyOnly }
+
+// configure applies the run's flags to a runner: the first one, and each
+// iteration's own under --data.
+func (j *runJob) configure(r *runner.Runner) {
+	r.Opts.KeepGoing = j.f.keepGoing
+	r.Opts.Retry, r.Opts.NoRetry = j.f.retry, j.f.noRetry
+	r.Opts.Asserts, r.Opts.Captures = j.asserts, j.captures
+	if j.human() {
+		r.Progress = func(p runner.Progress) { fmt.Fprint(j.a.Stdout, output.Attempt(output.Default(), p)) }
+	}
+}
+
+// checkOutputs checks that --report and --output stay out of the
+// project's sources, and that --output names one response.
+func (j *runJob) checkOutputs(r *runner.Runner, targets int) error {
+	if j.f.report != "" {
+		if err := outputOverlapsSources(j.f.report, r.Project, nil); err != nil {
+			return err
+		}
+	}
+	if j.f.output == "" {
+		return nil
+	}
+	switch {
+	case j.flow:
+		return runner.Usage(runner.CodeFlag, fmt.Sprintf("--output saves one response; the targets name %d requests (add `>> file` lines to the requests instead)", targets))
+	case len(j.rows) > 0:
+		return runner.Usage(runner.CodeFlag, fmt.Sprintf("--output saves one response; --data runs the request %d times (add a `>> file` line with a {{placeholder}} in the path instead)", len(j.rows)))
+	}
+	if err := outputOverlapsSources(j.f.output, r.Project, nil); err != nil {
+		return err
+	}
+	r.Opts.Output = j.f.output
+	return nil
+}
+
+// onResult prints each result as it lands, so a flow shows progress (and
+// the attempt lines of a retried request sit under the right request)
+// instead of everything at the end.
+func (j *runJob) onResult(res *runner.Result, err error) {
+	defer func() { j.printed++ }()
+	if j.iteration != nil {
+		tagIteration(res, j.iteration)
+	}
+	if j.limit > 0 {
+		limitBodies(res, j.limit)
+	}
+	out := j.a.Stdout
+	switch {
+	case j.a.g.json:
+		if e := output.JSON(out, res); e != nil && j.printErr == nil {
+			j.printErr = e
+		}
+	case j.f.bodyOnly:
+		output.Body(out, res)
+	default:
+		if j.flow && j.printed > 0 {
+			fmt.Fprintln(out)
+		}
+		if res.Response == nil && err != nil {
+			// The error is printed by Execute; show what ran first
+			// and the request line for context.
+			output.Deps(out, res, j.f.verbose)
+			fmt.Fprintf(out, "%s %s\n", res.Request.Method, res.Request.DisplayURL(res.Redact))
+			return
+		}
+		output.Human(out, res, j.f.verbose)
+	}
+}
+
+// runRows runs the targets once per --data row, with a heading for each
+// iteration and a tally at the end.
+func (j *runJob) runRows(cmd *cobra.Command, r *runner.Runner, args []string) ([]*runner.Result, error) {
+	passed, failed := 0, 0
+	results, err := j.a.runRows(cmd, r, j.rows, args, j.f.shareSession, j.f.keepGoing, func(it *runner.Iteration, ir *runner.Runner) {
+		j.iteration, j.printed = it, 0
+		j.configure(ir)
+		ir.OnResult = j.onResult
+		if j.human() {
+			j.iterationHeading(it)
+		}
+	}, func(iterResults []*runner.Result) {
+		if j.flow && j.human() {
+			output.Summary(j.a.Stdout, iterResults)
+		}
+		if allOK(iterResults) {
+			passed++
+		} else {
+			failed++
+		}
+	})
+	if j.human() {
+		line := theme.OK.Render(fmt.Sprintf("%d passed", passed))
+		if failed > 0 {
+			line = theme.Fail.Render(fmt.Sprintf("%d failed", failed)) + fmt.Sprintf(", %d passed", passed)
+		}
+		fmt.Fprintf(j.a.Stdout, "\n%s %s\n", theme.Bold.Render(fmt.Sprintf("%d of %d iterations:", passed+failed, len(j.rows))), line)
+	}
+	return results, err
+}
+
+// iterationHeading prints the heading above one --data iteration, with
+// its row unless the run is redacted.
+func (j *runJob) iterationHeading(it *runner.Iteration) {
+	if it.Index > 1 {
+		fmt.Fprintln(j.a.Stdout)
+	}
+	heading := fmt.Sprintf("iteration %d/%d", it.Index, it.Total)
+	if row := j.rows[it.Index-1].String(); row != "" && !j.a.g.redact {
+		heading += " " + theme.Dim.Render("· "+row)
+	}
+	fmt.Fprintln(j.a.Stdout, theme.Bold.Render(heading))
+}
+
+// allOK reports whether an iteration ran and every result passed.
+func allOK(results []*runner.Result) bool {
+	ok := len(results) > 0
+	for _, res := range results {
+		ok = ok && res.OK
+	}
+	return ok
+}
+
+// writeReport writes the --report HTML for the run.
+func (j *runJob) writeReport(r *runner.Runner, started time.Time, results []*runner.Result, runErr error) error {
+	var buf bytes.Buffer
+	meta := report.Meta{Version: Version, Env: r.Opts.Env, Time: started, Redacted: j.a.g.redact, Project: r.Project.Root}
+	if err := report.Run(&buf, meta, results); err != nil {
+		return runner.Usage(runner.CodeFile, fmt.Sprintf("write report %s: %v", j.f.report, err))
+	}
+	if err := os.WriteFile(j.f.report, buf.Bytes(), 0o644); err != nil { //nolint:gosec // a report the user asked for, at the path they named
+		return runner.Usage(runner.CodeFile, fmt.Sprintf("write report %s: %v (run result: %v)", j.f.report, err, describeOutcome(runErr)))
+	}
+	return nil
 }
 
 // adHoc checks the --assert expressions and --capture definitions once,

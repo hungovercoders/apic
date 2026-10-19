@@ -107,6 +107,7 @@ hygiene:
     exclude: []              # extra globs to skip; test files and gitignored paths already are
   docs_accuracy:
     extra_paths: []          # (default) globs outside docs/ to scan too, e.g. [app/*.html, .claude/skills/**/*.md]
+    ignore_refs: []          # (default) backtick paths never on disk: run-time or generated files, e.g. [.apic/*]
   docs_structure:
     require_routed_docs: true   # (default) every doc has an explicit route from AGENTS.md, the map or a README above it
     max_route_depth: 3          # (default) AGENTS.md → map → directory README → doc

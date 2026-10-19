@@ -59,6 +59,12 @@ version difference, and the page says which version it was written for.
 
 ## Recording notes
 
+- Every episode opens on its title card: the series label, the lesson's
+  title and one command, then the hook. The row of episodes reads as one
+  series that way, and a viewer who lands mid-course knows where they are
+  before the first terminal appears. A lesson's cold open comes straight
+  after the card. `task episodes:check` refuses a shot list that starts
+  on anything else.
 - One terminal, 100 columns by 30 rows, font size 16, dark background.
   The lesson's `docs/learn/tapes/NN.tape` (a [VHS](https://github.com/charmbracelet/vhs)
   script) reproduces the terminal parts on demand, so b-roll can be
@@ -67,3 +73,15 @@ version difference, and the page says which version it was written for.
   longer than feels natural. Viewers read slower than you talk.
 - Every episode ends on the checkpoint passing, then the one-line pitch
   for the next lesson.
+- `task episodes` builds the whole episode but the voice from the shot
+  list under `docs/learn/episodes/`, named by the lesson's number: the cards, the clips (one VHS
+  tape each, against the demo API), the push-ins, and the captions from
+  the lines the voice says, which set each shot's length. It writes the
+  cut with and without captions, the SRT, the title, chapters and this
+  description filled in, the narration script and the thumbnail. Record
+  the narration to the script's timestamps and it fits the clean cut.
+  The builder records against the demo API only: a lesson's calls to a
+  real service are cards carrying the page's sample output, and a
+  lesson that works on the repository's example projects copies them
+  into the scratch directory in a setup step, which sees the repository
+  root as `EPISODE_REPO`.

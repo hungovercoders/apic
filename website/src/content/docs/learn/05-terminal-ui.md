@@ -1,5 +1,6 @@
 ---
 title: "Lesson 5: The terminal UI tour"
+description: "Lesson 5: drive a whole project from apic ui, with every key that has a purpose: run, read, check, edit, reload."
 ---
 **Goal.** Drive a whole project from `apic ui` without touching the
 command line: run, read, check, edit, reload.
@@ -31,7 +32,7 @@ apic ui -C apic-demo
 
 Four areas. **Requests** on the left, grouped by file, one row per
 request. On the right, a tab strip with **preview**, **response**,
-**checks** and **session**. The status bar at the bottom shows the project
+**checks**, **session** and **history**. The status bar at the bottom shows the project
 root, the environment, and the result of the last run. Nothing is
 different from the command line underneath: the same runner, the same
 session file, the same environment files. What you see here is what CI
@@ -76,8 +77,9 @@ flow in the next step is where you see those flip. That is
 
 Press <kbd>H</kbd> to add the request and response headers to the
 response tab, and again to hide them. Press <kbd>c</kbd> to swap the
-response for the equivalent `curl` command, ready to paste; <kbd>c</kbd>
-again brings the response back.
+response for the equivalent `curl` command, ready to paste; press it again
+for HTTPie, PowerShell, Python, JavaScript and Go, and <kbd>esc</kbd>
+brings the response back.
 
 ### 4. Run a file
 
@@ -126,7 +128,7 @@ to `○`. Then press <kbd>enter</kbd> on `login` again.
   are cleared, because they came from somewhere else. If you did lesson 2's
   exercise, `staging` is one press away.
 - <kbd>o</kbd> opens the selected request's file at its line in `$VISUAL`,
-  then `$EDITOR` (`vi` if neither is set). Save and quit, and the project
+  then `$EDITOR` (`vi` if neither is set, `notepad` on Windows). Save and quit, and the project
   is reloaded: a new request appears in the list, a changed assertion runs
   next time. <kbd>r</kbd> reloads without editing, for files changed by
   anything else.

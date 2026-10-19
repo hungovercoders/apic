@@ -144,7 +144,7 @@ func writeFormatted(file, formatted string) error {
 	if err != nil {
 		return runner.Usage(runner.CodeFile, err.Error())
 	}
-	if err := os.WriteFile(file, []byte(formatted), info.Mode().Perm()); err != nil {
+	if err := os.WriteFile(file, []byte(formatted), info.Mode().Perm()); err != nil { //nolint:gosec // rewriting the file the user named, in place
 		return runner.Usage(runner.CodeFile, err.Error())
 	}
 	return nil

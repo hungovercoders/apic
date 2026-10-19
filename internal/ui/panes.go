@@ -218,10 +218,10 @@ func (m *Model) renderSession(width int) string {
 		default:
 			v = output.Truncate(v, width-len(k)-8)
 		}
-		b.WriteString(fmt.Sprintf("  %s %s = %s\n", t.Capture.Render("↳"), k, v))
+		fmt.Fprintf(&b, "  %s %s = %s\n", t.Capture.Render("↳"), k, v)
 	}
 	for _, c := range m.cookies {
-		b.WriteString(fmt.Sprintf("  %s cookie %s = *** %s\n", t.Capture.Render("↳"), c.Name, t.Dim.Render(fmt.Sprintf("(%s%s · %s)", c.Domain, c.Path, c.ExpiryText(m.now())))))
+		fmt.Fprintf(&b, "  %s cookie %s = *** %s\n", t.Capture.Render("↳"), c.Name, t.Dim.Render(fmt.Sprintf("(%s%s · %s)", c.Domain, c.Path, c.ExpiryText(m.now()))))
 	}
 	b.WriteString("\n" + t.Dim.Render("x clears these values for this environment") + "\n")
 	return b.String()
@@ -233,7 +233,7 @@ func (m *Model) renderHelp() string {
 	b.WriteString(t.Accent.Render("apic is epic") + t.Dim.Render(" · keys") + "\n\n")
 	for _, col := range m.keys.columns() {
 		for _, k := range col {
-			b.WriteString(fmt.Sprintf("  %-13s %s\n", t.Bold.Render(k.name), k.help))
+			fmt.Fprintf(&b, "  %-13s %s\n", t.Bold.Render(k.name), k.help)
 		}
 		b.WriteString("\n")
 	}

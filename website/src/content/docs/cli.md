@@ -990,7 +990,7 @@ unless `--force`.
 
 ```json
 {"version": "v1.2.3", "commit": "abc1234", "date": "2026-02-01T10:00:00Z",
- "go": "go1.25.7", "os": "linux", "arch": "amd64"}
+ "go": "go1.26.9", "os": "linux", "arch": "amd64"}
 ```
 
 `completion bash|zsh|fish|powershell` prints a shell completion script:

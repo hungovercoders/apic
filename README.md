@@ -7,7 +7,7 @@
 
 <div align="center">
 
-[![CI](https://github.com/hungovercoders/apic/actions/workflows/ci.yml/badge.svg)](https://github.com/hungovercoders/apic/actions/workflows/ci.yml) [![Docs](https://github.com/hungovercoders/apic/actions/workflows/docs.yml/badge.svg)](https://apic.sh/) [![Latest release](https://img.shields.io/github/v/release/hungovercoders/apic?color=7c5cff&label=release)](https://github.com/hungovercoders/apic/releases/latest) ![Go 1.25+](https://img.shields.io/badge/go-1.25%2B-00ADD8) [![MIT licence](https://img.shields.io/badge/licence-MIT-7c5cff)](LICENSE)
+[![CI](https://github.com/hungovercoders/apic/actions/workflows/ci.yml/badge.svg)](https://github.com/hungovercoders/apic/actions/workflows/ci.yml) [![Docs](https://github.com/hungovercoders/apic/actions/workflows/docs.yml/badge.svg)](https://apic.sh/) [![Latest release](https://img.shields.io/github/v/release/hungovercoders/apic?color=7c5cff&label=release)](https://github.com/hungovercoders/apic/releases/latest) ![Go 1.26+](https://img.shields.io/badge/go-1.26%2B-00ADD8) [![MIT licence](https://img.shields.io/badge/licence-MIT-7c5cff)](LICENSE)
 
 </div>
 
@@ -28,7 +28,7 @@ apic ui --demo                      # or just the UI on the fake API, no project
 
 ```sh
 brew install hungovercoders/tap/apic                              # macOS / Linux
-go install github.com/hungovercoders/apic/cmd/apic@latest         # Go 1.25+
+go install github.com/hungovercoders/apic/cmd/apic@latest         # Go 1.26+
 curl -fsSL https://raw.githubusercontent.com/hungovercoders/apic/main/install.sh | sh
 irm https://raw.githubusercontent.com/hungovercoders/apic/main/install.ps1 | iex   # Windows
 ```

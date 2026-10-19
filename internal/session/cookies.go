@@ -287,7 +287,7 @@ func (c Cookie) url() *url.URL {
 }
 
 func (c Cookie) http() *http.Cookie {
-	out := &http.Cookie{Name: c.Name, Value: c.Value, Path: c.Path, Expires: c.Expires, Secure: c.Secure, HttpOnly: c.HTTPOnly}
+	out := &http.Cookie{Name: c.Name, Value: c.Value, Path: c.Path, Expires: c.Expires, Secure: c.Secure, HttpOnly: c.HTTPOnly} //nolint:gosec // the attributes are the server's own, replayed from the jar
 	if !c.HostOnly {
 		out.Domain = c.Domain
 	}

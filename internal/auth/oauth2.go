@@ -20,7 +20,7 @@ type cachedToken struct {
 }
 
 func encodeToken(t cachedToken) string {
-	b, _ := json.Marshal(t)
+	b, _ := json.Marshal(t) //nolint:gosec // the cache exists to hold the token; it lives in the session file
 	return string(b)
 }
 

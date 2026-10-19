@@ -73,14 +73,28 @@ version difference, and the page says which version it was written for.
   longer than feels natural. Viewers read slower than you talk.
 - Every episode ends on the checkpoint passing, then the one-line pitch
   for the next lesson.
-- `task episodes` builds the whole episode but the voice from the shot
-  list under `docs/learn/episodes/`, named by the lesson's number: the cards, the clips (one VHS
+- `task episodes` builds the whole episode from the shot list under
+  `docs/learn/episodes/`, named by the lesson's number: the cards, the clips (one VHS
   tape each, against the demo API), the push-ins, and the captions from
   the lines the voice says, which set each shot's length. It writes the
   cut with and without captions, the SRT, the title, chapters and this
-  description filled in, the narration script and the thumbnail. Record
-  the narration to the script's timestamps and it fits the clean cut.
-  The builder records against the demo API only: a lesson's calls to a
+  description filled in, the narration script and the thumbnail.
+- The voice, two ways. Voice first: record one clip per line, reading
+  from the narration script, which numbers each line as the SRT does, and
+  save them under a directory named by the episode's number with the
+  three-digit cue number as the file name (001 and up, in any format
+  ffmpeg reads; a text-to-speech tool that writes one file a line fits
+  the same shape). Then `task episodes VOICE=<directory>` times each shot
+  to its clips plus a short beat instead of the word count, so the cut
+  fits the voice, puts the clips on the audio track at their cues and
+  writes voiced copies of both cuts beside the silent ones. A missing or
+  surplus clip stops the build naming the line, before anything renders.
+  Picture first: build the episode silent, record the narration in one
+  take to the script's timestamps, and `task episodes:voice EPISODE=NN
+  VOICE=<file>` muxes the take onto both cuts, padded to the picture.
+  Keep recordings out of the repository; a directory called voice at the
+  root is ignored by git.
+- The builder records against the demo API only: a lesson's calls to a
   real service are cards carrying the page's sample output, and a
   lesson that works on the repository's example projects copies them
   into the scratch directory in a setup step, which sees the repository

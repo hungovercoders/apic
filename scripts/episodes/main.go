@@ -1,17 +1,22 @@
-// Command episodes builds the course's YouTube episodes, bar the voice.
-// Each lesson's shot list in docs/learn/episodes/NN.yaml names the cards,
-// the terminal clips (a VHS tape each, recorded against the demo API from
-// a scratch directory holding the files the lesson has created by then)
-// and the push-ins, with the lines the voice says over each shot. Those
-// lines set the timing: a shot runs as long as they take to say, or as
-// long as its clip, whichever is longer, so a voice recorded to the
-// captions fits the cut. For each episode it writes, under dist/episodes:
-// the captioned MP4 with a silent track where the voice goes, a clean MP4
-// without captions, the captions as SRT, the YouTube title, chapters and
-// description (from docs/learn/_episode-template.md), the narration
-// script and the thumbnail. Run it with `task episodes` (vhs, ttyd,
-// ffmpeg and a chromium on PATH); `task episodes:check` validates every
-// shot list and tape with vhs alone, recording nothing.
+// Command episodes builds the course's YouTube episodes. Each lesson's
+// shot list in docs/learn/episodes/NN.yaml names the cards, the terminal
+// clips (a VHS tape each, recorded against the demo API from a scratch
+// directory holding the files the lesson has created by then) and the
+// push-ins, with the lines the voice says over each shot. Those lines set
+// the timing: a shot runs as long as they take to say, or as long as its
+// clip, whichever is longer, so a voice recorded afterwards to the
+// captions fits the cut. Given a voice directory (-voice) holding one
+// recorded clip per line, the shots are timed to the recording instead
+// and the clips go on the audio track, so the cut fits the voice rather
+// than the other way round. For each episode it writes, under
+// dist/episodes: the captioned MP4 with a silent track where the voice
+// goes, a clean MP4 without captions, their voiced copies when there is a
+// voice, the captions as SRT, the YouTube title, chapters and description
+// (from docs/learn/_episode-template.md), the narration script and the
+// thumbnail. Run it with `task episodes` (vhs, ttyd, ffmpeg and a chromium
+// on PATH); `task episodes:check` validates every shot list and tape with
+// vhs alone, recording nothing; `task episodes:voice` muxes a narration
+// recorded in one take onto an episode already built.
 package main
 
 import (
@@ -34,6 +39,8 @@ func main() {
 	out := flag.String("out", "dist/episodes", "directory to write each episode into, under its name")
 	keep := flag.Bool("keep", false, "keep each episode's scratch directory for inspection")
 	version := flag.String("version", "dev", "version to stamp into the apic binary the episodes show")
+	voice := flag.String("voice", "", "directory of recorded lines, one clip per cue under each episode's name (NN/001.wav and up); an episode with one is timed to it and written voiced as well")
+	muxFile := flag.String("mux", "", "a narration recorded in one take to the script's timestamps: write the voiced cuts of the one episode named by -only, already built under -out, and build nothing")
 	flag.Parse()
 	all, err := LoadAll(".")
 	if err != nil {
@@ -43,15 +50,55 @@ func main() {
 	if err != nil {
 		fail(err)
 	}
+	if *muxFile != "" {
+		if len(eps) != 1 {
+			fail(fmt.Errorf("-mux takes one episode; name it with -only"))
+		}
+		if _, err := exec.LookPath("ffmpeg"); err != nil {
+			fail(fmt.Errorf("ffmpeg is not on PATH; muxing needs it"))
+		}
+		if err := Mux(eps[0], *out, *muxFile); err != nil {
+			fail(err)
+		}
+		return
+	}
 	if *check {
-		if n := Check(eps, os.Stdout); n > 0 {
+		n := 0
+		if *voice != "" {
+			n = CheckVoice(eps, *voice, os.Stdout)
+		}
+		if n += Check(eps, os.Stdout); n > 0 {
 			fail(fmt.Errorf("%d of %d episodes are invalid", n, len(eps)))
 		}
 		return
 	}
-	if err := Build(".", all, eps, *out, *version, *keep); err != nil {
+	if err := Build(".", all, eps, *out, *version, *voice, *keep); err != nil {
 		fail(err)
 	}
+}
+
+// CheckVoice reads each episode's recorded lines, if it has any, and
+// returns how many episodes have a recording that does not match their
+// lines. It needs ffprobe for the clips' lengths.
+func CheckVoice(eps []*Episode, dir string, w io.Writer) int {
+	if _, err := exec.LookPath("ffprobe"); err != nil {
+		fmt.Fprintln(w, "ffprobe is not on PATH; checking a voice directory needs it")
+		return len(eps)
+	}
+	failed := 0
+	for _, ep := range eps {
+		v, err := LoadVoice(dir, ep)
+		switch {
+		case err != nil:
+			fmt.Fprintln(w, err)
+			failed++
+		case v == nil:
+			fmt.Fprintf(w, "%s: no voice under %s\n", ep.Name, dir)
+		default:
+			fmt.Fprintf(w, "%s: voice ok (%d lines, %s)\n", ep.Name, len(v.Clips), ytTime(v.Total()))
+		}
+	}
+	return failed
 }
 
 func fail(err error) {
@@ -115,8 +162,9 @@ const vhsHint = "vhs is not on PATH; checking needs vhs, building vhs, ttyd and 
 
 // Build makes the picked episodes, out of all of them (the description
 // links each to the one before): one apic binary, then each from its own
-// scratch directory into out/NN.
-func Build(root string, all, eps []*Episode, out, version string, keep bool) error {
+// scratch directory into out/NN, timed to its recorded lines under the
+// voice directory when it has them.
+func Build(root string, all, eps []*Episode, out, version, voice string, keep bool) error {
 	for _, tool := range []string{"vhs", "ttyd", "ffmpeg", "ffprobe"} {
 		if _, err := exec.LookPath(tool); err != nil {
 			return fmt.Errorf("%s is not on PATH; building needs vhs, ttyd and ffmpeg (https://github.com/charmbracelet/vhs#installation) and a chromium", tool)
@@ -138,6 +186,16 @@ func Build(root string, all, eps []*Episode, out, version string, keep bool) err
 	if err := build.Run(); err != nil {
 		return fmt.Errorf("building apic: %w", err)
 	}
+	// A recording that does not match its lines fails here, before any
+	// episode spends minutes rendering.
+	voices := map[string]*Voice{}
+	for _, ep := range eps {
+		v, err := LoadVoice(voice, ep)
+		if err != nil {
+			return err
+		}
+		voices[ep.Name] = v
+	}
 	for _, ep := range eps {
 		var prev *Episode
 		for _, e := range all {
@@ -145,7 +203,7 @@ func Build(root string, all, eps []*Episode, out, version string, keep bool) err
 				prev = e
 			}
 		}
-		if err := buildOne(root, bin, chromium, ep, prev, filepath.Join(out, ep.Name), keep); err != nil {
+		if err := buildOne(root, bin, chromium, ep, prev, voices[ep.Name], filepath.Join(out, ep.Name), keep); err != nil {
 			return fmt.Errorf("%s: %w", ep.Name, err)
 		}
 	}
@@ -166,10 +224,12 @@ type build struct {
 	t                              float64
 	lastClip                       string            // the newest clip's segment, for a zoom
 	clipSeg                        map[string]string // each clip's segment, for the thumbnail
+	voice                          *Voice            // the recorded lines, or nil
+	cue                            int               // how many lines the shots so far have used
 }
 
 // buildOne records, renders and cuts one episode.
-func buildOne(root, bin, chromium string, ep, prev *Episode, out string, keep bool) error {
+func buildOne(root, bin, chromium string, ep, prev *Episode, voice *Voice, out string, keep bool) error {
 	work, err := os.MkdirTemp("", "apic-episodes-"+ep.Name+"-*")
 	if err != nil {
 		return err
@@ -186,7 +246,10 @@ func buildOne(root, bin, chromium string, ep, prev *Episode, out string, keep bo
 	if err != nil {
 		return err
 	}
-	b := &build{root: root, bin: bin, chromium: chromium, work: work, out: out, ep: ep, blocks: blocks, env: append(record.Environment(bin, work), goCaches()...), clipSeg: map[string]string{}}
+	b := &build{root: root, bin: bin, chromium: chromium, work: work, out: out, ep: ep, blocks: blocks, env: append(record.Environment(bin, work), goCaches()...), clipSeg: map[string]string{}, voice: voice}
+	if voice != nil {
+		fmt.Printf("%s: timing the cut to %d recorded lines (%s)\n", ep.Name, len(voice.Clips), ytTime(voice.Total()))
+	}
 	defer func() {
 		if b.stop != nil {
 			b.stop()
@@ -238,11 +301,19 @@ func (b *build) renderCards() error {
 
 // shot makes the segment for one shot and adds it to the cut: its
 // captions spread over its length, and a chapter when the chapter changes.
+// The shot runs as long as its lines need, as said at a reading pace or as
+// recorded, with a beat after each.
 func (b *build) shot(i int, s Shot) error {
 	seg := filepath.Join(b.work, fmt.Sprintf("seg-%02d.mp4", i))
+	times := sayTimes(s.Say)
+	if b.voice != nil {
+		for j := range times {
+			times[j] = b.voice.Secs[b.cue+j] + voicePad
+		}
+	}
 	var want float64
-	for _, l := range s.Say {
-		want += sayTime(l)
+	for _, t := range times {
+		want += t
 	}
 	var err error
 	switch s.Kind() {
@@ -263,7 +334,14 @@ func (b *build) shot(i int, s Shot) error {
 	if err != nil {
 		return err
 	}
-	b.cues = append(b.cues, spread(b.t, secs, s.Say)...)
+	cues := spread(b.t, secs, s.Say, times)
+	if b.voice != nil {
+		for j := range cues {
+			cues[j].Audio = b.voice.Clips[b.cue+j]
+		}
+	}
+	b.cues = append(b.cues, cues...)
+	b.cue += len(s.Say)
 	if len(b.chapters) == 0 || b.chapters[len(b.chapters)-1].Title != s.Chapter {
 		b.chapters = append(b.chapters, Chapter{Start: b.t, Title: s.Chapter})
 	}
@@ -363,6 +441,15 @@ func (b *build) write(prev *Episode) error {
 	}
 	if err := burn(clean, ass, filepath.Join(b.out, ep.Name+".mp4")); err != nil {
 		return err
+	}
+	if b.voice != nil {
+		voiced := filepath.Join(b.out, ep.Name+"-clean-voiced.mp4")
+		if err := withVoice(filepath.Join(b.work, "all.mp4"), b.cues, voiced); err != nil {
+			return err
+		}
+		if err := burn(voiced, ass, filepath.Join(b.out, ep.Name+"-voiced.mp4")); err != nil {
+			return err
+		}
 	}
 	shot := filepath.Join(b.work, "shot.png")
 	if err := cropTerm(b.clipSeg[ep.Thumbnail.Clip], shot); err != nil {

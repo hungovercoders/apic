@@ -1,0 +1,165 @@
+# Lesson 3's episode. The lesson assumes `apic demo` is running, so the
+# project is written and the API served before the first shot. The first
+# clip clears the session, so the episode starts from the same state
+# whatever ran before; the chain file comes from the lesson's own block as
+# setup, off camera, and the clip shows it.
+lesson: 3
+summary: Capture a value from a response, reuse it from the session in any later command, and run a whole file as a flow.
+project: true
+thumbnail:
+  words: "Capture, session\nand flows"
+  clip: ref
+
+shots:
+  - chapter: The missing token
+    card:
+      series: From zero to apic · lesson 3
+      title: "Capture, the session\nand flows"
+      text: "$ `apic run todos.http -C apic-demo`"
+    say:
+      - This is lesson three of From zero to apic. Keep apic demo running in another terminal, as every command here runs against it.
+
+  - chapter: The missing token
+    clip: missing
+    tape: |
+      Type "apic session clear --all -C apic-demo" Enter Sleep 2s
+      Type `apic run list-todos -C apic-demo || echo "exit $?"` Enter Sleep 5s
+    say:
+      - Start clean, then ask for the todo list, which needs a token.
+      - Nothing was sent. Exit code two means apic stopped before the network. The error names the variable, the request that captures it, and the two ways to fix it.
+      - apic knows which request would fix this. By the end of the episode, the request will know too. For now, take the first way.
+
+  - chapter: Capture
+    clip: capture
+    tape: |
+      Type "apic run login -C apic-demo" Enter Sleep 4s
+    say:
+      - "login ends with a directive you saw in lesson one: capture token equals body dollar access_token."
+      - "body dollar access_token is a selector: the JSON body, then the path. When the response arrives, whatever is there is stored under the name token."
+
+  - chapter: Capture
+    zoom: { col: 24, row: 10 }
+    say:
+      - That last line is the capture. token is stored now.
+
+  - chapter: Capture
+    clip: works
+    tape: |
+      Type `apic run list-todos -C apic-demo --json | grep -o '"ok":true'` Enter Sleep 4s
+    say:
+      - Now the request from step one works, in this shell or any other, with no flag.
+
+  - chapter: The session file
+    clip: session
+    tape: |
+      Type "apic session -C apic-demo" Enter Sleep 3s
+      Type "cat apic-demo/.apic/session.json" Enter Sleep 4s
+      Type "cat apic-demo/.apic/.gitignore" Enter Sleep 4s
+    say:
+      - Where did it go? apic session lists what is stored for the current environment.
+      - Captured values live in dot apic slash session.json under the project, keyed by environment. That is why lesson two's staging token never mixed with local's.
+      - apic writes a gitignore next to it, so the file never reaches a commit.
+
+  - chapter: Forgetting
+    clip: forget
+    tape: |
+      Type "apic session clear -C apic-demo" Enter Sleep 2s
+      Type "apic run login -C apic-demo --no-session > /dev/null" Enter Sleep 2s
+      Type "apic session -C apic-demo --json" Enter Sleep 4s
+    say:
+      - "Three ways to forget. session clear empties the current environment, or every environment with dash dash all."
+      - Dash dash no-session neither reads nor writes the file, which is what a CI job or a one-off check wants. login ran and captured its token for that one command, and nothing was kept.
+      - And a request can opt out on its own with the no-session directive, for a value that must never be reused.
+
+  - chapter: Response references
+    clip: chain
+    setup:
+      - blocks: [8]
+        replace: ["apic run login me-by-ref -C apic-demo --no-session\n", ""]
+    tape: |
+      Type "cat apic-demo/chain.http" Enter Sleep 5s
+    say:
+      - "Within one command, a request can read another's response directly: login dot response dot body dot selector. No capture needed."
+
+  - chapter: Response references
+    clip: chainrun
+    tape: |
+      Type "apic run login me-by-ref -C apic-demo --no-session" Enter Sleep 5s
+    say:
+      - Two requests, one command. me-by-ref reads the token straight out of login's response.
+      - "This only works when login ran earlier in the same command, so it suits a flow in a file more than a request you run alone. capture is the one to reach for by default: it survives the command."
+
+  - chapter: A file is a flow
+    clip: flow
+    tape: |
+      Type "apic run login -C apic-demo > /dev/null" Enter Sleep 2s
+      Type `apic run todos.http -C apic-demo || echo "exit $?"` Enter Sleep 6s
+    say:
+      - Naming a file instead of a request runs every request in it, in order, and prints a summary.
+      - todos.http creates a todo, reads it, updates it, deletes it and checks the delete stuck, each request using the id the first one captured.
+      - "Ten requests ran, then the flow stopped. not-found is the request that fails on purpose, and a flow stops at the first failure so a broken step does not cascade. Exit code one."
+
+  - chapter: A file is a flow
+    clip: keepgoing
+    tape: |
+      Type "apic run todos.http -C apic-demo --keep-going | tail -15" Enter Sleep 5s
+    say:
+      - There are two more requests in the file. Dash dash keep-going runs them anyway and reports everything.
+
+  - chapter: A file is a flow
+    zoom: { col: 60, row: 12 }
+    say:
+      - "Twelve rows, one cross: the summary says one failed, eleven passed. Captures made during a flow are kept like any other, so todoId is in the session now."
+
+  - chapter: "# @ref"
+    clip: ref
+    tape: |
+      Type "apic session clear -C apic-demo" Enter Sleep 2s
+      Type "apic run whoami -C apic-demo" Enter Sleep 5s
+    say:
+      - "Step one's error asked you to run login yourself. A request can say that for you: whoami in auth.http carries ref login."
+      - Clear the session and run whoami alone. token was missing, login is the request that captures it, so apic ran login first, then whoami.
+
+  - chapter: "# @ref"
+    zoom: { col: 30, row: 13 }
+    say:
+      - ran login first, says the line under the capture. forceRef login would run it every time, for a token that must be fresh.
+
+  - chapter: "# @ref"
+    clip: again
+    tape: |
+      Type "apic run whoami -C apic-demo" Enter Sleep 4s
+    say:
+      - Run whoami again and only whoami goes out, because the token is there now.
+
+  - chapter: Checkpoint and exercise
+    clip: checkpoint
+    tape: |
+      Type `apic run login -C apic-demo > /dev/null && apic session -C apic-demo --json | grep -c '"token"'` Enter Sleep 4s
+    say:
+      - The checkpoint. After a login, the session holds exactly one token for local.
+
+  - chapter: Checkpoint and exercise
+    card:
+      heading: Exercise
+      text: |-
+        Write a two-request file of your own: create a todo, capture
+        its `id`, and fetch it back by that id. `POST /todos` answers
+        with the todo it created, `id` included. Run it as a flow:
+
+        $ `apic run mytodo.http -C apic-demo`
+      foot: Solution on the lesson page · `apic.sh/learn/03-capture-session-flows/`
+    say:
+      - "Your exercise: a two-request file of your own. Create a todo, capture its id, and fetch it back by that id, as a flow."
+      - A ref login on the first request means the file works from a cleared session too. The solution is on the lesson page.
+
+  - chapter: Checkpoint and exercise
+    card:
+      series: Next · lesson 4
+      title: "Assertions, validation\nand polling"
+      text: |-
+        Every command in this episode: `apic.sh/learn/03-capture-session-flows/`
+        The whole course: `apic.sh/learn/`
+    say:
+      - "Next, lesson four: assertions, validation and polling. What a request checks, and what to do when the answer is not ready yet."
+      - Every command from this episode is on the lesson page. See you there.

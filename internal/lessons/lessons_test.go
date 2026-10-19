@@ -1,6 +1,9 @@
 package lessons
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestExtractTakesOnlyMarkedFences(t *testing.T) {
 	src := "# Title\n\nProse.\n\n<!-- learn -->\n```sh\napic list\n```\n\n```sh\nnot marked\n```\n\n<!-- learn -->\n\n```sh\necho two\necho three\n```\n\n<!-- learn -->\nsome prose in between\n```sh\nnot this one either\n```\n\n    <!-- learn -->\n    ```sh\n    indented\n    ```\n"
@@ -58,3 +61,22 @@ func TestExtractHandlesCRLF(t *testing.T) {
 
 // TestTemplateRunsEndToEnd builds apic, starts the demo and runs the blocks
 // in the course and the migration guides, which is what CI does.
+
+// Page finds a lesson by its number and Blocks reads its runnable blocks,
+// which the recorders' setups count on.
+func TestPageAndBlocks(t *testing.T) {
+	page, err := Page("../..", "01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasSuffix(page, "01-first-request.md") {
+		t.Errorf("Page(01) = %q", page)
+	}
+	blocks, err := Blocks("../..", "01")
+	if err != nil || len(blocks) == 0 {
+		t.Fatalf("Blocks(01) = %d blocks, %v", len(blocks), err)
+	}
+	if _, err := Page("../..", "99"); err == nil {
+		t.Error("Page(99) found a lesson")
+	}
+}

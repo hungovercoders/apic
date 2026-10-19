@@ -1,0 +1,183 @@
+# Lesson 4's episode. The lesson assumes `apic demo` is running and a
+# token in the session, so the project is written and the API served
+# before the first shot and the first clip logs in off camera. The broken
+# file comes from the lesson's own block as setup, and the clip shows it.
+lesson: 4
+summary: "Assert on status, headers and JSON with selectors and operators, read a failure, validate a project before running it, and poll with # @retry."
+project: true
+thumbnail:
+  words: "Assertions\nand polling"
+  clip: fail
+
+shots:
+  - chapter: One line makes it a test
+    card:
+      series: From zero to apic · lesson 4
+      title: "Assertions, validation\nand polling"
+      text: "$ `apic run not-found -C apic-demo`"
+    say:
+      - This is lesson four of From zero to apic. One line in a file, and the request is a test. This lesson is every kind of line you can write there.
+
+  - chapter: A request that checks itself
+    clip: health
+    setup:
+      - blocks: [1]
+    tape: |
+      Type "apic run health -C apic-demo" Enter Sleep 4s
+    say:
+      - "Every assert line is a check on the response. health in explore.http has three: the status, body dollar status equals ok, and body dollar version exists."
+      - "Each assertion is selector, operator, value. The left side picks something from the response, the operator compares, the right side is what you expect, or nothing, for exists."
+
+  - chapter: Reading a failure
+    clip: fail
+    tape: |
+      Type `apic run not-found -C apic-demo || echo "exit $?"` Enter Sleep 4s
+    say:
+      - not-found asks for a 404 and asserts a 200, on purpose.
+
+  - chapter: Reading a failure
+    zoom: { col: 40, row: 10 }
+    say:
+      - The cross shows the expression and what the selector actually found. Exit code one is what a script or CI reads.
+      - "Nothing else changes: the response is still printed, and any capture on the request still happens."
+
+  - chapter: Selectors
+    card:
+      heading: Selectors
+      table:
+        - ["status", "The status code, `404`"]
+        - ["statusText", "The reason, `Not Found`"]
+        - ["duration", "Milliseconds the request took"]
+        - ["header.<name>", "A response header, case-insensitive"]
+        - ["body", "The raw body as text"]
+        - ["body.$", "The body as JSON"]
+        - ["body.$.a.b", "A path into it"]
+        - ["body.$[0]", "An array element"]
+        - ["body.$.items.#", "How many elements `items` has"]
+    say:
+      - "The left side can be any of these: the status code, the reason, the duration, a header, the raw body, the body as JSON, a path into it, an array element, or how many elements an array has."
+
+  - chapter: Selectors
+    clip: selectors
+    tape: |
+      Type "apic run list-open-todos -C apic-demo -v" Enter Sleep 5s
+    say:
+      - list-open-todos uses four of them on one response. Dash v shows the headers, so you can see x-total-count, which the second assertion read.
+      - body dollar hash counted the array. body dollar bracket zero dot done walked into its first element.
+      - "The body does not have to be JSON: daily-report fetches CSV and asserts on the content-type header and the raw text, with startsWith."
+
+  - chapter: Operators
+    card:
+      heading: Operators
+      table:
+        - ["==  !=", "Equal, not equal. Numbers compare as numbers, so `200 == 200.0`"]
+        - ["<  <=  >  >=", "Numeric only; a non-number on either side fails with a reason"]
+        - ["contains  startsWith  endsWith", "Substring checks on the text"]
+        - ["matches", "A regular expression, `body.$.email matches ^[^@]+@example\\.com$`"]
+        - ["exists  not exists", "The selector found something, or found nothing; no right side"]
+      foot: The right side can hold a variable · `body.$.id == {{userId}}`
+    say:
+      - Equal and not equal, where numbers compare as numbers. Less than, greater than and their friends, numeric only. contains, startsWith and endsWith on the text. matches, a regular expression. And exists or not exists, with no right side.
+      - "The right side can hold a variable: body dollar id equals userId compares against whatever userId resolves to."
+
+  - chapter: Errors are responses too
+    clip: invalid
+    tape: |
+      Type "apic run create-todo-invalid -C apic-demo" Enter Sleep 5s
+    say:
+      - An API's error shapes deserve assertions as much as its happy path. The demo answers an empty title with a 422 and a field map, and create-todo-invalid pins that down.
+      - Quotes around a value are optional and stripped, so quoted validation failed and the bare words mean the same thing. Quote when the value has leading or trailing spaces.
+
+  - chapter: validate
+    clip: broken
+    setup:
+      - blocks: [6]
+        replace: ["apic validate -C apic-demo || echo \"exit $?\"\n", ""]
+    tape: |
+      Type "cat apic-demo/broken.http" Enter Sleep 3s
+      Type `apic validate -C apic-demo || echo "exit $?"` Enter Sleep 5s
+    say:
+      - An assertion with a typo in its selector fails every time, and a name used twice makes apic run ambiguous. apic validate finds both without sending anything. Here is a file broken on purpose.
+      - Each line is file, line, column, the severity, the message and a code in parentheses. Errors make validate exit two; warnings alone do not.
+
+  - chapter: validate
+    zoom: { col: 60, row: 10 }
+    say:
+      - "Editors and CI use the columns and the codes: dash dash format github turns them into annotations on a pull request, and dash dash format sarif feeds a code-scanning tool."
+
+  - chapter: validate
+    clip: fixed
+    tape: |
+      Type "rm apic-demo/broken.http" Enter Sleep 1s
+      Type "apic validate -C apic-demo" Enter Sleep 3s
+    say:
+      - Delete the file, and no problems.
+
+  - chapter: "Waiting with # @retry"
+    card:
+      heading: Waiting for a state
+      text: |-
+        The shell way:
+        `until apic run get-job -C apic-demo --json | grep -q '"state":"done"'; do sleep 1; done`
+
+        The apic way, on wait-for-job in jobs.http:
+        `# @retry 5 500ms`
+        `# @assert status == 200`
+        `# @assert body.$.state == done`
+    say:
+      - Some assertions describe where an API is going, not where it is. The demo's job API moves a job from queued to running to done, one step per poll. Without help, you would loop in the shell.
+      - "wait-for-job says the same thing in one line: retry, five attempts, half a second apart, until the assertions pass."
+
+  - chapter: "Waiting with # @retry"
+    clip: retry
+    tape: |
+      Type "apic run create-job -C apic-demo > /dev/null" Enter Sleep 2s
+      Type "apic run wait-for-job -C apic-demo" Enter Sleep 5s
+    say:
+      - Submit a job, then run it. The first attempt found running, apic printed why and waited half a second, and the second attempt passed.
+
+  - chapter: "Waiting with # @retry"
+    zoom: { col: 50, row: 5 }
+    say:
+      - Up to five would have been tried, and if none passed, the last one would be reported as the failure, exit code one. A transport error counts as a failed attempt too.
+      - Dash dash retry applies a policy to requests without their own, and dash dash no-retry switches every policy off.
+
+  - chapter: --json
+    clip: json
+    tape: |
+      Type "apic run not-found -C apic-demo --json || true" Enter Sleep 5s
+    say:
+      - Dash dash json carries every assertion with its outcome, so a script can say which one failed rather than only that one did.
+      - ok is the one field to read first; the asserts array has the rest. A retried request adds attempts.
+
+  - chapter: Checkpoint and exercise
+    clip: checkpoint
+    tape: |
+      Type `apic run todos.http -C apic-demo --keep-going --json | grep -c '"ok":false'` Enter Sleep 4s
+    say:
+      - The checkpoint. Run the todo file with keep-going and count the requests that failed. Exactly one does, the deliberate not-found.
+
+  - chapter: Checkpoint and exercise
+    card:
+      heading: Exercise
+      text: |-
+        A request for the first page of todos, two per page:
+        `GET {{baseUrl}}/todos?page=1&limit=2`
+
+        With three assertions: the number of todos on the page,
+        a response header, and a value inside the first todo.
+      foot: Solution on the lesson page · `apic.sh/learn/04-assertions/`
+    say:
+      - "Your exercise: a request for the first page of todos, two per page, with three assertions. The number of todos on the page, a response header, and a value inside the first todo."
+      - The solution is on the lesson page.
+
+  - chapter: Checkpoint and exercise
+    card:
+      series: Next · lesson 5
+      title: "The terminal\nUI tour"
+      text: |-
+        Every command in this episode: `apic.sh/learn/04-assertions/`
+        The whole course: `apic.sh/learn/`
+    say:
+      - "Next, lesson five: the terminal UI tour, where every one of these checks has a tab of its own."
+      - Every command from this episode is on the lesson page. See you there.

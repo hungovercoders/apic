@@ -1,0 +1,169 @@
+# Lesson 12's episode. The lesson assumes `apic demo` is running, so the
+# project is written and the API served before the first shot. The
+# builder records a terminal, so the editors are cards built from the
+# page: what each one gives you and what it ignores. The handler block
+# the JetBrains step writes comes from the lesson's own block as setup,
+# and the exercise file is written as setup and run as a flow on camera.
+lesson: 12
+summary: "Send the same request from VS Code, a JetBrains IDE, Neovim and apic run, and know what each one ignores in the file."
+project: true
+thumbnail:
+  words: "One file,\nevery editor"
+  clip: handler
+
+shots:
+  - chapter: One file
+    card:
+      series: From zero to apic · lesson 12
+      title: "Editors"
+      text: "$ `apic run login -C apic-demo`"
+    say:
+      - "This is lesson twelve of From zero to apic. The same request sent from VS Code, from a JetBrains IDE, from Neovim and from apic run, and what each one ignores in the file."
+
+  - chapter: One file
+    card:
+      heading: One file. Same file.
+      table:
+        - ["VS Code", "REST Client's `Send Request` link above `POST {{baseUrl}}/auth/login` · 200"]
+        - ["JetBrains", "The gutter icon on `login` · 200"]
+        - ["Neovim", "kulala.nvim on the same file · 200"]
+        - ["The terminal", "`apic run login -C apic-demo` · 200"]
+      foot: Nothing about the file changed for any of them
+    say:
+      - "Three editors, one terminal, four sends, four 200s. Nothing about the file changed for that to work, and that is the premise of the whole course: a dot http file is the editor's format, and everything apic adds is a comment the editor does not read."
+
+  - chapter: REST Client
+    card:
+      heading: VS Code with REST Client only
+      table:
+        - ["`{{baseUrl}}` resolved", "REST Client reads the same `http-client.env.json`; pick the environment with the status-bar item it adds"]
+        - ["`# @name login` is theirs", "REST Client's own directive, which apic adopted rather than inventing another; `{{login.response.body.$.access_token}}` resolves in both"]
+        - ["Comments to REST Client", "`# @assert`, `# @capture`, `# @ref` and `# @step`; and `# @prompt`, which is REST Client's, is ignored by apic, which never prompts"]
+      foot: Open `apic-demo/` with the REST Client extension and open `auth.http`
+    say:
+      - "Open the demo project in VS Code with the REST Client extension, open auth.http, and click Send Request above the login. Three things worth noticing while you are there."
+      - "The base URL resolved, because REST Client reads the same env file. name login is REST Client's own directive, which apic adopted rather than inventing another. And assert, capture, ref and step are comments to REST Client, while prompt, which is REST Client's, is ignored by apic: apic never prompts, so the value comes from a flag or an env file instead."
+
+  - chapter: The apic extension
+    card:
+      heading: "The apic extension: above every request"
+      table:
+        - ["Run", "Through apic's runner: assertions evaluated, captures stored, a `# @ref` run first; the line gets `✓ 200 · 12 ms`, the panel the body, actual against expected, and the captures"]
+        - ["Describe", "What `apic describe` shows: every variable, its source, and whether the request is ready"]
+        - ["Copy as curl", "The `apic curl` output on the clipboard"]
+        - ["Run file as flow", "At the top of the file: `apic run todos.http` with the summary in the panel"]
+      foot: Install `apic` from the Marketplace or Open VSX · it layers on top of REST Client, the two lenses side by side
+    say:
+      - "The apic extension does not replace REST Client. It layers on top, and the two lenses sit side by side above every request. Run sends the request through apic's runner, so the assertions are evaluated, the captures stored, and a ref dependency run first. Run whoami on a fresh session and watch login run before it."
+      - "Describe shows what apic describe shows. Copy as curl puts the apic curl output on the clipboard. And Run file as flow, at the top of the file, is apic run on the whole file with the summary in the panel."
+
+  - chapter: The apic extension
+    card:
+      heading: "The apic extension: away from the lenses"
+      table:
+        - ["Problems", "What `apic validate` reports, at the exact span, on every save; a quick fix offers the nearest known directive for a mistyped one"]
+        - ["Requests and Session views", "Every request by file with a ready icon; the captured values, with `Clear session` above them"]
+        - ["Status bar", "The environment in effect; `apic: Select environment` changes it, and every lens passes it as `--env`"]
+        - ["Format Document", "`apic fmt`, and with format on save the files stay in the canonical order"]
+        - ["Completions and hovers", "Type `# @` and every directive is offered; type `{{` and the variables appear, secrets masked; hover a placeholder for its value or the request that captures it"]
+        - ["Test Explorer", "`features/todos.feature` with its scenarios, run the way `apic test` runs them; every `# @step` line says how many scenarios use it"]
+    say:
+      - "Away from the lenses, the Problems panel shows what apic validate reports, at the exact span, whenever a file is saved. Misspell a selector and the squiggle appears with the code linked to the docs. The apic view lists every request with a ready icon, and the Session view shows the captured values."
+      - "The status bar names the environment in effect. Format Document runs apic fmt. Type hash at above a request and every directive is offered with its shape filled in. And the Test Explorer lists the feature file with its scenarios, run the way apic test runs them."
+
+  - chapter: JetBrains and handler blocks
+    card:
+      heading: JetBrains IDEs
+      table:
+        - ["The gutter icon", "IntelliJ, WebStorm, GoLand and the rest ship the HTTP Client, and it opens the same files"]
+        - ["The same environments", "It reads `http-client.env.json` and `http-client.private.env.json` too; its `SSLConfiguration` block for client certificates is honoured by apic as well"]
+        - ["What it adds", "Scripting: a `> {% … %}` block after a request runs JavaScript in the IDE. apic has no scripting on purpose, and says so rather than failing"]
+    say:
+      - "IntelliJ, WebStorm, GoLand and the rest ship the HTTP Client, and it opens the same files: the gutter icon on login sends it, and it reads both env files, so one set of environments serves the IDE and apic."
+      - "What the IDE adds that apic does not read is scripting: a handler block after a request runs JavaScript in the IDE. apic has no scripting on purpose, and says so rather than failing."
+
+  - chapter: JetBrains and handler blocks
+    clip: handler
+    setup:
+      - blocks: [1]
+        replace: ["apic validate -C jetbrains\napic run login -C jetbrains | tail -2\n", ""]
+    tape: |
+      Type "cat jetbrains/login.http" Enter Sleep 4s
+      Type "apic validate -C jetbrains" Enter Sleep 4s
+      Type "apic run login -C jetbrains | tail -2" Enter Sleep 4s
+    say:
+      - "A request with a handler. The handler's job in the IDE, keeping the token, is what capture does for apic in the line above it, so one file serves both: the IDE runs its script and ignores the directive, apic runs the directive and ignores the script."
+      - "apic validate warns so the overlap is visible, with the editor-script code, and the warning does not fail CI. The run captures the token as before."
+
+  - chapter: Neovim
+    card:
+      heading: Neovim
+      table:
+        - ["kulala.nvim", "Sends `.http` files from Neovim and reads the same env files"]
+        - ["`apic ui`", "Its companion in the terminal: `o` opens the request under the cursor in `$EDITOR`, and the UI reloads the file when you come back"]
+      foot: The editor writes and apic runs, in two panes of the same terminal
+    say:
+      - "In Neovim, kulala sends the files and reads the same env files. Its companion in the terminal is apic ui from lesson five: o opens the request under the cursor in your editor, and the UI reloads the file when you come back, so the editor writes and apic runs, in two panes of the same terminal."
+
+  - chapter: The same request, four ways
+    clip: four
+    tape: |
+      Type "apic run login -C apic-demo | tail -2" Enter Sleep 4s
+    say:
+      - "Whichever editor sent login, the file did not change, and apic runs it the same. The editors give you a click, highlighting and a response pane; apic gives the same file its assertions, its session, CI and an agent. That split is why the format is plain text with comments and nothing else."
+
+  - chapter: Checkpoint and exercise
+    clip: checkpoint
+    tape: |
+      Type `apic run login -C apic-demo --json | grep -o '"status":200'` Enter Sleep 4s
+    say:
+      - "The checkpoint. login sent from REST Client, from the apic extension and from apic run, all with status 200. From the terminal, the last of the three."
+
+  - chapter: Checkpoint and exercise
+    card:
+      heading: Exercise
+      text: |-
+        In VS Code with the apic extension, write `editor.http` in the demo project
+        with two requests: `editor-health`, and `me` with `# @ref login` and
+        `# @auth bearer {{token}}`.
+
+        Run the file as a flow from the CodeLens.
+      foot: Solution on the lesson page · `apic.sh/learn/12-editors/`
+    say:
+      - "Your exercise: in VS Code with the apic extension, write a new file in the demo project with two requests, a health check and a me with ref login and auth bearer, and run the file as a flow from the CodeLens."
+
+  - chapter: Checkpoint and exercise
+    clip: exercise
+    setup:
+      - sh: |
+          apic session clear -C apic-demo
+          cat > apic-demo/editor.http <<'EOF'
+          ### Is the API up?
+          # @name editor-health
+          # @assert status == 200
+          GET {{baseUrl}}/health
+
+          ### Who am I
+          # @name me
+          # @ref login
+          # @auth bearer {{token}}
+          # @assert status == 200
+          # @assert body.$.email endsWith "example.com"
+          GET {{baseUrl}}/me
+          EOF
+    tape: |
+      Type "cat apic-demo/editor.http" Enter Sleep 4s
+      Type "apic run editor.http -C apic-demo | tail -5" Enter Sleep 5s
+    say:
+      - "The solution, from the terminal. The directive lines are highlighted as you type them, and the Requests view shows me with the ready icon, because ref covers the token. Run file as flow runs the health check, then login on behalf of me, then me: three green rows, in the panel or here."
+
+  - chapter: Checkpoint and exercise
+    card:
+      series: Next · lesson 13
+      title: "How apic works inside,\nand your first contribution"
+      text: |-
+        Every command in this episode: `apic.sh/learn/12-editors/`
+        The whole course: `apic.sh/learn/`
+    say:
+      - "Next, the last lesson: how apic works inside, and your first contribution. A request followed through the packages, the three contracts every change is checked against, and a small directive added end to end."
+      - Every command from this episode is on the lesson page. See you there.

@@ -56,7 +56,10 @@ request gets a preview URL. `docs.yml` builds the site on each change to
 prove it, and keeps GitHub Pages (`hungovercoders.github.io/apic/`, where the
 docs lived before apic.sh) serving the schemas as real files and a redirect
 page per route, because the 0.1.x binaries and the `apic.yaml` files they
-wrote link there (`website/scripts/legacy.mjs`).
+wrote link there (`website/scripts/legacy.mjs`). That Pages deployment
+declares no environment `url` on purpose: the slopstopper checks that run on
+`deployment_status` would otherwise audit the redirect stubs as the site
+(see `ci.md`).
 
 ## Commands
 
@@ -100,3 +103,13 @@ wrote link there (`website/scripts/legacy.mjs`).
   backslash escapes, so a command that needs both quote kinds goes in
   backticks. A test fails when a numbered lesson has neither a tape nor "No
   tape for this lesson" in its episode script.
+- `task episodes`: build the course's YouTube episodes, bar the voice,
+  into `dist/episodes/NN` with `scripts/episodes` from the shot lists in
+  `learn/episodes/` (in this directory, one YAML file per lesson): the cards, the terminal
+  clips as VHS tapes recorded against the demo API, the push-ins, and the
+  lines the voice says over each shot, which set the timing. Each episode
+  comes out as a captioned MP4 with a silent track, a clean MP4, the SRT,
+  the title, chapters and description from `_episode-template.md`, the
+  narration script and the thumbnail. Needs vhs, ttyd, ffmpeg and a
+  chromium. `task episodes:check` validates the shot lists and tapes with
+  vhs alone, as CI does; `go test` checks the shot lists without it.

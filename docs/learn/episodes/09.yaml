@@ -1,0 +1,162 @@
+# Lesson 9's episode. The lesson assumes `apic demo` is running, so the
+# project is written and the API served before the first shot. The
+# OpenAPI document, the tidied files and the Postman export come from
+# the lesson's own blocks as setup, off camera; the clips show the
+# imports, the drafts and the runs. The curl import is typed on one line.
+lesson: 9
+summary: "Turn an OpenAPI document, a Postman collection or a curl command into a project, tidy the draft until it runs green, and export a curl command back out."
+project: true
+thumbnail:
+  words: "Import, tidy,\nback to curl"
+  clip: import
+
+shots:
+  - chapter: What you already have
+    card:
+      series: From zero to apic · lesson 9
+      title: "From OpenAPI\nto a project"
+      text: "$ `apic import todos-openapi.yaml -o todos-api`"
+    say:
+      - "This is lesson nine of From zero to apic. Most projects do not start from an empty directory. There is a spec, a collection, or a pile of curl commands in a wiki. You do not start from zero. Here is how you start from what you have."
+
+  - chapter: Import an OpenAPI document
+    clip: import
+    setup:
+      - blocks: [1]
+    tape: |
+      Type "head -22 todos-openapi.yaml" Enter Sleep 4s
+      Type "apic import todos-openapi.yaml -o todos-api" Enter Sleep 4s
+    say:
+      - "The demo API has no published spec, so here is a small one for its todos: three operations under a todos tag, one untagged health check, and a schema with an example."
+      - "Import it into a new directory. One file per tag, operations without a tag in api.http, and an env file with the base URL from the first server. A draft is all it is: the work of this lesson is turning one into something runnable."
+
+  - chapter: Import an OpenAPI document
+    clip: draft
+    tape: |
+      Type "cat todos-api/todos.http" Enter Sleep 7s
+    say:
+      - "Everything the spec knew is there. The operation id in kebab-case as the name, the summary as the title, the first 2xx code as an assertion, the optional query parameter as a commented line to uncomment, the path parameter as a variable, and a body built from the schema with its example and its default."
+      - What the spec did not know is the interesting part, and the next two steps find it.
+
+  - chapter: Validate, list, the missing env
+    clip: check
+    tape: |
+      Type "apic validate -C todos-api" Enter Sleep 2s
+      Type "apic list -C todos-api" Enter Sleep 3s
+      Type `apic run health -C todos-api || echo "exit $?"` Enter Sleep 5s
+    say:
+      - "validate and list work on a draft exactly as on a finished project. Two files, four requests, no problems. Valid, but not yet runnable: the health check stops with a missing base URL."
+      - "The value is in the env file, under an environment called dev, the importer's default, but nothing selects that environment yet."
+
+  - chapter: Validate, list, the missing env
+    clip: env
+    tape: |
+      Type "printf 'env: dev\n' > todos-api/apic.yaml" Enter Sleep 1500ms
+      Type "apic run health -C todos-api" Enter Sleep 4s
+    say:
+      - "The permanent fix is the one-line apic.yaml from lesson two. Now the health check runs."
+
+  - chapter: The tidy-up
+    clip: unauth
+    tape: |
+      Type `apic run list-todos -C todos-api || echo "exit $?"` Enter Sleep 5s
+    say:
+      - "Now the todos. 401. The spec never mentioned authentication, which is common: security schemes are the part of an OpenAPI document most often left out or left vague. This is the tidy-up every import needs, and it is the same four directives the course has used since lessons three and six."
+
+  - chapter: The tidy-up
+    clip: tidy
+    setup:
+      - blocks: [8, 9]
+    tape: |
+      Type "cat todos-api/auth.http" Enter Sleep 3s
+      Type "head -8 todos-api/todos.http" Enter Sleep 4s
+      Type "apic run todos.http -C todos-api | tail -5" Enter Sleep 4s
+    say:
+      - "A login request that captures the token. Then each todo request gets ref login, so the token is fetched when it is missing, and auth bearer token to send it; create-todo captures the id that get-todo needs."
+      - "The file is now a flow: list, create, fetch what was created. Three passed, and login ran once for all three. That is the whole method for any import: generate, run, and add the directive that the failure asks for, until the file is green."
+
+  - chapter: A Postman collection
+    clip: postman
+    setup:
+      - blocks: [11]
+        replace: ["apic import todos.postman_collection.json -o postman-api --postman-env local.postman_environment.json\n", ""]
+    tape: |
+      Type "apic import todos.postman_collection.json -o postman-api --postman-env local.postman_environment.json" Enter Sleep 5s
+    say:
+      - "A Postman export is a JSON file, and apic import recognises it by its content. This collection has the two things a real one has, a test script and a folder with its own auth, and an environment export with a secret in it."
+      - "Folders became files. The collection variable became shared. The environment became local, with its secret in the private file, written read-only to you, and selected in apic.yaml."
+
+  - chapter: A Postman collection
+    zoom: { col: 60, row: 8 }
+    say:
+      - "And a note: a console.log line in the test script has no equivalent, and the importer said so rather than dropping it silently. Every line it cannot translate is listed the same way, so you know exactly what to re-create by hand."
+
+  - chapter: A Postman collection
+    clip: postmanauth
+    tape: |
+      Type "cat postman-api/auth.http" Enter Sleep 4s
+      Type "apic run log-in list-todos -C postman-api | tail -4" Enter Sleep 4s
+    say:
+      - "The rest of the test script became directives. pm.response.to.have.status 200 is assert status equals 200. pm.environment.set token is capture token. The folder's bearer auth became an auth directive on both todo requests, and the draft runs as it is."
+
+  - chapter: A curl command
+    clip: curlimport
+    tape: |
+      Type `apic import --curl 'curl -X PUT http://localhost:8089/todos/1 -H "Authorization: Bearer mock-token" -H "Content-Type: application/json" -d '"'"'{"done":true}'"'"'' --into todos.http --name finish-todo -C todos-api` Enter Sleep 3s
+      Type "tail -8 todos-api/todos.http" Enter Sleep 3s
+      Type "apic run finish-todo -C todos-api | tail -1" Enter Sleep 4s
+    say:
+      - "The third source is the curl command in a README or a bug report. Dash dash curl turns one into a block, and dash dash into appends it to a file of the project. The host became the base URL variable, because the project's environment has that value, and the headers and body came across as written. It runs."
+
+  - chapter: A curl command
+    zoom: { col: 50, row: 8 }
+    say:
+      - "But look at what it carries: a literal token, the way the curl command did. The tidy-up is the same as before: replace the Authorization line with auth bearer and ref login, and the id with a variable. An import gives you the shape. The directives give you the project."
+
+  - chapter: Back to curl
+    clip: curl
+    tape: |
+      Type "apic curl get-todo -C todos-api" Enter Sleep 3s
+      Type "apic curl get-todo -C todos-api | sh" Enter Sleep 3s
+      Type "apic curl get-todo -C todos-api --redact" Enter Sleep 4s
+    say:
+      - "The way out is apic curl: the request with every variable resolved, as a shell command, for a machine that has curl and nothing else, or for a bug report. The token and the id came from the session, so it is the request as apic would send it now."
+      - "Pipe it into a shell and it runs. For a bug report or a stored log, dash dash redact keeps the shape and masks the values, with the credential as a shell variable so the reader can still run it with their own."
+
+  - chapter: Back to curl
+    clip: snippet
+    tape: |
+      Type "apic snippet get-todo -C todos-api --lang python --redact" Enter Sleep 5s
+    say:
+      - "curl is one language of six. apic snippet prints the same request as HTTPie, PowerShell, Python, JavaScript or Go, with the same rules for secrets, for the colleague on Windows or the service's README."
+
+  - chapter: Checkpoint and exercise
+    clip: checkpoint
+    tape: |
+      Type "apic run todos.http -C todos-api --json | jq -s 'map(.ok) | all'" Enter Sleep 4s
+    say:
+      - "The checkpoint. The imported project runs green as a flow, login included: every request ok."
+
+  - chapter: Checkpoint and exercise
+    card:
+      heading: Exercise
+      text: |-
+        Import a public OpenAPI document of your choice and get one request green.
+
+        The Swagger Petstore publishes its document at
+        `https://petstore3.swagger.io/api/v3/openapi.json`
+        and its `GET /store/inventory` needs no account.
+      foot: Solution on the lesson page · `apic.sh/learn/09-import-export/`
+    say:
+      - "Your exercise: import a public OpenAPI document of your choice and get one request green. The Swagger Petstore publishes its document, and its inventory request needs no account. The first fix is the apic.yaml line, and the first directive to add is usually auth."
+
+  - chapter: Checkpoint and exercise
+    card:
+      series: Next · lesson 10
+      title: "Agents and MCP"
+      text: |-
+        Every command in this episode: `apic.sh/learn/09-import-export/`
+        The whole course: `apic.sh/learn/`
+    say:
+      - "Next, lesson ten: agents and MCP. The contract an AI agent reads, the MCP server, and what the agent can never see."
+      - Every command from this episode is on the lesson page. See you there.

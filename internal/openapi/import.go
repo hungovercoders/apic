@@ -170,7 +170,7 @@ type writer struct {
 // kept reports whether path already exists and must be left alone because
 // Force is off; a kept path is recorded as skipped.
 func (w *writer) kept(path string) bool {
-	if _, err := os.Stat(path); err == nil && !w.opts.Force {
+	if _, err := os.Stat(path); err == nil && !w.opts.Force { //nolint:gosec // a path under the output directory the user named
 		w.res.Skipped = append(w.res.Skipped, path)
 		return true
 	}

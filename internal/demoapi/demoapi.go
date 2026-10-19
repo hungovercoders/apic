@@ -180,7 +180,7 @@ func New() http.Handler {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid_client"})
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]any{"access_token": "mock-oauth-token", "expires_in": 3600})
+		writeJSON(w, http.StatusOK, map[string]any{"access_token": "mock-oauth-token", "expires_in": 3600}) //nolint:gosec // the offline demo API's fixed mock token
 	})
 
 	mux.HandleFunc("GET /keyed", func(w http.ResponseWriter, r *http.Request) {

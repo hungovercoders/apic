@@ -42,7 +42,7 @@ jobs:
       - run: pip install "codespell==2.4.3" && codespell
       - uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.5.0
+          version: v2.15.0
 
   licences:
     runs-on: ubuntu-latest

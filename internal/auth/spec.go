@@ -22,7 +22,7 @@ type Spec struct {
 }
 
 // Types lists the supported auth types with a one-line description.
-var Types = map[string]string{
+var Types = map[string]string{ //nolint:gosec // help text naming the clientSecret and password options, not credentials
 	"none":   "send no credentials (overrides a project default)",
 	"bearer": "bearer <token>: Authorization: Bearer <token>",
 	"basic":  "basic <user> <password>: HTTP basic auth",

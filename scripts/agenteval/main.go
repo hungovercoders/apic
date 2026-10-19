@@ -208,7 +208,7 @@ func runOne(e Eval, variant string, n int, out, apic, model, claude string, time
 	defer func() {
 		for _, name := range []string{"transcript.jsonl", "claude.err", "demo.log", "verify.out"} {
 			if data, err := os.ReadFile(filepath.Join(dir, name)); err == nil { //nolint:gosec // a file this program wrote in its own temporary directory
-				_ = os.WriteFile(filepath.Join(keep, name), data, 0o600)
+				_ = os.WriteFile(filepath.Join(keep, name), data, 0o600) //nolint:gosec // the keep directory the caller named
 			}
 		}
 		_ = os.RemoveAll(dir)

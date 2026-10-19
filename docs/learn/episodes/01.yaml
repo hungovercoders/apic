@@ -30,7 +30,7 @@ shots:
           command: curl -fsSL https://raw.githubusercontent.com/hungovercoders/apic/main/install.sh | sh
         - label: Windows · PowerShell
           command: irm https://raw.githubusercontent.com/hungovercoders/apic/main/install.ps1 | iex
-        - label: Go 1.25.7 or newer
+        - label: Go 1.26.9 or newer
           command: go install github.com/hungovercoders/apic/cmd/apic@latest
       foot: One static binary, no runtime · `apic.sh`
     say:

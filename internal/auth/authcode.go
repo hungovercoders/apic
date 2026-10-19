@@ -7,13 +7,13 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"html"
 	"net"
 	"net/http"
 	"net/url"
 	"os/exec"
 	"runtime"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -109,7 +109,7 @@ func authorizationCode(ctx context.Context, s *Spec, env *Env) (*tokenResponse, 
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		if out.err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			_, _ = fmt.Fprintf(w, "<!doctype html><title>apic</title><p>Sign-in failed: %s</p>", htmlEscape(out.err.Error()))
+			_, _ = fmt.Fprintf(w, "<!doctype html><title>apic</title><p>Sign-in failed: %s</p>", html.EscapeString(out.err.Error()))
 		} else {
 			_, _ = fmt.Fprint(w, "<!doctype html><title>apic</title><p>Signed in. You can close this tab and go back to the terminal.</p>")
 		}
@@ -177,21 +177,17 @@ func randomToken(n int) (string, error) {
 	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 
-func htmlEscape(s string) string {
-	return strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", `"`, "&quot;").Replace(s)
-}
-
 // OpenBrowser asks the system to open a URL: xdg-open, open or rundll32.
 // Failure is not fatal; the URL is always printed as well.
 func OpenBrowser(u string) error {
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "darwin":
-		cmd = exec.Command("open", u)
+		cmd = exec.Command("open", u) //nolint:gosec // the sign-in URL apic built, handed to the platform's opener
 	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", u)
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", u) //nolint:gosec // the sign-in URL apic built, handed to the platform's opener
 	default:
-		cmd = exec.Command("xdg-open", u)
+		cmd = exec.Command("xdg-open", u) //nolint:gosec // the sign-in URL apic built, handed to the platform's opener
 	}
 	return cmd.Start()
 }

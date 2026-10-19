@@ -144,14 +144,21 @@ tasks:
       - go run ./scripts/tapes -check
 
   episodes:
-    desc: Build the course's YouTube episodes, bar the voice, into dist/episodes from docs/learn/episodes (needs vhs, ttyd, ffmpeg and a chromium, and port 8089 free)
+    desc: Build the course's YouTube episodes into dist/episodes from docs/learn/episodes, timed and voiced from the recorded lines under VOICE when set (needs vhs, ttyd, ffmpeg and a chromium, and port 8089 free)
     cmds:
-      - go run ./scripts/episodes -version {{.VERSION}}
+      - go run ./scripts/episodes -version {{.VERSION}} {{if .VOICE}}-voice {{.VOICE}}{{end}}
 
   episodes:check:
-    desc: Validate every episode's shot list and its tapes' syntax (needs vhs), recording nothing
+    desc: Validate every episode's shot list and its tapes' syntax (needs vhs), and the recorded lines under VOICE when set, recording nothing
     cmds:
-      - go run ./scripts/episodes -check
+      - go run ./scripts/episodes -check {{if .VOICE}}-voice {{.VOICE}}{{end}}
+
+  episodes:voice:
+    desc: Mux a narration recorded in one take (VOICE, a file read to the narration script's timestamps) onto episode EPISODE's built cuts in dist/episodes (needs ffmpeg)
+    requires:
+      vars: [EPISODE, VOICE]
+    cmds:
+      - go run ./scripts/episodes -only {{.EPISODE}} -mux {{.VOICE}}
 
   schemas:
     desc: Regenerate the JSON schemas in website/public/schemas from the config types (a test fails when they are stale)

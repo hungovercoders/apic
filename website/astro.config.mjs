@@ -32,6 +32,12 @@ export default defineConfig({
 			head: [
 				{ tag: 'link', attrs: { rel: 'alternate', type: 'text/plain', title: 'llms.txt', href: '/llms.txt' } },
 				{ tag: 'link', attrs: { rel: 'alternate', type: 'text/plain', title: 'llms-full.txt', href: '/llms-full.txt' } },
+				// The colour a phone's browser paints its own bar: Starlight's header
+				// background (--sl-color-bg-nav) in each scheme, so the bar does not
+				// sit as a pale strip above a dark header. Media queries follow the
+				// OS, as the picker's default does; a script would cost a CSP hash.
+				{ tag: 'meta', attrs: { name: 'theme-color', media: '(prefers-color-scheme: light)', content: '#f6f7f9' } },
+				{ tag: 'meta', attrs: { name: 'theme-color', media: '(prefers-color-scheme: dark)', content: '#23262f' } },
 			],
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/hungovercoders/apic' },

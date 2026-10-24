@@ -50,3 +50,30 @@
 		display: none;
 	}
 }
+
+/* Starlight hides the header's theme picker below 50rem and repeats it in
+   the mobile menu's footer, but a page with no sidebar (the landing page,
+   template: splash) has no mobile menu, so on a phone the home page offered
+   no way to choose dark or light mode. Keep the picker in the header at
+   every width. The GitHub icon stays out of the narrow header: the hero and
+   the mobile menu already link there. */
+@media (max-width: 49.999rem) {
+	.header .right-group {
+		display: flex;
+	}
+
+	.header .right-group .social-icons {
+		display: none;
+	}
+
+	/* Pack the search button and the picker on the right, as on a desktop. */
+	.header .title-wrapper {
+		margin-inline-end: auto;
+	}
+
+	/* Starlight sizes the picker for the longest translated label; the English
+	   ones need less, and on a 320px screen the spare width clipped the title. */
+	.header .right-group starlight-theme-select select {
+		width: calc(5em + 1rem);
+	}
+}

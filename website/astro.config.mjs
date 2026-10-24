@@ -46,6 +46,8 @@ export default defineConfig({
 				baseUrl: 'https://github.com/hungovercoders/apic/edit/main/website/src/content/docs/',
 			},
 			customCss: ['./src/styles/custom.css'],
+			// Starlight's footer plus the privacy line (src/components/Footer.astro).
+			components: { Footer: './src/components/Footer.astro' },
 			// Internal links and anchors are checked at build time, which is
 			// what `mkdocs build --strict` used to do.
 			plugins: [starlightLinksValidator()],

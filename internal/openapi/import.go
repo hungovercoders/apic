@@ -873,49 +873,14 @@ func (d *document) exampleFromSchema(s *yaml.Node, depth int) (any, bool) {
 	if s == nil || depth > 6 {
 		return nil, false
 	}
-	if n := d.getRaw(s, "example"); n != nil {
-		return decode(n), true
-	}
-	if ex := d.itemsRaw(d.getRaw(s, "examples")); len(ex) > 0 {
-		return decode(ex[0]), true
-	}
-	if n := d.getRaw(s, "default"); n != nil {
-		return decode(n), true
-	}
-	if en := d.itemsRaw(d.getRaw(s, "enum")); len(en) > 0 {
-		return decode(en[0]), true
+	if v, ok := d.declaredExample(s); ok {
+		return v, true
 	}
 	typ := schemaType(d, s)
 	props := d.entries(d.get(s, "properties"))
-	// allOf: every branch contributes, so object branches are merged in
-	// order (later keys win) together with the properties declared here.
 	if sub := d.items(d.get(s, "allOf")); len(sub) > 0 {
-		merged := &orderedObject{}
-		var scalar any
-		object, found := false, false
-		for _, branch := range sub {
-			v, ok := d.exampleFromSchema(branch, depth+1)
-			if !ok {
-				continue
-			}
-			if obj, isObj := v.(*orderedObject); isObj {
-				for _, k := range obj.keys {
-					merged.set(k, obj.vals[k])
-				}
-				object = true
-			} else if !found {
-				scalar, found = v, true
-			}
-		}
-		if object || typ == "object" || len(props) > 0 {
-			for _, p := range props {
-				v, _ := d.exampleFromSchema(p.value, depth+1)
-				merged.set(p.key, v)
-			}
-			return merged, true
-		}
-		if found {
-			return scalar, true
+		if v, ok := d.exampleFromAllOf(sub, typ, props, depth); ok {
+			return v, true
 		}
 	}
 	for _, key := range []string{"oneOf", "anyOf"} {
@@ -928,18 +893,80 @@ func (d *document) exampleFromSchema(s *yaml.Node, depth int) (any, bool) {
 	}
 	switch typ {
 	case "object":
-		obj := &orderedObject{}
-		for _, p := range props {
-			v, _ := d.exampleFromSchema(p.value, depth+1)
-			obj.set(p.key, v)
-		}
-		return obj, true
+		return d.objectExample(&orderedObject{}, props, depth), true
 	case "array":
 		if items := d.get(s, "items"); items != nil {
 			v, _ := d.exampleFromSchema(items, depth+1)
 			return []any{v}, true
 		}
 		return []any{}, true
+	case "string":
+		return stringExample(str(d.get(s, "format"))), true
+	}
+	return scalarExample(typ)
+}
+
+// declaredExample returns the value a schema states outright: its example,
+// the first of its examples, its default, or the first enum member.
+func (d *document) declaredExample(s *yaml.Node) (any, bool) {
+	if n := d.getRaw(s, "example"); n != nil {
+		return decode(n), true
+	}
+	if ex := d.itemsRaw(d.getRaw(s, "examples")); len(ex) > 0 {
+		return decode(ex[0]), true
+	}
+	if n := d.getRaw(s, "default"); n != nil {
+		return decode(n), true
+	}
+	if en := d.itemsRaw(d.getRaw(s, "enum")); len(en) > 0 {
+		return decode(en[0]), true
+	}
+	return nil, false
+}
+
+// exampleFromAllOf merges the branches of an allOf: every branch
+// contributes, so object branches are merged in order (later keys win)
+// together with the properties declared alongside. A scalar branch wins
+// only when nothing object-shaped is in play.
+func (d *document) exampleFromAllOf(sub []*yaml.Node, typ string, props []kv, depth int) (any, bool) {
+	merged := &orderedObject{}
+	var scalar any
+	object, found := false, false
+	for _, branch := range sub {
+		v, ok := d.exampleFromSchema(branch, depth+1)
+		if !ok {
+			continue
+		}
+		if obj, isObj := v.(*orderedObject); isObj {
+			for _, k := range obj.keys {
+				merged.set(k, obj.vals[k])
+			}
+			object = true
+		} else if !found {
+			scalar, found = v, true
+		}
+	}
+	if object || typ == "object" || len(props) > 0 {
+		return d.objectExample(merged, props, depth), true
+	}
+	if found {
+		return scalar, true
+	}
+	return nil, false
+}
+
+// objectExample sets an example for each property on obj and returns it.
+func (d *document) objectExample(obj *orderedObject, props []kv, depth int) *orderedObject {
+	for _, p := range props {
+		v, _ := d.exampleFromSchema(p.value, depth+1)
+		obj.set(p.key, v)
+	}
+	return obj
+}
+
+// scalarExample is the placeholder for a non-string primitive type.
+func scalarExample(typ string) (any, bool) {
+	switch typ {
 	case "integer":
 		return 1, true
 	case "number":
@@ -948,22 +975,25 @@ func (d *document) exampleFromSchema(s *yaml.Node, depth int) (any, bool) {
 		return true, true
 	case "null":
 		return nil, true
-	case "string":
-		switch str(d.get(s, "format")) {
-		case "date-time":
-			return placeholder("{{$isoTimestamp}}"), true
-		case "date":
-			return "2026-01-01", true
-		case "email":
-			return "user@example.com", true
-		case "uuid":
-			return placeholder("{{$uuid}}"), true
-		case "uri", "url":
-			return "https://example.com", true
-		}
-		return "string", true
 	}
 	return nil, false
+}
+
+// stringExample is the placeholder for a string of the given format.
+func stringExample(format string) any {
+	switch format {
+	case "date-time":
+		return placeholder("{{$isoTimestamp}}")
+	case "date":
+		return "2026-01-01"
+	case "email":
+		return "user@example.com"
+	case "uuid":
+		return placeholder("{{$uuid}}")
+	case "uri", "url":
+		return "https://example.com"
+	}
+	return "string"
 }
 
 // schemaType returns the schema type, taking the first non-null entry of an

@@ -141,9 +141,9 @@ func TestTimes(t *testing.T) {
 	}
 }
 
-// A voice directory is read by cue number, in any clip format, and a
-// missing, duplicated or surplus clip is named with its line; no directory
-// is no voice.
+// A voice directory is read by cue number, whatever the clip format, and a
+// missing, duplicated or surplus clip is named with its line; files not
+// named by a number are left alone, and no directory is no voice.
 func TestLoadVoice(t *testing.T) {
 	ep := &Episode{Name: "04", Shots: []Shot{
 		{Say: []string{"first line", "second line"}},
@@ -174,19 +174,19 @@ func TestLoadVoice(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "no clip 003") || !strings.Contains(err.Error(), "third line") {
 		t.Fatalf("a missing clip should name its cue and line, got %v", err)
 	}
-	write("003.mp3")
+	write("003.aiff")
 	v, err := LoadVoice(dir, ep)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if total := v.Total(); len(v.Clips) != 3 || filepath.Base(v.Clips[1]) != "002.flac" || v.Secs[2] != 1.5 || total < 6.59 || total > 6.61 {
+	if total := v.Total(); len(v.Clips) != 3 || filepath.Base(v.Clips[1]) != "002.flac" || filepath.Base(v.Clips[2]) != "003.aiff" || v.Secs[2] != 1.5 || total < 6.59 || total > 6.61 {
 		t.Errorf("voice: %+v (total %v)", v, total)
 	}
-	write("004.wav")
+	write("004.m4a")
 	if _, err := LoadVoice(dir, ep); err == nil || !strings.Contains(err.Error(), "past the last line") {
 		t.Errorf("a surplus clip should fail, got %v", err)
 	}
-	if err := os.Remove(filepath.Join(epDir, "004.wav")); err != nil {
+	if err := os.Remove(filepath.Join(epDir, "004.m4a")); err != nil {
 		t.Fatal(err)
 	}
 	write("2.wav")

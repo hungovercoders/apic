@@ -25,9 +25,6 @@ import (
 // voicePad is the beat left after each recorded line.
 const voicePad = 0.7
 
-// audioExts are the clip formats a voice directory may hold.
-var audioExts = map[string]bool{".wav": true, ".flac": true, ".mp3": true, ".m4a": true, ".aac": true, ".ogg": true, ".opus": true}
-
 // Voice is an episode's narration as one clip per line, in cue order.
 type Voice struct {
 	Clips []string  // each line's clip
@@ -37,11 +34,13 @@ type Voice struct {
 // probe is a clip's length in seconds; tests stand in for ffprobe.
 var probe = duration
 
-// LoadVoice reads the clips for one episode from dir/NN. No such
-// directory means no voice, and the episode builds silent as it would
-// without one; a directory with a clip missing, two for one cue, or one
-// past the last line fails naming the cue and its line, so a half-recorded
-// lesson is obvious before anything is rendered.
+// LoadVoice reads the clips for one episode from dir/NN: every file named
+// by a cue number, in whatever format, since ffprobe decides what ffmpeg
+// can read and fails on what it cannot. No such directory means no voice,
+// and the episode builds silent as it would without one; a directory with
+// a clip missing, two for one cue, or one past the last line fails naming
+// the cue and its line, so a half-recorded lesson is obvious before
+// anything is rendered.
 func LoadVoice(dir string, ep *Episode) (*Voice, error) {
 	if dir == "" {
 		return nil, nil
@@ -62,9 +61,8 @@ func LoadVoice(dir string, ep *Episode) (*Voice, error) {
 			continue
 		}
 		name := e.Name()
-		ext := filepath.Ext(name)
-		n, err := strconv.Atoi(strings.TrimSuffix(name, ext))
-		if !audioExts[strings.ToLower(ext)] || err != nil || n < 1 {
+		n, err := strconv.Atoi(strings.TrimSuffix(name, filepath.Ext(name)))
+		if err != nil || n < 1 {
 			continue
 		}
 		switch prev, dup := byCue[n]; {

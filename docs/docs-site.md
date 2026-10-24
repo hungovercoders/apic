@@ -46,6 +46,15 @@ the prose checks. The site's content is not reference for working on apic;
   so none can drift from the pages; every page's `description:` is its
   summary in `llms.txt` and its meta description, so a new page needs one. slopstopper's
   reliability checks assert all of this against the built site; see `ci.md`.
+- `privacy.md` and the footer line in `src/components/Footer.astro` (the
+  one Starlight component override) state what the site collects (nothing
+  of its own), what Cloudflare keeps as the host (aggregate analytics and
+  the request logs `observability` in `wrangler.jsonc` turns on) and what
+  the CLI sends (only to the APIs and auth endpoints the project's `.http`
+  files and `apic.yaml` name). Keep them true: a new
+  third-party script, form or analytics snippet means updating both, and
+  the page's "last checked" date. The CSP will block such a script until
+  `_headers` allows it, which is the prompt.
 
 ## Deploys
 

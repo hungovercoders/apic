@@ -65,6 +65,7 @@ export const sidebar = [
 			{ label: 'Comparison', slug: 'comparison' },
 			{ label: 'Verifying a release', slug: 'verifying' },
 			{ label: 'Licence', slug: 'licence' },
+			{ label: 'Privacy', slug: 'privacy' },
 			{
 				label: 'Architecture',
 				link: 'https://github.com/hungovercoders/apic/blob/main/docs/architecture.md',

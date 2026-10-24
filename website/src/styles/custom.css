@@ -26,6 +26,25 @@
 	border-radius: 10px;
 }
 
+/* On a phone a 911px recording shrunk to fit is a dark rectangle of 5px
+   text. Keep it at full size and let the reader swipe across it instead:
+   the paragraph around the image (`.recording`, which
+   plugins/rehype-recordings.mjs marks and makes focusable) scrolls. */
+@media (max-width: 50rem) {
+	.sl-markdown-content .recording {
+		overflow-x: auto;
+	}
+
+	.sl-markdown-content .recording img {
+		max-width: none;
+	}
+}
+
+.sl-markdown-content .recording:focus-visible {
+	outline: 2px solid var(--sl-color-accent);
+	outline-offset: 2px;
+}
+
 /* Collapsible blocks (lesson solutions and episode scripts). */
 .sl-markdown-content details {
 	border: 1px solid var(--sl-color-gray-5);

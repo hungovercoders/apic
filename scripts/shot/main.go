@@ -78,6 +78,17 @@ func generate(dir string) error {
 			return err
 		}
 		fmt.Println("wrote", path)
+		if len(frames) < 2 {
+			continue
+		}
+		// The poster is the last frame on its own: what the pages show in
+		// place of the animation under prefers-reduced-motion
+		// (website/plugins/rehype-recordings.mjs, and the README's <picture>).
+		poster := strings.TrimSuffix(path, ".svg") + "-poster.svg"
+		if err := os.WriteFile(poster, []byte(AnimatedSVG(s.title, frames[len(frames)-1:])), 0o644); err != nil { //nolint:gosec // a committed docs asset
+			return err
+		}
+		fmt.Println("wrote", poster)
 	}
 	return nil
 }

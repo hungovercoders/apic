@@ -4,6 +4,7 @@ import starlight from '@astrojs/starlight';
 import starlightLinksValidator from 'starlight-links-validator';
 import { unified } from '@astrojs/markdown-remark';
 import remarkDocLinks from './plugins/remark-doc-links.mjs';
+import rehypeRecordings from './plugins/rehype-recordings.mjs';
 import securityHeaders from './plugins/security-headers.mjs';
 import { sidebar } from './src/sidebar.mjs';
 
@@ -15,7 +16,7 @@ export default defineConfig({
 	site: 'https://apic.sh',
 	trailingSlash: 'always',
 	markdown: {
-		processor: unified({ remarkPlugins: [remarkDocLinks] }),
+		processor: unified({ remarkPlugins: [remarkDocLinks], rehypePlugins: [rehypeRecordings] }),
 	},
 	integrations: [
 		securityHeaders(),
@@ -32,6 +33,10 @@ export default defineConfig({
 			head: [
 				{ tag: 'link', attrs: { rel: 'alternate', type: 'text/plain', title: 'llms.txt', href: '/llms.txt' } },
 				{ tag: 'link', attrs: { rel: 'alternate', type: 'text/plain', title: 'llms-full.txt', href: '/llms-full.txt' } },
+				// Safari's home-screen bookmarks and some link previews want a PNG;
+				// public/apple-touch-icon.png is the logo at 180px with square
+				// corners, since iOS masks its own.
+				{ tag: 'link', attrs: { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' } },
 				// The colour a phone's browser paints its own bar: Starlight's header
 				// background (--sl-color-bg-nav) in each scheme, so the bar does not
 				// sit as a pale strip above a dark header. Media queries follow the

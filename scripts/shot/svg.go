@@ -71,8 +71,14 @@ type Frame struct {
 // AnimatedSVG renders frames as one SVG window that cycles through them
 // with SMIL timing, which browsers run even inside an <img>, so the README
 // and the docs get a moving picture with no GIF, no video and no script.
-// The first frame is what a viewer without animation sees. With a single
-// frame the output is a plain static screenshot.
+// It loops: a single pass clocked from page load would often be over
+// before a reader scrolled to it. The style block inside the SVG shows
+// only the last frame under prefers-reduced-motion for browsers that
+// evaluate the media query inside an image document (`!important` is
+// what beats a SMIL-animated opacity); the pages do not rely on that and
+// serve the poster through a <picture> instead (see main.go). A viewer
+// with no SMIL at all sees the first frame. With a single frame the output
+// is a plain static screenshot.
 func AnimatedSVG(title string, frames []Frame) string {
 	cols, rows := 0, 0
 	parsed := make([][][]run, len(frames))
@@ -108,6 +114,9 @@ func AnimatedSVG(title string, frames []Frame) string {
 	fmt.Fprintf(&b, `<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d" `+
 		`font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="%g">`+"\n",
 		width, height, width, height, fontSize)
+	if animated {
+		b.WriteString(`<style>@media (prefers-reduced-motion: reduce) { .frame { display: none } .frame.rest { display: inline; opacity: 1 !important } }</style>` + "\n")
+	}
 	fmt.Fprintf(&b, `<rect width="%d" height="%d" rx="10" fill="%s"/>`+"\n", width, height, windowBG)
 	fmt.Fprintf(&b, `<rect width="%d" height="%g" rx="10" fill="%s"/>`+"\n", width, barH, barBG)
 	fmt.Fprintf(&b, `<rect y="%g" width="%d" height="10" fill="%s"/>`+"\n", barH-10, width, barBG)
@@ -136,8 +145,12 @@ func AnimatedSVG(title string, frames []Frame) string {
 			case f == len(frames)-1:
 				values, keyTimes = "0;1;1", fmt.Sprintf("0;%s;1", frac(from))
 			}
-			fmt.Fprintf(&b, `<g opacity="%s"><animate attributeName="opacity" calcMode="discrete" values="%s" keyTimes="%s" dur="%ss" repeatCount="indefinite"/>`+"\n",
-				initial, values, keyTimes, frac(total.Seconds()))
+			class := "frame"
+			if f == len(frames)-1 {
+				class = "frame rest"
+			}
+			fmt.Fprintf(&b, `<g class="%s" opacity="%s"><animate attributeName="opacity" calcMode="discrete" values="%s" keyTimes="%s" dur="%ss" repeatCount="indefinite"/>`+"\n",
+				class, initial, values, keyTimes, frac(total.Seconds()))
 			at += fr.Hold
 		}
 		if fr.Caption != "" {

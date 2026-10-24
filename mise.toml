@@ -3,7 +3,7 @@
 # the ss-*.yml workflows. install.sh moves the CLI pin (--upgrade-cli);
 # node is the version the site under website/ needs.
 [tools]
-"node" = "22"
+"node" = "22.23.4"
 "task" = "3"
 "pipx:slopstopper-cli" = "0.21.0"
 

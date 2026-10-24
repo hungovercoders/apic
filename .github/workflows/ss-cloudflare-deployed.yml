@@ -79,7 +79,7 @@ jobs:
               echo "::notice::#$pr comes from a fork ($pr_owner), whose branch gh workflow run can't target, so its preview isn't checked."
               exit 0
             fi
-            # The bot's comment is a table with one row per deployed commit.
+            # The bot's comment is a table (HTML or Markdown) with one row per deployed commit.
             # It can land a little after the check run completes, so retry.
             url=""
             for attempt in 1 2 3 4 5 6; do

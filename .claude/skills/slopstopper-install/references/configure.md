@@ -4,7 +4,7 @@
 
 ## Step 4: Post-install configuration
 
-The installer seeds a `.slopstopper.yml` config file at the repo root (if one doesn't exist yet) plus sensible defaults for `.github/labeler.yml`, `public/_headers` (commented baseline), `.zap/rules.tsv` (common false positives commented), and appends a `.gitignore` block for `.ss/reports/`, `node_modules/` and friends. None of those overwrite existing files, except that the `.gitignore` block between its markers is refreshed on every run. The rest of post-install is editing `.slopstopper.yml` to point the dynamic checks at the right URLs and tuning a few knobs.
+The installer seeds a `.slopstopper.yml` config file at the repo root (if one doesn't exist yet) plus sensible defaults for `.github/labeler.yml`, `.github/dependency-review-config.yml` (the licence allowlist the dependency review enforces), `public/_headers` (commented baseline), `.zap/rules.tsv` (common false positives commented), and appends a `.gitignore` block for `.ss/reports/`, `node_modules/` and friends. None of those overwrite existing files, except that the `.gitignore` block between its markers is refreshed on every run. The rest of post-install is editing `.slopstopper.yml` to point the dynamic checks at the right URLs and tuning a few knobs.
 
 ### Confirm the profile
 

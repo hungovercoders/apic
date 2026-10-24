@@ -35,6 +35,7 @@ What still needs re-checking after a refresh:
 - **The Node version pin.** It lives in `mise.toml` (`[tools] node`), not `.slopstopper.yml`. `install.sh` seeds `node = "20"` only when none is declared, so a bump you made (`mise use node@22`) survives a refresh and there's nothing to re-sync, since mise locally and CI via `jdx/mise-action` read the same pin. If you mirror URLs as repo variables, re-push those after editing `.slopstopper.yml`.
 - **The pre-push hook file** (`.githooks/pre-push`) is refreshed wholesale because it's slopstopper-owned, so hand-edits to it are lost. The `core.hooksPath` **wiring** is re-applied on every refresh **when safe**, meaning when hooksPath is unset or already `.githooks` and no other hook manager is present. It won't override a hooksPath the adopter pointed elsewhere, or a husky/lefthook/pre-commit setup. Note the flip side: an adopter who simply *unset* hooksPath will have it re-wired on the next refresh (empty is indistinguishable from never-set). To opt out durably, pass `--no-hooks` on refreshes or point hooksPath at their own dir.
 
+- **`.github/dependency-review-config.yml`** is seeded on the first refresh that ships it, and the dependency review switches from the old inline `deny-licenses` to this allowlist. Check that the licences your dependencies already use are on it before merging the refresh; a missing one fails the next PR that touches that dependency.
 - **`.github/labeler.yml`** if upstream's labeler template added categories you want (the installer never overwrites your existing file, so new categories don't land automatically).
 
 ### Move the CLI pin (intentional upgrades)
@@ -84,6 +85,7 @@ Surfaces worth checking explicitly:
 - **`api.openapi.served_spec` / `probe_paths` / `ignore_paths`**, new keys alongside the existing `spec` (which DAST already used). `served_spec` is the one worth setting: it turns `hygiene:openapi` from a reachability prober into a committed-vs-deployed drift comparison, which is the signal with no false positives. Note `hygiene:openapi` reads **JSON specs only**, so if `spec` is YAML it skips with guidance, while DAST keeps using it.
 - **`reliability.coverage.{pr,main,cron}`**, page-discovery modes. Adopters with a sitemap should opt in to `sitemap` on main and `changed` on PRs; otherwise reliability checks only audit `/` by default.
 - **`reliability.cwv.public_report`** (default `false`). Reports stay in `.ss/reports/cwv/lighthouse/` and the workflow artifact. `true` uploads the full Lighthouse report, screenshots and page content included, to Google's temporary public storage: only for a public site whose team wants the shareable link, never for a private repo or an authenticated preview.
+- **`reliability.sitemap.llms_ignore_paths`**, globs left out of the llms.txt cross-check only (`/tags/*`, `/page/*`). The report collapses five or more gaps under one section into a single note that names this knob; `ignore_paths` also drops the paths from the crawl and the sitemap diff, so use it only for paths the sitemap should not cover either.
 - **`reliability.coverage.cross_cutting_paths`**, escalation triggers for `changed` mode. If a PR-only audit skipped pages that should have been included, this is the lever.
 
 If a previously-failing check started passing after a refresh without any code change, eyeball whether a default got loosened upstream, which the slopstopper changelog flags.
@@ -147,3 +149,26 @@ The line to draw before deleting:
 - **Adopter-added content under `.claude/skills/` with a non-`slopstopper-` prefix** → not slopstopper's, never touch.
 
 When a clean-up surfaces something the installer should've handled automatically, the fix is to add it to `OBSOLETE_SKILLS` (or the equivalent list for the artefact type) upstream (`OBSOLETE_SKILLS` lives in `install-skill.sh`; the workflow and action lists in `install.sh`). See the AGENTS.md change-impact table's "Removing a slopstopper-shipped artefact" row. The next adopter then gets the cleanup for free.
+
+### Remove workarounds whose upstream issue is closed
+
+When `slopstopper-triage` works around a bug in slopstopper itself, it leaves a marker on the workaround that names the upstream issue, `slopstopper-workaround: hungovercoders/slopstopper#<N>`, in the file's own comment syntax (`upstream.md` in that skill has the convention). A refresh is the moment to collect on those: the pin moved, so fixes may have shipped, and a workaround that outlives its bug keeps a check degraded for no reason.
+
+List every marker and ask GitHub for each issue's state:
+
+```bash
+grep -rhoE --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.ss --exclude-dir=.claude \
+  'slopstopper-workaround: hungovercoders/slopstopper#[0-9]+' . \
+  | grep -oE '[0-9]+$' | sort -un | while read -r n; do
+    printf '#%s  %s\n' "$n" "$(gh issue view "$n" -R hungovercoders/slopstopper --json state,title,closedAt \
+      --jq '"\(.state)  \(.title)  \(.closedAt // "")"' 2>/dev/null || echo 'UNKNOWN  gh could not reach hungovercoders/slopstopper')"
+  done
+```
+
+Then, per issue:
+
+- **CLOSED.** First check the fix is in the version this repo runs: the CLI pin in `mise.toml` must be a release cut after `closedAt` (the slopstopper changelog names the issue), and for a workflow or installer bug the refresh you just ran is what carries it. If the pin is behind, move it (`install.sh --upgrade-cli`, above) before touching the workaround. Then `grep -rn 'slopstopper#<N>'` for every marker, remove the **workaround** (the disabled workflow, the exclude glob, the raised threshold, the `nosemgrep`), not just the comment, and re-run the check it was protecting (`task ss:<category>:<check>`). Green: keep the removal in the refresh commit, one line in its message per issue. Still red: the fix did not cover this repo's case. Put the workaround back, comment on the closed issue with the reproduction, and keep the marker pointing at it.
+- **OPEN.** Leave it. List it in the refresh summary to the user ("still working around #N: <title>") so the cost stays visible.
+- **UNKNOWN.** `gh` could not reach the repo. Leave every workaround in place and say so; never remove one on a guess.
+
+`--exclude-dir=.claude` keeps the shipped skills out of it, since `upstream.md` spells the convention out. An unmarked workaround is invisible to this step. If you find one while reading the diff (a `workflows.disabled` entry or a threshold with a `# why` that describes a slopstopper fault rather than a repo decision), file the issue through `slopstopper-triage`'s `upstream.md` and add the marker, so the next refresh can retire it.

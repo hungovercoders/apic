@@ -15,6 +15,7 @@ Update this skill when:
 - A new config-driven knob is added to a check (`config.get("<x>")` in the check module) → add to Step 4's "Config-driven knobs" table, with the default mirroring `.slopstopper.yml.example`.
 - A profile is added, or a profile's `disables` list changes in `cli/slopstopper/data/profiles.json` → update the two profile rows in Step 5's gotcha table (they name the checks each profile drops) and the profile note in Step 7.
 - A knob is added under `api:` in `.slopstopper.yml.example` → update the API rows in Step 5's gotcha table, which name the specific knob that resolves each symptom.
+- The workaround marker (`slopstopper-workaround: hungovercoders/slopstopper#<N>`) or the upstream issue template changes → update `upstream.md` here and the "Remove workarounds" step in `slopstopper-install`'s `refresh.md` together, since the refresh greps for exactly that marker.
 - The PR comment shape changes (`emit --target pr-comment`, `--status`, `--on-pass=delete`, or `ss-pr-summary.yml`) → update Step 1's "Fastest route" section and the three comment-layer rows in Step 5's gotcha table.
 
 The AGENTS.md "When making changes" table in the slopstopper repo flags this skill alongside `slopstopper-install` whenever a change of the above kind ships.

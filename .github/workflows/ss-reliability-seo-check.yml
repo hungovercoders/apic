@@ -120,9 +120,7 @@ jobs:
           # real deployed URL.
           SEO_VERIFY_OG_IMAGE: ${{ steps.url.outputs.use_local == 'true' && '0' || '1' }}
           TARGET_URL: ${{ steps.url.outputs.url }}
-        # slopstopper-cli 0.21.0 reads only the flag, not the variable; the
-        # flag is passed here until the pin in mise.toml moves past it.
-        run: task ss:reliability:seo -- "$TARGET_URL" ${{ steps.url.outputs.use_local == 'true' && '--no-verify-og-image' || '' }}
+        run: task ss:reliability:seo -- "$TARGET_URL"
 
       - name: Stop local server
         if: steps.url.outputs.use_local == 'true' && always()
@@ -130,7 +128,7 @@ jobs:
 
       - name: Upload SEO report
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: seo-metatags-report-${{ github.run_id }}
           path: .ss/reports/seo/

@@ -56,6 +56,11 @@ headers:
   format: cloudflare-text
 
 hygiene:
+  docs_accuracy:
+    # Files the internal docs name that no checkout holds: the session
+    # and cookie files apic writes under .apic/, and the notices file
+    # `task notices` generates (gitignored).
+    ignore_refs: ['.apic/*', 'THIRD_PARTY_NOTICES.md']
   complexity:
     # 30 is golangci-lint's gocyclo default, and no function in
     # the tree is above it. Never raise it: split the function instead.

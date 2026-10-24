@@ -4,7 +4,7 @@
 
 ## Step 4: Categorise the finding
 
-For each failing finding, decide which of the three buckets it falls into:
+For each failing finding, decide which of the four buckets it falls into. The first three are below; the fourth, a bug in slopstopper itself, is in `upstream.md`, because its fix is an issue on `hungovercoders/slopstopper` plus a marked workaround rather than a change to this repo.
 
 ### Real finding: fix the code
 
@@ -57,3 +57,7 @@ Tunings that are NOT yet config-driven (require code/file edits):
 - `.ss/lighthouserc.json` (or the bundled `cli/slopstopper/data/lighthouserc.json`) holds the Core Web Vitals thresholds. Edit the `.ss/` copy if you want adopter-side persistence; the CLI prefers it over the package-data fallback.
 
 Tuning is a real decision. When you raise a threshold, leave a `# why` comment in `.slopstopper.yml` so the next maintainer doesn't roll it back. Don't tune to silence noise; tune to match a deliberate design decision.
+
+### Slopstopper bug: raise it upstream, mark the workaround
+
+When none of the three fits because the check is wrong for every repo (a false positive no mechanism can scope, a traceback, a workflow that fails before the check runs), stop categorising and read `upstream.md`. The fix is an issue on `hungovercoders/slopstopper` and, where the repo can't wait, the narrowest workaround with a `slopstopper-workaround: hungovercoders/slopstopper#<N>` marker on it. The refresh flow removes marked workarounds once their issue is closed; an unmarked one stays forever.

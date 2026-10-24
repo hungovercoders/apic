@@ -1,6 +1,6 @@
 ---
 name: slopstopper-triage
-description: Diagnose and fix a failing slopstopper check, including a check that doesn't apply to the repo's shape (a browser check on an API or library). Use when a user reports a specific slopstopper workflow or task is failing: SAST, secrets, complexity, docs-accuracy, docs-size, docs-structure, entry-files, CSP exceptions, auto-label, smoke, E2E, accessibility, Core Web Vitals, SEO, broken links, DAST, dependency review, API health, API latency, OpenAPI drift, API headers/CORS, the workflow-failure tracker, or the post-deploy Cloudflare trigger. Maps each check to the local task that reproduces it, the report files it generates, the typical root-cause categories (real finding / false positive / threshold too tight), and a per-symptom gotcha table with diagnostic steps and the file the fix lives in. For first-time install OR refreshing an existing install use slopstopper-install.
+description: Diagnose and fix a failing slopstopper check, including a check that doesn't apply to the repo's shape (a browser check on an API or library). Use when a user reports a specific slopstopper workflow or task is failing: SAST, secrets, complexity, docs-accuracy, docs-size, docs-structure, entry-files, CSP exceptions, auto-label, smoke, E2E, accessibility, Core Web Vitals, SEO, broken links, DAST, dependency review, API health, API latency, OpenAPI drift, API headers/CORS, the workflow-failure tracker, or the post-deploy Cloudflare trigger. Maps each check to the local task that reproduces it, the report files it generates, the typical root-cause categories (real finding / false positive / threshold too tight), a per-symptom gotcha table with diagnostic steps and the file the fix lives in, and the fourth outcome, a bug in slopstopper itself, which gets raised upstream on hungovercoders/slopstopper and worked around with a marker a later refresh removes. For first-time install OR refreshing an existing install use slopstopper-install.
 ---
 
 
@@ -12,13 +12,14 @@ Every check runs through `slopstopper-cli`: each `ss-*.yml` workflow is `uses: .
 
 This file is the map. The long tables live in `references/` and are **read only when a step needs them**, so the whole skill costs one page of context until then.
 
-The shape of the fix is one of three things:
+The shape of the fix is one of four things:
 
 1. **A real finding.** The check is right and the code is wrong. Fix the code.
 2. **A false positive.** The heuristic misfires on this codebase. Suppress narrowly via the check's documented mechanism, always with a `# why` comment.
 3. **A threshold too tight for this repo.** The check is correct but its config isn't. Tune in `.slopstopper.yml`.
+4. **A slopstopper bug.** The check, template, workflow or installer is wrong for every repo, not just this one. Raise it on `hungovercoders/slopstopper` and, if the repo can't wait for the fix, work around it with a `slopstopper-workaround:` marker so the next refresh removes it once the fix ships.
 
-Don't apply blanket suppressions and don't loosen thresholds without writing down why.
+Don't apply blanket suppressions and don't loosen thresholds without writing down why. Don't fix slopstopper's bugs silently inside an adopter repo.
 
 ## Step 1: Identify which check is failing
 
@@ -67,6 +68,8 @@ Real finding → fix the code. False positive → the check's own suppression me
 
 The suppression table and the config-driven-knob table are in **`references/categorise.md`**.
 
+Slopstopper bug → **`references/upstream.md`**: how to tell, the issue to open (`gh issue create -R hungovercoders/slopstopper --label slopstopper`), and the marker every workaround carries.
+
 ## Step 5: Per-symptom gotcha table
 
 Once you know the symptom, look it up before reasoning from scratch: **`references/gotchas.md`** maps each one (a browser check red on an API repo, a check green in Actions but its comment says failed, DAST reporting nothing against an API, `api-latency` failing in CI and passing locally, exit `2` with no findings…) to the diagnostic step, the root cause, the fix, and the file it lives in.
@@ -78,6 +81,6 @@ When the failing check is really a symptom of the repo's shape (wrong profile, n
 ## When to hand off
 
 - **First-time install** on a new repo → `slopstopper-install` (you're here because that skill handed off mid-install, so go back when this check is green).
-- **Refreshing an existing install** → `slopstopper-install`; its refresh section is the mechanical "re-run installer + re-apply customizations" loop. A check that is new since the last refresh is still this skill's job.
+- **Refreshing an existing install** → `slopstopper-install`; its refresh section is the mechanical "re-run installer + re-apply customizations" loop, and it is what removes the `slopstopper-workaround:` markers this skill leaves once their issue is closed. A check that is new since the last refresh is still this skill's job.
 
 Anything that changes slopstopper itself needs a matching edit here or the tables rot. **`references/maintaining.md`** lists the triggers.

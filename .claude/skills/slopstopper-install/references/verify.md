@@ -93,6 +93,14 @@ Don't try to fix everything yourself inside this skill. Hand off, fix the one ch
 
 After Step 7's local loop is fully green, push to a PR branch. CI should mirror what you saw locally.
 
+Before the push, confirm the repo is discoverable as an adopter. The installer adds the `slopstopper` topic when `gh` can reach the repo; on a fresh repo with no remote yet it can't, so check and add it now:
+
+```bash
+gh repo view --json repositoryTopics --jq '.repositoryTopics[].name' | grep -qx slopstopper || gh repo edit --add-topic slopstopper
+```
+
+The `slopstopper` label on issues and PRs needs no setup: every workflow that raises one creates it on first use.
+
 A few checks are CI-only by design (Dependency Review needs GHAS or Dependency Graph; auto-label-pr needs `.github/labeler.yml`). If they fail on the first CI run, hand them to the **`slopstopper-triage`** skill, whose check-by-check table covers them alongside the local checks.
 
 If anything was green locally but red on CI: that's signal there's an environmental delta (Node version pin, missing env var, file-permissions, OS-specific tool). Diagnose, fix, and add the difference to the local pre-flight for next time.

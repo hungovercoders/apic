@@ -36,9 +36,9 @@ A Python CLI plus GitHub Actions workflows that run security, hygiene and reliab
 | **4. Configure** | `.slopstopper.yml`: profile, `urls.production` / `urls.preview`, page lists, the four API checks (inert until `api.*` is set, so this is the highest-value step on an API repo; under `ui` they install only once the repo shows an API, so re-run the installer after setting `api.*`), hygiene thresholds, Node version. | `references/configure.md` |
 | **5. Docs layout (AGENTS.md first)** | If keeping the docs checks: `AGENTS.md` carries what most tasks need under ~2k tokens with explicit routes, `CLAUDE.md` is `@AGENTS.md`, `docs/README.md` is the map, every doc routed. Decide routes-only / build / fan-out first; paste-ready scaffolds and fixes. | `references/map-pattern.md` |
 | **6. Badges** | `slopstopper badges` → the README block. | `references/configure.md` |
-| **Refresh-only** | Diff installed workflows against upstream, re-apply the customizations the installer wipes, move the CLI pin, spot new knobs and new checks, clean up obsolete artefacts. | `references/refresh.md` |
+| **Refresh-only** | Diff installed workflows against upstream, re-apply the customizations the installer wipes, move the CLI pin, spot new knobs and new checks, clean up obsolete artefacts, remove workarounds whose upstream issue is closed. | `references/refresh.md` |
 | **7. Verify locally** | Pass A (static, seconds) then Pass B (needs a URL). Get **every check green locally before pushing**, so CI confirms rather than discovers. Hand off to `slopstopper-triage` for any red check. | `references/verify.md` |
-| **8. Push** | Own branch, own commit, watch the confirmation pass. | `references/verify.md` |
+| **8. Push** | Own branch, own commit, watch the confirmation pass. Confirm the `slopstopper` repo topic landed. | `references/verify.md` |
 
 ## Step 9: When NOT to install slopstopper
 
@@ -50,7 +50,7 @@ Say so plainly if:
 
 ## Step 10: When to hand off
 
-- A check fails during Step 7's local loop, or a previously-green check goes red on refresh → **`slopstopper-triage`** (workflow → local task → report → finding category → fix location), then come back.
+- A check fails during Step 7's local loop, or a previously-green check goes red on refresh → **`slopstopper-triage`** (workflow → local task → report → finding category → fix location), then come back. When the fault is slopstopper's rather than the repo's, that skill raises it on `hungovercoders/slopstopper` and marks the workaround so a later refresh removes it; don't patch around a slopstopper bug here.
 - Anything that changes slopstopper itself (a renamed task, a new knob, a new workflow) has to be reflected in this skill or it silently rots. `references/maintaining.md` lists the triggers.
 
 ## Notes for the agent

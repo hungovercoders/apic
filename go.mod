@@ -1,6 +1,6 @@
 module github.com/hungovercoders/apic
 
-go 1.26.9
+go 1.26.10
 
 require (
 	github.com/charmbracelet/lipgloss v1.1.0

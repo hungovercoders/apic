@@ -32,8 +32,12 @@ the prose checks. The site's content is not reference for working on apic;
   care as renaming a flag. `starlight-links-validator` fails the build on a
   broken internal link or anchor.
 - The schemas under `public/schemas/` are generated (`task schemas`);
-  `public/assets/` holds the generated screenshots (`task shots`);
-  `src/assets/logo.svg` is the logo the README and the site share.
+  `public/assets/` holds the generated screenshots (`task shots`; the
+  animated one plays once, rests on its last frame, and shows only that
+  frame under `prefers-reduced-motion`, all from a style block the
+  generator writes into the SVG); `src/assets/logo.svg` is the logo the
+  README and the site share, and `public/apple-touch-icon.png` is it at
+  180px with square corners for Safari's home-screen bookmarks.
 - `src/routeData.ts` adds the share tags Starlight does not write
   (`og:image`, the Twitter title, description and image) to every page;
   `public/og-image.png` is the 1200×630 image they point at.

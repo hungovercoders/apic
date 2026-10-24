@@ -68,11 +68,16 @@ type Frame struct {
 	Caption string
 }
 
-// AnimatedSVG renders frames as one SVG window that cycles through them
-// with SMIL timing, which browsers run even inside an <img>, so the README
-// and the docs get a moving picture with no GIF, no video and no script.
-// The first frame is what a viewer without animation sees. With a single
-// frame the output is a plain static screenshot.
+// AnimatedSVG renders frames as one SVG window that steps through them
+// once with SMIL timing, which browsers run even inside an <img>, so the
+// README and the docs get a moving picture with no GIF, no video and no
+// script. The animation plays one pass and rests on the last frame rather
+// than looping for as long as the tab is open. A viewer who has asked for
+// reduced motion gets the last frame and no animation: the style block
+// inside the SVG honours the media query where page CSS cannot reach (the
+// SVG is an <img>), and `!important` is what beats a SMIL-animated opacity.
+// A viewer with no SMIL at all sees the first frame. With a single frame
+// the output is a plain static screenshot.
 func AnimatedSVG(title string, frames []Frame) string {
 	cols, rows := 0, 0
 	parsed := make([][][]run, len(frames))
@@ -108,6 +113,9 @@ func AnimatedSVG(title string, frames []Frame) string {
 	fmt.Fprintf(&b, `<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d" `+
 		`font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="%g">`+"\n",
 		width, height, width, height, fontSize)
+	if animated {
+		b.WriteString(`<style>@media (prefers-reduced-motion: reduce) { .frame { display: none } .frame.rest { display: inline; opacity: 1 !important } }</style>` + "\n")
+	}
 	fmt.Fprintf(&b, `<rect width="%d" height="%d" rx="10" fill="%s"/>`+"\n", width, height, windowBG)
 	fmt.Fprintf(&b, `<rect width="%d" height="%g" rx="10" fill="%s"/>`+"\n", width, barH, barBG)
 	fmt.Fprintf(&b, `<rect y="%g" width="%d" height="10" fill="%s"/>`+"\n", barH-10, width, barBG)
@@ -121,11 +129,12 @@ func AnimatedSVG(title string, frames []Frame) string {
 	for f, fr := range frames {
 		if animated {
 			// Each frame is a group whose opacity steps to 1 for its slot
-			// of the loop and back to 0, with discrete timing so nothing
-			// fades. keyTimes are fractions of the whole loop.
+			// of the pass and back to 0, with discrete timing so nothing
+			// fades. keyTimes are fractions of the whole pass.
 			// Every keyTimes list starts at 0 and ends at 1, which every
 			// reading of the SMIL spec accepts; the value at 1 repeats the
-			// last slot so the loop's final instant draws the right frame.
+			// last slot, which fill="freeze" then holds, so the pass ends
+			// on the last frame and stays there.
 			from := at.Seconds() / total.Seconds()
 			to := (at + fr.Hold).Seconds() / total.Seconds()
 			values, keyTimes := "0;1;0;0", fmt.Sprintf("0;%s;%s;1", frac(from), frac(to))
@@ -136,8 +145,12 @@ func AnimatedSVG(title string, frames []Frame) string {
 			case f == len(frames)-1:
 				values, keyTimes = "0;1;1", fmt.Sprintf("0;%s;1", frac(from))
 			}
-			fmt.Fprintf(&b, `<g opacity="%s"><animate attributeName="opacity" calcMode="discrete" values="%s" keyTimes="%s" dur="%ss" repeatCount="indefinite"/>`+"\n",
-				initial, values, keyTimes, frac(total.Seconds()))
+			class := "frame"
+			if f == len(frames)-1 {
+				class = "frame rest"
+			}
+			fmt.Fprintf(&b, `<g class="%s" opacity="%s"><animate attributeName="opacity" calcMode="discrete" values="%s" keyTimes="%s" dur="%ss" repeatCount="1" fill="freeze"/>`+"\n",
+				class, initial, values, keyTimes, frac(total.Seconds()))
 			at += fr.Hold
 		}
 		if fr.Caption != "" {

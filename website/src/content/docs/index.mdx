@@ -25,13 +25,13 @@ import { Tabs, TabItem, LinkCard, CardGrid } from '@astrojs/starlight/components
 
 ![apic ui --demo: send a request, run a file as a flow, read the checks, see what was captured](assets/apic-demo.svg)
 
-```sh
-apic ui --demo                      # a fake API and a UI to poke it with, no setup
-apic run login                      # POST, capture the token
-apic run get-user --env staging     # reuse the token, check assertions
-apic run smoke.http --json | jq     # whole file as a flow, one JSON line per request
-apic test                           # run Gherkin features against the same requests
-claude mcp add api -- apic mcp      # let an agent call the same requests as tools
+```sh wrap
+apic ui --demo                   # a fake API and a UI on it, no setup
+apic run login                   # POST, capture the token
+apic run get-user --env staging  # reuse the token, check assertions
+apic run smoke.http --json | jq  # a file as a flow, one JSON line each
+apic test                        # Gherkin features, same requests
+claude mcp add api -- apic mcp   # an agent calls them as tools
 ```
 
 ## 30 seconds to epic
@@ -98,21 +98,13 @@ VS Code, JetBrains and Neovim still send them with one click.
 
 ## Where to go next
 
-| Guide | Read it when |
-|---|---|
-| [Getting started](getting-started.md) | You are setting up apic for a project for the first time. |
-| [Terminal UI](tui.md) | You want to browse and run requests interactively. |
-| [Cheat sheet](cheatsheet.md) | You want every directive, selector and operator on one page. |
-| [The `.http` format](format.md) | You are writing or editing request files. |
-| [Authentication](auth.md) | Your API needs AWS SigV4, OAuth2, basic auth or a token from a CLI. |
-| [Testing with Gherkin](testing.md) | You want `.feature` files to describe API behaviour. |
-| [Cookbook](cookbook.md) | You have a specific job to do and want a worked recipe. |
-| [CLI reference](cli.md) | You want every command, flag, output shape and exit code. |
-| [Using apic from an AI agent](agents.md) | You want Claude Code, Cursor or a shell-driven agent to call your API. |
-| [FAQ](faq.md) | Something is not behaving and you want the short answer. |
-| [Taskfile integration](taskfile.md) | You already drive things with `task`. |
-| [Comparison](comparison.md) | You are deciding between apic, Bruno, Hurl, Postman or curl. |
-| [From zero to apic](learn/index.md) | You want a course: fourteen short lessons, with YouTube episodes to follow. |
+- [Getting started](getting-started.md): set apic up for a project.
+- [From zero to apic](learn/index.md): the course, fourteen short lessons.
+- [Cheat sheet](cheatsheet.md): every directive, selector and operator on one page.
+- [The `.http` format](format.md): the files you are writing.
+- [Using apic from an AI agent](agents.md): the contract for Claude Code, Cursor or a shell-driven agent.
+
+The sidebar and search carry the rest.
 
 :::note[Reading this as an agent?]
 [llms.txt](https://apic.sh/llms.txt) maps every page with a summary, and

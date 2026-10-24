@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="911" height="398" viewBox="0 0 911 398" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13">
+<style>@media (prefers-reduced-motion: reduce) { .frame { display: none } .frame.rest { display: inline; opacity: 1 !important } }</style>
 <rect width="911" height="398" rx="10" fill="#11131a"/>
 <rect width="911" height="38" rx="10" fill="#1b1e28"/>
 <rect y="28" width="911" height="10" fill="#1b1e28"/>
@@ -6,7 +7,7 @@
 <circle cx="35" cy="19" r="5.5" fill="#febc2e"/>
 <circle cx="52" cy="19" r="5.5" fill="#28c840"/>
 <text x="455.5" y="23.5" fill="#8b93a7" text-anchor="middle" font-size="12">apic ui --demo</text>
-<g opacity="1"><animate attributeName="opacity" calcMode="discrete" values="1;0;0" keyTimes="0;0.0891;1" dur="22.45s" repeatCount="indefinite"/>
+<g class="frame" opacity="1"><animate attributeName="opacity" calcMode="discrete" values="1;0;0" keyTimes="0;0.0891;1" dur="22.45s" repeatCount="1" fill="freeze"/>
 <text x="893" y="23.5" fill="#8b93a7" text-anchor="end" font-size="12">the project: requests left, preview right</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0 111.8" y="60.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">requests (24)</text>
 <text x="283.8 291.6 299.4" y="60.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">↓11</text>
@@ -129,7 +130,7 @@
 <text x="291.6 299.4 307.2" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
-<g opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.0891;0.2004;1" dur="22.45s" repeatCount="indefinite"/>
+<g class="frame" opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.0891;0.2004;1" dur="22.45s" repeatCount="1" fill="freeze"/>
 <text x="893" y="23.5" fill="#8b93a7" text-anchor="end" font-size="12">enter · send the request</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0 111.8" y="60.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">requests (24)</text>
 <text x="283.8 291.6 299.4" y="60.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">↓11</text>
@@ -257,7 +258,7 @@
 <text x="487.0 494.8 502.6" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
-<g opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.2004;0.2673;1" dur="22.45s" repeatCount="indefinite"/>
+<g class="frame" opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.2004;0.2673;1" dur="22.45s" repeatCount="1" fill="freeze"/>
 <text x="893" y="23.5" fill="#8b93a7" text-anchor="end" font-size="12">j · whoami is ready: login captured the token</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0 111.8" y="60.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">requests (24)</text>
 <text x="283.8 291.6 299.4" y="60.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">↓11</text>
@@ -367,7 +368,7 @@
 <text x="487.0 494.8 502.6" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
-<g opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.2673;0.3118;1" dur="22.45s" repeatCount="indefinite"/>
+<g class="frame" opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.2673;0.3118;1" dur="22.45s" repeatCount="1" fill="freeze"/>
 <text x="893" y="23.5" fill="#8b93a7" text-anchor="end" font-size="12">j … · todos.http</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0 111.8" y="60.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">requests (24)</text>
 <text x="283.8 291.6 299.4" y="60.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">↓11</text>
@@ -477,7 +478,7 @@
 <text x="487.0 494.8 502.6" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
-<g opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.3118;0.3318;1" dur="22.45s" repeatCount="indefinite"/>
+<g class="frame" opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.3118;0.3318;1" dur="22.45s" repeatCount="1" fill="freeze"/>
 <text x="893" y="23.5" fill="#8b93a7" text-anchor="end" font-size="12">f · run the whole file, live</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0 111.8" y="60.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">requests (24)</text>
 <text x="283.8 291.6 299.4" y="60.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">↓11</text>
@@ -624,7 +625,7 @@
 <text x="596.4 604.3 612.1" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
-<g opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.3318;0.3519;1" dur="22.45s" repeatCount="indefinite"/>
+<g class="frame" opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.3318;0.3519;1" dur="22.45s" repeatCount="1" fill="freeze"/>
 <text x="893" y="23.5" fill="#8b93a7" text-anchor="end" font-size="12">f · run the whole file, live</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0 111.8" y="60.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">requests (24)</text>
 <text x="260.3 268.1 276.0 283.8 291.6 299.4" y="60.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">↑1 ↓10</text>
@@ -767,7 +768,7 @@
 <text x="565.2 573.0 580.8" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
-<g opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.3519;0.3719;1" dur="22.45s" repeatCount="indefinite"/>
+<g class="frame" opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.3519;0.3719;1" dur="22.45s" repeatCount="1" fill="freeze"/>
 <text x="893" y="23.5" fill="#8b93a7" text-anchor="end" font-size="12">f · run the whole file, live</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0 111.8" y="60.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">requests (24)</text>
 <text x="268.1 276.0 283.8 291.6 299.4" y="60.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">↑2 ↓9</text>
@@ -908,7 +909,7 @@
 <text x="541.7 549.5 557.4" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
-<g opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.3719;0.392;1" dur="22.45s" repeatCount="indefinite"/>
+<g class="frame" opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.3719;0.392;1" dur="22.45s" repeatCount="1" fill="freeze"/>
 <text x="893" y="23.5" fill="#8b93a7" text-anchor="end" font-size="12">f · run the whole file, live</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0 111.8" y="60.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">requests (24)</text>
 <text x="268.1 276.0 283.8 291.6 299.4" y="60.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">↑3 ↓8</text>
@@ -1046,7 +1047,7 @@
 <text x="565.2 573.0 580.8" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
-<g opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.392;0.412;1" dur="22.45s" repeatCount="indefinite"/>
+<g class="frame" opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.392;0.412;1" dur="22.45s" repeatCount="1" fill="freeze"/>
 <text x="893" y="23.5" fill="#8b93a7" text-anchor="end" font-size="12">f · run the whole file, live</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0 111.8" y="60.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">requests (24)</text>
 <text x="268.1 276.0 283.8 291.6 299.4" y="60.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">↑4 ↓7</text>
@@ -1185,7 +1186,7 @@
 <text x="565.2 573.0 580.8" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
-<g opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.412;0.4321;1" dur="22.45s" repeatCount="indefinite"/>
+<g class="frame" opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.412;0.4321;1" dur="22.45s" repeatCount="1" fill="freeze"/>
 <text x="893" y="23.5" fill="#8b93a7" text-anchor="end" font-size="12">f · run the whole file, live</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0 111.8" y="60.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">requests (24)</text>
 <text x="268.1 276.0 283.8 291.6 299.4" y="60.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">↑5 ↓6</text>
@@ -1325,7 +1326,7 @@
 <text x="565.2 573.0 580.8" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
-<g opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.4321;0.4521;1" dur="22.45s" repeatCount="indefinite"/>
+<g class="frame" opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.4321;0.4521;1" dur="22.45s" repeatCount="1" fill="freeze"/>
 <text x="893" y="23.5" fill="#8b93a7" text-anchor="end" font-size="12">f · run the whole file, live</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0 111.8" y="60.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">requests (24)</text>
 <text x="268.1 276.0 283.8 291.6 299.4" y="60.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">↑6 ↓5</text>
@@ -1451,7 +1452,7 @@
 <text x="565.2 573.0 580.8" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
-<g opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.4521;0.4722;1" dur="22.45s" repeatCount="indefinite"/>
+<g class="frame" opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.4521;0.4722;1" dur="22.45s" repeatCount="1" fill="freeze"/>
 <text x="893" y="23.5" fill="#8b93a7" text-anchor="end" font-size="12">f · run the whole file, live</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0 111.8" y="60.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">requests (24)</text>
 <text x="268.1 276.0 283.8 291.6 299.4" y="60.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">↑7 ↓4</text>
@@ -1585,7 +1586,7 @@
 <text x="635.5 643.3 651.2" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
-<g opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.4722;0.4922;1" dur="22.45s" repeatCount="indefinite"/>
+<g class="frame" opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.4722;0.4922;1" dur="22.45s" repeatCount="1" fill="freeze"/>
 <text x="893" y="23.5" fill="#8b93a7" text-anchor="end" font-size="12">f · run the whole file, live</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0 111.8" y="60.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">requests (24)</text>
 <text x="268.1 276.0 283.8 291.6 299.4" y="60.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">↑8 ↓3</text>
@@ -1730,7 +1731,7 @@
 <text x="565.2 573.0 580.8" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
-<g opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.4922;0.5122;1" dur="22.45s" repeatCount="indefinite"/>
+<g class="frame" opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.4922;0.5122;1" dur="22.45s" repeatCount="1" fill="freeze"/>
 <text x="893" y="23.5" fill="#8b93a7" text-anchor="end" font-size="12">f · run the whole file, live</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0 111.8" y="60.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">requests (24)</text>
 <text x="268.1 276.0 283.8 291.6 299.4" y="60.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">↑9 ↓2</text>
@@ -1867,7 +1868,7 @@
 <text x="627.7 635.5 643.3" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
-<g opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.5122;0.5323;1" dur="22.45s" repeatCount="indefinite"/>
+<g class="frame" opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.5122;0.5323;1" dur="22.45s" repeatCount="1" fill="freeze"/>
 <text x="893" y="23.5" fill="#8b93a7" text-anchor="end" font-size="12">f · run the whole file, live</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0 111.8" y="60.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">requests (24)</text>
 <text x="260.3 268.1 276.0 283.8 291.6 299.4" y="60.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">↑10 ↓1</text>
@@ -2003,7 +2004,7 @@
 <text x="588.6 596.4 604.3" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
-<g opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.5323;0.6214;1" dur="22.45s" repeatCount="indefinite"/>
+<g class="frame" opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.5323;0.6214;1" dur="22.45s" repeatCount="1" fill="freeze"/>
 <text x="893" y="23.5" fill="#8b93a7" text-anchor="end" font-size="12">f · run the whole file, live</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0 111.8" y="60.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">requests (24)</text>
 <text x="283.8 291.6 299.4" y="60.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">↑11</text>
@@ -2137,7 +2138,7 @@
 <text x="510.5 518.3 526.1" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
-<g opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.6214;0.7327;1" dur="22.45s" repeatCount="indefinite"/>
+<g class="frame" opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.6214;0.7327;1" dur="22.45s" repeatCount="1" fill="freeze"/>
 <text x="893" y="23.5" fill="#8b93a7" text-anchor="end" font-size="12">3 · checks: actual against expected</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0 111.8" y="60.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">requests (24)</text>
 <text x="283.8 291.6 299.4" y="60.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">↑11</text>
@@ -2267,7 +2268,7 @@
 <text x="510.5 518.3 526.1" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
-<g opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.7327;0.8218;1" dur="22.45s" repeatCount="indefinite"/>
+<g class="frame" opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.7327;0.8218;1" dur="22.45s" repeatCount="1" fill="freeze"/>
 <text x="893" y="23.5" fill="#8b93a7" text-anchor="end" font-size="12">4 · session: what was captured</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0 111.8" y="60.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">requests (24)</text>
 <text x="283.8 291.6 299.4" y="60.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">↑11</text>
@@ -2394,7 +2395,7 @@
 <text x="510.5 518.3 526.1" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
-<g opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.8218;0.9332;1" dur="22.45s" repeatCount="indefinite"/>
+<g class="frame" opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.8218;0.9332;1" dur="22.45s" repeatCount="1" fill="freeze"/>
 <text x="893" y="23.5" fill="#8b93a7" text-anchor="end" font-size="12">? · every key</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0 111.8" y="60.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">requests (24)</text>
 <text x="283.8 291.6 299.4" y="60.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">↑11</text>
@@ -2542,7 +2543,7 @@
 <text x="510.5 518.3 526.1" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
-<g opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;1" keyTimes="0;0.9332;1" dur="22.45s" repeatCount="indefinite"/>
+<g class="frame rest" opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;1" keyTimes="0;0.9332;1" dur="22.45s" repeatCount="1" fill="freeze"/>
 <text x="893" y="23.5" fill="#8b93a7" text-anchor="end" font-size="12">esc · back to it</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0 111.8" y="60.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">requests (24)</text>
 <text x="283.8 291.6 299.4" y="60.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">↑11</text>

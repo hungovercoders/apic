@@ -77,7 +77,7 @@ Here is the terminal UI on the project that ships inside apic, sending a
 request, running a file as a flow, reading the checks and the captured
 values:
 
-<img src="/assets/apic-demo.svg" alt="apic ui --demo: send a request, run a file as a flow, read the checks, see what was captured">
+![apic ui --demo: send a request, run a file as a flow, read the checks, see what was captured](../assets/apic-demo.svg)
 
 And the same project from the command line:
 

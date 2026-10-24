@@ -14,14 +14,14 @@
 <p align="center"><img src="website/public/assets/apic-demo.svg" width="820" alt="apic ui --demo"></p>
 
 ```sh
-apic demo                           # terminal 1: a fake API and a project for it in ./apic-demo
-cd apic-demo                        # terminal 2
-apic run login                      # POST, capture the token
-apic run whoami                     # reuse the token, check assertions
-apic run auth.http --json | jq      # a file as a flow, one JSON line per request
-apic test                           # Gherkin features against the same requests
-claude mcp add api -- apic mcp      # an agent calls the same requests as tools
-apic ui --demo                      # or just the UI on the fake API, no project
+apic demo                        # terminal 1: a fake API, a project in ./apic-demo
+cd apic-demo                     # terminal 2
+apic run login                   # POST, capture the token
+apic run whoami                  # reuse the token, check assertions
+apic run auth.http --json | jq   # a file as a flow, one JSON line each
+apic test                        # Gherkin features, same requests
+claude mcp add api -- apic mcp   # an agent calls them as tools
+apic ui --demo                   # or just the UI on the fake API
 ```
 
 ## Install

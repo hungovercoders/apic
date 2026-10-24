@@ -26,6 +26,19 @@
 	border-radius: 10px;
 }
 
+/* On a phone a 911px recording shrunk to fit is a dark rectangle of 5px
+   text. Keep it at full size and let the reader swipe across it instead:
+   the paragraph around the image scrolls. */
+@media (max-width: 50rem) {
+	.sl-markdown-content img[src$='.svg'] {
+		max-width: none;
+	}
+
+	.sl-markdown-content :has(> img[src$='.svg']) {
+		overflow-x: auto;
+	}
+}
+
 /* Collapsible blocks (lesson solutions and episode scripts). */
 .sl-markdown-content details {
 	border: 1px solid var(--sl-color-gray-5);

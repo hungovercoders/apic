@@ -51,3 +51,23 @@ allow-licenses:
 #
 # allow-dependencies-licenses:
 #   - pkg:npm/@img/sharp-libvips-linux-x64
+
+# sharp is the image library Astro uses at build time under website/; its
+# libvips binaries are LGPL-3.0-or-later (the Windows and wasm builds also
+# carry Apache-2.0 and MIT). Nothing apic ships links them: the site is
+# static files and the binary is Go.
+allow-dependencies-licenses:
+  - pkg:npm/@img/sharp-libvips-darwin-arm64
+  - pkg:npm/@img/sharp-libvips-darwin-x64
+  - pkg:npm/@img/sharp-libvips-linux-arm
+  - pkg:npm/@img/sharp-libvips-linux-arm64
+  - pkg:npm/@img/sharp-libvips-linux-ppc64
+  - pkg:npm/@img/sharp-libvips-linux-riscv64
+  - pkg:npm/@img/sharp-libvips-linux-s390x
+  - pkg:npm/@img/sharp-libvips-linux-x64
+  - pkg:npm/@img/sharp-libvips-linuxmusl-arm64
+  - pkg:npm/@img/sharp-libvips-linuxmusl-x64
+  - pkg:npm/@img/sharp-wasm32
+  - pkg:npm/@img/sharp-win32-arm64
+  - pkg:npm/@img/sharp-win32-ia32
+  - pkg:npm/@img/sharp-win32-x64

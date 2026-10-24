@@ -50,7 +50,8 @@ the prose checks. The site's content is not reference for working on apic;
   one Starlight component override) state what the site collects (nothing
   of its own), what Cloudflare keeps as the host (aggregate analytics and
   the request logs `observability` in `wrangler.jsonc` turns on) and what
-  the CLI sends (only what a `.http` file asks for). Keep them true: a new
+  the CLI sends (only to the APIs and auth endpoints the project's `.http`
+  files and `apic.yaml` name). Keep them true: a new
   third-party script, form or analytics snippet means updating both, and
   the page's "last checked" date. The CSP will block such a script until
   `_headers` allows it, which is the prompt.

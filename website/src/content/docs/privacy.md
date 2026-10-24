@@ -42,8 +42,11 @@ The pages link out, but they do not load anything from anywhere else.
 
 ## The apic CLI
 
-`apic` sends requests only to the APIs your `.http` files name. It has no
-telemetry, no update check and no crash reporting. Error messages, the
+`apic` sends requests only where your project tells it to: the APIs your
+`.http` files name, and the token endpoints an [`@auth`](auth.md) directive
+or the `auth:` section of `apic.yaml` names, which receive the credentials
+that directive configures. It has no telemetry, no update check and no
+crash reporting. Error messages, the
 `--json` output and SARIF reports carry links to this site, but the binary
 never fetches them; the one request a project can cause here is your editor
 fetching the `apic.yaml` schema that `apic init` points it at, which

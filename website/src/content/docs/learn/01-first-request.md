@@ -53,7 +53,7 @@ verifies the release checksum, and adds the directory to your user
 
 
 ```sh
-go install github.com/hungovercoders/apic/cmd/apic@latest   # Go 1.26.9 or newer
+go install github.com/hungovercoders/apic/cmd/apic@latest   # Go 1.26.10 or newer
 ```
 
 This builds from source into `$(go env GOPATH)/bin`.
@@ -69,7 +69,7 @@ apic version
 ```
 
 ```
-apic v0.1.3 · 1a2b3c4 · go1.26.9 linux/amd64
+apic v0.1.3 · 1a2b3c4 · go1.26.10 linux/amd64
 apic is epic · https://apic.sh/
 ```
 

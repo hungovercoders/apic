@@ -59,8 +59,8 @@ flowchart LR
    selectors pull values out of it and `# @assert` expressions are
    evaluated. A failed assertion or capture is exit 1.
 7. **Persist** (`internal/session`, `internal/history`). Captures are
-   committed to the run and to the session file under `.apic/` for the
-   environment, and the cookie jar beside it, so the next invocation
+   committed to the run and to `.apic/session.json` for the environment,
+   and the cookie jar to `.apic/cookies.json`, so the next invocation
    continues where this one stopped. With `history:` set, the result is
    also kept in `.apic/history`, in its `--json` form, for `apic history`.
 8. **Render** (`internal/output`). One set of renderers produces the

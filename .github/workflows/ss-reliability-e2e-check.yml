@@ -63,17 +63,21 @@ jobs:
 
       - name: Install Playwright browsers
         # A stalled browser download otherwise holds the job until GitHub's
-        # six-hour limit. Each attempt gets five minutes and a stall is
-        # retried once; the step timeout bounds both attempts.
+        # six-hour limit. Each download attempt gets five minutes and a stall
+        # is retried once; the step timeout bounds both attempts. The apt
+        # phase runs once, outside the timeout: killing it mid-install leaves
+        # apt-get holding the dpkg lock, so the retry fails on the lock
+        # instead of downloading (#527).
         timeout-minutes: 12
         run: |
+          npx playwright install-deps chromium || npx playwright install-deps chromium
           for attempt in 1 2; do
-            if timeout --kill-after=30s 5m npx playwright install --with-deps chromium; then
+            if timeout --kill-after=30s 5m npx playwright install chromium; then
               exit 0
             fi
-            echo "::warning::Playwright browser install attempt ${attempt} failed or stalled after 5 minutes"
+            echo "::warning::Playwright browser download attempt ${attempt} failed or stalled after 5 minutes"
           done
-          echo "::error::Playwright browser install failed twice. Re-run the job; if it keeps failing, check the runner's network."
+          echo "::error::Playwright browser download failed twice. Re-run the job; if it keeps failing, check the runner's network."
           exit 1
 
       - name: Determine test URL
@@ -140,7 +144,7 @@ jobs:
 
       - name: Upload Playwright report
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-report-${{ github.run_id }}
           path: |

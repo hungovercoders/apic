@@ -57,12 +57,10 @@ in place, so a deliberately deleted one does not come back.
   status carries only the Actions log link and `ss-resolve-url` audits
   `urls.production` instead; with a `url` the checks audited
   `hungovercoders.github.io/apic/` and failed on every docs deploy.
-- One shipped file is hand-edited, which a refresh undoes:
-  `ss-reliability-seo-check.yml` passes `--no-verify-og-image` on a local
-  build, because slopstopper-cli 0.21.0 ignores the `SEO_VERIFY_OG_IMAGE`
-  variable the workflow sets (fixed upstream). Once the pin in `mise.toml` is
-  past 0.21.0 the refreshed file is right without it; until then, re-apply
-  the flag after a refresh.
+- `.github/dependency-review-config.yml` is the licence allowlist the
+  vulnerability check on new dependencies reads; the installer seeds it and
+  never overwrites it, so it is the place to accept a licence the default
+  list leaves out.
 - The entry-file budgets are the reason `AGENTS.md` routes to this directory
   instead of carrying everything: `AGENTS.md` stays under about 2,000
   tokens, `README.md` under 600 (badges excluded) and every doc under `docs/`

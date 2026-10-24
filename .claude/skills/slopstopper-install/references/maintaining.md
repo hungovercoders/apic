@@ -28,6 +28,8 @@ Triggers that require revisiting this skill:
 - A new `slopstopper` subcommand is added (e.g. `init`, `inspect`) → mention in the intro and surface in the relevant Step.
 - The installer's behaviour changes (new tracked-files mechanism, different deletion semantics, additional refresh targets, CLI install path change) → update the "Refresh-only" section's "what the installer wipes / leaves alone" lists.
 - The pre-push hook changes (which checks it runs, the `--no-hooks` flag, the `core.hooksPath` wiring guard, or the `.githooks/pre-push` path) → update Step 3's inventory, the "What `install.sh` writes" lists, Step 7's hook callout, and the Refresh-only hook bullet (and the gotcha row in `slopstopper-triage`).
+- The installer's repo-topic step changes (the topic name, the `--no-topic` flag, how it detects `gh`) → update Step 3's banner bullet in `install.md` and the topic confirmation under Step 8 in `verify.md`.
+- The workaround marker (`slopstopper-workaround: hungovercoders/slopstopper#<N>`) changes → update the "Remove workarounds" grep in the Refresh-only section and `upstream.md` in `slopstopper-triage` together, since the two sides of the contract must match byte for byte.
 - A new hardcoded-on-reinstall surface emerges (another file the installer overwrites that users commonly hand-edit) → add to the "Re-apply customizations" subsection of the "Refresh-only" section.
 
 The companion to this is `AGENTS.md` in the slopstopper repo: its "When making changes" table flags the skill as a follow-on target whenever a change of the above kind ships. If you're updating slopstopper itself and that table isn't pointing readers back here, fix that first.

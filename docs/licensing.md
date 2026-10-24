@@ -2,9 +2,9 @@
 
 - apic is MIT (`LICENSE`, root). Keep it there: CI's `licences` job fails
   without it, and goreleaser ships it in every archive.
-- `task notices` (`scripts/notices.sh`) regenerates the third-party notices
-  file, which is generated rather than committed (it is in `.gitignore`);
-  goreleaser runs it before packaging. It starts with Go itself (the standard
+- `task notices` (`scripts/notices.sh`) regenerates
+  `THIRD_PARTY_NOTICES.md`, which is generated rather than committed (it is
+  in `.gitignore`); goreleaser runs it before packaging. It starts with Go itself (the standard
   library and runtime are in every binary, under Go's BSD licence) and gives
   every module the URL of its exact source on the module proxy, which MPL-2.0
   3.2(a) requires for the MPL modules. CI's `licences` job checks both.

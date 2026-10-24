@@ -11,7 +11,7 @@
 
 </div>
 
-<p align="center"><img src="website/public/assets/apic-demo.svg" width="820" alt="apic ui --demo"></p>
+<p align="center"><picture><source media="(prefers-reduced-motion: reduce)" srcset="website/public/assets/apic-demo-poster.svg"><img src="website/public/assets/apic-demo.svg" width="820" alt="apic ui --demo"></picture></p>
 
 ```sh
 apic demo                        # terminal 1: a fake API, a project in ./apic-demo

@@ -4,6 +4,7 @@ import starlight from '@astrojs/starlight';
 import starlightLinksValidator from 'starlight-links-validator';
 import { unified } from '@astrojs/markdown-remark';
 import remarkDocLinks from './plugins/remark-doc-links.mjs';
+import rehypeRecordings from './plugins/rehype-recordings.mjs';
 import securityHeaders from './plugins/security-headers.mjs';
 import { sidebar } from './src/sidebar.mjs';
 
@@ -15,7 +16,7 @@ export default defineConfig({
 	site: 'https://apic.sh',
 	trailingSlash: 'always',
 	markdown: {
-		processor: unified({ remarkPlugins: [remarkDocLinks] }),
+		processor: unified({ remarkPlugins: [remarkDocLinks], rehypePlugins: [rehypeRecordings] }),
 	},
 	integrations: [
 		securityHeaders(),

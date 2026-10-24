@@ -22,9 +22,10 @@ from a font service.
 The pages are served by [Cloudflare](https://www.cloudflare.com/). Like any
 host, Cloudflare processes your IP address and browser details to deliver
 each page. It keeps aggregate traffic statistics (how many requests, from
-which countries, with which status codes) and short-lived per-request logs
-that the maintainer uses to keep the site working. That is what "analytics"
-means for this site: there is nothing else behind it. Cloudflare's handling
+which countries, with which status codes). Per-request logging (Cloudflare's
+Workers Logs) is switched off for this site, so no record of your individual
+visit is kept for the maintainer to read. That is what "analytics" means for
+this site: there is nothing else behind it. Cloudflare's handling
 of that data is described in its
 [privacy policy](https://www.cloudflare.com/privacypolicy/). Nothing from
 it is combined with anything else or used to identify you.

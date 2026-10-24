@@ -14,7 +14,10 @@
 		"directory": "./dist",
 		"not_found_handling": "404-page"
 	},
+	// Workers Logs stay off: the Worker only serves the built site, and off
+	// means Cloudflare keeps no per-request records (IP included) that we can
+	// read. privacy.md and the footer line say so; turning this on changes both.
 	"observability": {
-		"enabled": true
+		"enabled": false
 	}
 }

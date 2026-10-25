@@ -19,11 +19,14 @@
 # 90003	IGNORE	# SRI: GTM script and similar cross-domain scripts are
 #                # rotated by the third party; no stable SRI hash is viable
 
-# 10099	IGNORE	# Source Code Disclosure - SQL: false positive on tutorial
-#                # blog posts containing SQL code blocks (Databricks/Spark/
-#                # Cosmos emulator). ZAP's heuristic matches SQL syntax in
-#                # <pre><code> blocks as if the application were leaking
-#                # source code; it isn't
+10099	IGNORE	# Source Code Disclosure (every language the plugin matches: SQL,
+#                # PHP, JSP, ASP, Java, Python, Ruby): apic.sh is static files
+#                # with no server code or database, so there is no source to
+#                # leak in any of them. The matchers read prose and code blocks
+#                # as leaks: the SQL one fired on llms-full.txt (every page as
+#                # one text file) where "apic select" ran into "from" on the
+#                # next line (#49, #63), and the docs quote code in every
+#                # language on purpose.
 
 10055-6	IGNORE	# style-src 'unsafe-inline': Starlight sets CSS custom properties
 #                # through style attributes (--sl-icon-size on every icon) and

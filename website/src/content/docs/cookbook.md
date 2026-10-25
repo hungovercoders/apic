@@ -129,7 +129,7 @@ A longer version of this file ships with `apic demo`:
 ```
 
 - `setup-apic` installs a release verified against `checksums.txt`, cached
-  per version and platform, on every runner OS; `with: version: v0.1.3`
+  per version and platform, on every runner OS; `with: version: v0.1.4`
   pins one. Elsewhere, `install.sh` does the same.
 - `APIC_VAR_<name>` overrides any variable from the shell, so no secret
   needs to reach the runner's disk.
@@ -169,7 +169,7 @@ at the exact line and column:
 
 `ghcr.io/hungovercoders/apic` is the same binary on `scratch`, with the CA
 bundle it needs for TLS: about 16 MB (about 7 MB to pull), for amd64 and
-arm64, tagged with the version (`0.1.3` and `v0.1.3`), the minor (`v0.1`)
+arm64, tagged with the version (`0.1.4` and `v0.1.4`), the minor (`v0.1`)
 and `latest`. Mount the
 project at `/work` and pass secrets as `APIC_VAR_*` variables:
 

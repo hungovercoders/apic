@@ -26,7 +26,7 @@ are:
 
 The commands in every lesson are run in CI against the demo API, so a
 lesson cannot quietly stop working when apic changes. The course is
-written for apic v0.1.3 or newer. The sample output comes from the
+written for apic v0.1.4 or newer. The sample output comes from the
 current build, so a release can word an error's hint or link slightly
 differently; the commands and the results are the same.
 

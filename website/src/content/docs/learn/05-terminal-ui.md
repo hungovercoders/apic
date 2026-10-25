@@ -121,12 +121,14 @@ to `○`. Then press <kbd>enter</kbd> on `login` again.
 ### 7. Find, switch, edit, reload
 
 - <kbd>/</kbd> filters the list as you type, by id, URL, method, file or
-  description. Type `todo`, press <kbd>enter</kbd> to keep the filter, and
+  description. Type `todo`, move through the matches with <kbd>↓</kbd> and
+  <kbd>↑</kbd>, press <kbd>enter</kbd> to keep the filter, and
   <kbd>esc</kbd> to clear it.
-- <kbd>e</kbd> switches to the next environment. The project is rebuilt
-  with that environment's variables and session, and the results on screen
-  are cleared, because they came from somewhere else. If you did lesson 2's
-  exercise, `staging` is one press away.
+- <kbd>e</kbd> switches to the next environment and <kbd>E</kbd> to the
+  previous one. The project is rebuilt with that environment's variables
+  and session, and the results on screen are cleared, because they came
+  from somewhere else. If you did lesson 2's exercise, `staging` is one
+  press away.
 - <kbd>o</kbd> opens the selected request's file at its line in `$VISUAL`,
   then `$EDITOR` (`vi` if neither is set, `notepad` on Windows). Save and quit, and the project
   is reloaded: a new request appears in the list, a changed assertion runs

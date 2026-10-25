@@ -24,7 +24,8 @@ type keyMap struct {
 	Tab1, Tab2, Tab3      binding
 	Tab4, Tab5            binding
 	Headers, Curl         binding
-	Open, Env, Reload     binding
+	Open, Env, PrevEnv    binding
+	Reload                binding
 	Clear                 binding
 	LineUp, LineDown      binding
 	PageUp, PageDown      binding
@@ -52,6 +53,7 @@ func newKeyMap() keyMap {
 		Curl:     bind("c", "show as code: curl, httpie … go, then hide", "c"),
 		Open:     bind("o", "open in $EDITOR", "o"),
 		Env:      bind("e", "next environment", "e"),
+		PrevEnv:  bind("E", "previous environment", "E"),
 		Reload:   bind("r", "reload the project", "r"),
 		Clear:    bind("x", "clear the session", "x"),
 		LineUp:   bind("K", "scroll the pane a line up", "K"),
@@ -68,7 +70,7 @@ func newKeyMap() keyMap {
 func (k keyMap) columns() [][]binding {
 	return [][]binding{
 		{k.Up, k.Down, k.Top, k.Bottom, k.Filter},
-		{k.Run, k.RunFile, k.RunAll, k.Esc, k.Env, k.Reload, k.Open},
+		{k.Run, k.RunFile, k.RunAll, k.Esc, k.Env, k.PrevEnv, k.Reload, k.Open},
 		{k.NextTab, k.PrevTab, k.Tab1, k.Tab2, k.Tab3, k.Tab4, k.Tab5},
 		{k.LineUp, k.LineDown, k.PageUp, k.PageDown},
 		{k.Headers, k.Curl, k.Clear, k.Help, k.Quit},

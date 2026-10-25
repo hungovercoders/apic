@@ -210,6 +210,6 @@ api/
 
 <kbd>enter</kbd> run · <kbd>f</kbd> run the file · <kbd>a</kbd> run all ·
 <kbd>/</kbd> filter · <kbd>1</kbd>-<kbd>5</kbd> tabs · <kbd>H</kbd> headers ·
-<kbd>c</kbd> curl · <kbd>e</kbd> environment · <kbd>r</kbd> reload ·
+<kbd>c</kbd> curl · <kbd>e</kbd>/<kbd>E</kbd> environment · <kbd>r</kbd> reload ·
 <kbd>o</kbd> edit · <kbd>x</kbd> clear session · <kbd>?</kbd> help ·
 <kbd>q</kbd> quit. Full list in [the TUI guide](tui.md#keys).

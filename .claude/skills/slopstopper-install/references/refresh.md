@@ -72,7 +72,7 @@ Lines added on the right are knobs shipped since the last install. This commit i
 
 **Fallback** (no marker on one side, or a commit only a fork or a local checkout has): read the schema's history at https://github.com/hungovercoders/slopstopper/commits/main/.slopstopper.yml.example back to `git log -1 --format=%cs -- Taskfile.ss.yml .github/workflows/`, the last commit in which a refresh changed slopstopper's files. A refresh that changed nothing leaves no commit, so that date can be earlier than the last refresh: some of what you read may already be in place, but nothing newer is missed.
 
-A knob read by the CLI (rather than by a workflow or the installer) only takes effect once the `slopstopper-cli` pinned in `mise.toml` is a release that has it. If a new knob does nothing, check the changelog and move the pin with `install.sh --upgrade-cli`. Most knobs ship with sensible defaults, so no action is required. The link at the top of the repo's `.slopstopper.yml` is the schema to copy blocks from.
+A knob read by the CLI (rather than by a workflow or the installer) only takes effect once the `slopstopper-cli` pinned in `mise.toml` is a release that has it. A *check* that shipped after the pin is worse than inert: its shim and workflow are installed, and `slopstopper run <check>` exits 2 ("unknown check") until the pin moves, which takes `task ss:hygiene:test` (the pre-push hook) down with it when the check is a hygiene one. The installer ends with a ⚠️ naming every such check, asked of the pinned CLI through mise; treat that line as "run `--upgrade-cli` now", or hold the refresh until the release that carries them. If a new knob does nothing, check the changelog and move the pin with `install.sh --upgrade-cli`. Most knobs ship with sensible defaults, so no action is required. The link at the top of the repo's `.slopstopper.yml` is the schema to copy blocks from.
 
 Surfaces worth checking explicitly:
 
@@ -115,7 +115,7 @@ Adopter repos should hold exactly the **expected set** of slopstopper artefacts 
 - `.ss/scripts/`, a pre-CLI artefact scrubbed wholesale on every install.
 - Byte-equal copies of `.ss/playwright.config.js`, `.ss/lighthouserc.json`, `.ss/lighthouserc.prod.json` and each `.ss/tests/*.spec.ts`, which moved into the slopstopper-cli wheel; byte-identical adopter copies are removed spec by spec (the wheel's version wins via the templates resolver). Customised copies survive. CLI 0.17 and earlier left such copies behind after any local smoke, e2e, accessibility or broken-links run; later releases stage them in the self-ignoring `.ss/.run/` instead, so a run never adds files to `.ss/`.
 - Workflows the adopter explicitly disabled via `.slopstopper.yml` `workflows.disabled`, removed on every install.
-- `.github/actions/<name>/` directories listed in `install.sh`'s `OBSOLETE_ACTIONS` (empty today). The shipped composite actions (`ss-setup`, `ss-resolve-url`) are replaced wholesale on every run.
+- `.github/actions/<name>/` directories listed in `install.sh`'s `OBSOLETE_ACTIONS` (empty today). The shipped composite actions (`ss-setup`, `ss-resolve-url`, `ss-playwright`) are replaced wholesale on every run.
 
 **What you should sanity-check manually on refresh** (the installer can't auto-detect these without an explicit removal list):
 
@@ -131,7 +131,7 @@ ls -d .claude/skills/slopstopper-*/ 2>/dev/null
 
 # 2. Composite actions: anything in .github/actions/ss-* other than the shipped set is stale
 ls -d .github/actions/ss-*/ 2>/dev/null
-# Expected currently: ss-setup, ss-resolve-url. Anything else → flag for the user (and, if it
+# Expected currently: ss-setup, ss-resolve-url, ss-playwright. Anything else → flag for the user (and, if it
 # was a slopstopper action that got renamed, add it to OBSOLETE_ACTIONS upstream).
 
 # 3. Workflows: anything matching ss-*-check.yml that doesn't exist upstream is stale

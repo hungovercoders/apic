@@ -57,10 +57,12 @@ in place, so a deliberately deleted one does not come back.
   status carries only the Actions log link and `ss-resolve-url` audits
   `urls.production` instead; with a `url` the checks audited
   `hungovercoders.github.io/apic/` and failed on every docs deploy.
-- `.github/dependency-review-config.yml` is the licence allowlist the
-  vulnerability check on new dependencies reads; the installer seeds it and
-  never overwrites it, so it is the place to accept a licence the default
-  list leaves out.
+- `.github/dependency-review-config.yml` is the licence allowlist that
+  both the dependency review on new dependencies and `task
+  ss:security:licences` (every resolved npm dependency that ships; dev
+  dependencies are not judged) read; the installer seeds it and never
+  overwrites it, so it is the place to accept a licence the default list
+  leaves out, as the sharp entries do.
 - The entry-file budgets are the reason `AGENTS.md` routes to this directory
   instead of carrying everything: `AGENTS.md` stays under about 2,000
   tokens, `README.md` under 600 (badges excluded) and every doc under `docs/`

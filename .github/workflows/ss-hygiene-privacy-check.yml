@@ -1,0 +1,77 @@
+name: SlopStopper · Hygiene - Privacy Statement Check
+
+# A site hosted somewhere that keeps traffic data (Cloudflare, Netlify,
+# Vercel) has a privacy statement to make even with no cookies and no
+# analytics: the host processes every visitor's IP, and so does every
+# third-party origin the CSP lets a page reach. This check finds the
+# privacy page and fails unless it names the host, every such origin,
+# Workers Logs when wrangler turns them on, and a date. Profiles api and
+# library drop it. Docs: docs/hygiene/README.md, "Privacy Statement".
+
+# No paths filter: the inputs are the hosting config, the headers source
+# and a page that can live anywhere, so a fixed list would miss most of
+# the changes that matter. Without host evidence the check skips in
+# seconds.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  check-privacy:
+    name: Privacy Statement Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up slopstopper
+        # Python, the mise-pinned toolchain (task, node, slopstopper-cli) and,
+        # in the slopstopper repo only, the CLI from source. One local
+        # composite action; install.sh copies it in next to the workflows.
+        uses: ./.github/actions/ss-setup
+
+      - name: Run privacy statement check
+        id: check
+        continue-on-error: true
+        run: task ss:hygiene:privacy
+
+      - name: Emit PR comment
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: slopstopper emit hygiene:privacy --target pr-comment --status ${{ steps.check.outcome == 'success' && 'pass' || 'fail' }} --on-pass=delete
+
+      - name: Emit issue on main (if violations)
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.check.outcome == 'failure'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: slopstopper emit hygiene:privacy --target issue
+
+      - name: Close issue on main when clean
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.check.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: slopstopper emit hygiene:privacy --target issue --on-pass=close
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: privacy-report-${{ github.run_id }}
+          path: .ss/reports/privacy/
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Fail the job if violations
+        if: steps.check.outcome == 'failure'
+        run: |
+          echo "::error::The privacy statement is missing or does not match the site's configuration. See the report."
+          exit 1

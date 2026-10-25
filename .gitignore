@@ -9,6 +9,8 @@ coverage.out
 /THIRD_PARTY_NOTICES.md
 /man/
 /completions/
+# Recorded narration for the course's episodes (task episodes VOICE=voice).
+/voice/
 
 # The report tests write these beside the goldens when they differ.
 internal/report/testdata/*.got

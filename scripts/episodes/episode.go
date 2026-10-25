@@ -306,24 +306,36 @@ func sayTime(line string) float64 {
 	return max(2.4, words/2.5+0.9)
 }
 
-// Cue is one caption: when it starts and ends, and the line.
+// sayTimes is how long each line takes to say.
+func sayTimes(lines []string) []float64 {
+	times := make([]float64, len(lines))
+	for i, l := range lines {
+		times[i] = sayTime(l)
+	}
+	return times
+}
+
+// Cue is one caption: when it starts and ends, the line, and the recorded
+// clip of it when the episode has a voice.
 type Cue struct {
 	Start, End float64
 	Text       string
+	Audio      string
 }
 
-// spread lays a shot's lines over its length: each in proportion to how
-// long it takes to say, stretched when the clip runs longer than the
-// narration.
-func spread(start, secs float64, lines []string) []Cue {
+// spread lays a shot's lines over its length: each in proportion to the
+// time it needs (as said at a reading pace, or as recorded), stretched when
+// the clip runs longer than the narration. A line's time is never shrunk,
+// so a recorded clip always fits inside its cue.
+func spread(start, secs float64, lines []string, times []float64) []Cue {
 	var want float64
-	for _, l := range lines {
-		want += sayTime(l)
+	for _, t := range times {
+		want += t
 	}
 	cues := make([]Cue, 0, len(lines))
 	t := start
-	for _, l := range lines {
-		d := sayTime(l) * secs / want
+	for i, l := range lines {
+		d := times[i] * secs / want
 		cues = append(cues, Cue{Start: t, End: t + d, Text: l})
 		t += d
 	}
@@ -380,19 +392,19 @@ func (ep *Episode) VideoTitle() string {
 	return fmt.Sprintf("From zero to apic #%d: %s", ep.Lesson, ep.Title)
 }
 
-// Narration is the script to read: every line with the time it starts,
-// under its chapter.
+// Narration is the script to read: every line with its cue number and the
+// time it starts, under its chapter.
 func (ep *Episode) Narration(cues []Cue, chapters []Chapter, total float64) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "# %s\n\n", ep.VideoTitle())
-	fmt.Fprintf(&b, "Narration script. Runs %s. Each line is one caption in `%s.srt`; the timestamp is where it starts in `%s-clean.mp4`, which has a silent track the voice replaces. Say each line as it appears and the cut stays in sync.\n", ytTime(total), ep.Name, ep.Name)
+	fmt.Fprintf(&b, "Narration script. Runs %s. Each line is one caption in `%s.srt`, numbered as there; the timestamp is where it starts in `%s-clean.mp4`, which has a silent track the voice replaces. Either say each line as it appears, in one take, and the cut stays in sync; or record one clip per line, named by its number (001 and up) under a directory named %s, and rebuild with that directory as the voice, which times the cut to the recording.\n", ytTime(total), ep.Name, ep.Name, ep.Name)
 	ci := 0
-	for _, c := range cues {
+	for i, c := range cues {
 		for ci < len(chapters) && chapters[ci].Start <= c.Start+0.01 {
 			fmt.Fprintf(&b, "\n## %s %s\n\n", ytTime(chapters[ci].Start), chapters[ci].Title)
 			ci++
 		}
-		fmt.Fprintf(&b, "- **%s** %s\n", ytTime(c.Start), c.Text)
+		fmt.Fprintf(&b, "- **%s** %03d · %s\n", ytTime(c.Start), i+1, c.Text)
 	}
 	return b.String()
 }

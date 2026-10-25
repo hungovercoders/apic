@@ -119,8 +119,8 @@ declares no environment `url` on purpose: the slopstopper checks that run on
   backslash escapes, so a command that needs both quote kinds goes in
   backticks. A test fails when a numbered lesson has neither a tape nor "No
   tape for this lesson" in its episode script.
-- `task episodes`: build the course's YouTube episodes, bar the voice,
-  into `dist/episodes/NN` with `scripts/episodes` from the shot lists in
+- `task episodes`: build the course's YouTube episodes into
+  `dist/episodes/NN` with `scripts/episodes` from the shot lists in
   `learn/episodes/` (in this directory, one YAML file per lesson): the cards, the terminal
   clips as VHS tapes recorded against the demo API, the push-ins, and the
   lines the voice says over each shot, which set the timing. Each episode
@@ -129,3 +129,14 @@ declares no environment `url` on purpose: the slopstopper checks that run on
   narration script and the thumbnail. Needs vhs, ttyd, ffmpeg and a
   chromium. `task episodes:check` validates the shot lists and tapes with
   vhs alone, as CI does; `go test` checks the shot lists without it.
+- The voice goes on in one of two ways. Recorded line by line (or by a
+  text-to-speech tool that writes one file a line), the clips go in a
+  directory under the episode's number, named by the SRT cue number with
+  three digits, and `task episodes VOICE=<directory>` times each shot to
+  its clips plus a beat, lays them on the audio track at their cues and
+  writes the voiced clean and captioned cuts beside the silent ones; a
+  missing clip fails with its line before anything renders, and an
+  episode with no directory builds silent as before. Recorded in one take
+  to the narration script's timestamps, `task episodes:voice EPISODE=NN
+  VOICE=<file>` muxes the take onto both cuts of an episode already
+  built. The recording notes in `_episode-template.md` say which to use.

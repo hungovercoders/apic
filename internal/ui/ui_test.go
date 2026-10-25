@@ -177,6 +177,10 @@ func TestFilterArrowsMoveWhileTyping(t *testing.T) {
 	if !f.m.filtering || f.m.Selected().ID() != "list-open-todos" {
 		t.Fatalf("down should move to the second match and keep the prompt open, got %s filtering=%v", f.m.Selected().ID(), f.m.filtering)
 	}
+	f.press("tab", "pgdown", "left", "home")
+	if f.m.Selected().ID() != "list-open-todos" {
+		t.Fatalf("keys the prompt has no use for should leave the cursor alone, got %s", f.m.Selected().ID())
+	}
 	f.press("enter")
 	if f.m.filtering || f.m.Selected().ID() != "list-open-todos" {
 		t.Fatalf("enter should keep the cursor where the arrows left it, got %s", f.m.Selected().ID())

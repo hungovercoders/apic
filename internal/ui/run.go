@@ -62,35 +62,40 @@ func (m *Model) confirmKey(msg Key) Cmd {
 
 // filterKey edits the filter while it is being typed. The arrows move the
 // cursor through the matches, as a fuzzy finder does, so a letter is never
-// needed for that; the cursor returns to the first match when the text
-// changes, and stays where it is when enter keeps the filter.
+// needed for that. Only a change to the text puts the cursor back on the
+// first match; enter, and any key the prompt has no use for, leave it
+// where it is.
 func (m *Model) filterKey(msg Key) Cmd {
 	switch msg.Type {
 	case KeyEnter:
 		m.filtering = false
-		return nil
 	case KeyUp:
 		m.move(-1)
-		return nil
 	case KeyDown:
 		m.move(1)
-		return nil
+	case KeyCtrlC:
+		return m.quit()
 	case KeyEsc:
 		m.filtering = false
 		m.filter = ""
+		m.resetCursor()
 	case KeyBackspace:
 		if r := []rune(m.filter); len(r) > 0 {
 			m.filter = string(r[:len(r)-1])
 		}
-	case KeyCtrlC:
-		return m.quit()
+		m.resetCursor()
 	case KeyRune:
 		m.filter += string(msg.Rune)
+		m.resetCursor()
 	}
+	return nil
+}
+
+// resetCursor puts the cursor on the first row the filter leaves visible.
+func (m *Model) resetCursor() {
 	m.cursor = 0
 	m.clampCursor()
 	m.selected = m.selectedReq()
-	return nil
 }
 
 // keyAction is what one binding does in the main view.

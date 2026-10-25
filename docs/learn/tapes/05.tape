@@ -23,7 +23,7 @@ Type "H" Sleep 2s                        # headers
 Type "H" Sleep 500ms
 Type "c" Sleep 2s                        # curl
 Type "c" Sleep 500ms
-Type "/todo" Sleep 1s Enter Sleep 1s     # filter to todos.http
+Type "/todo" Sleep 1s Down Sleep 500ms Up Sleep 500ms Enter Sleep 1s  # filter to todos.http, arrows move through the matches
 Type "f" Sleep 4s                        # run the file as a flow
 Type "G" Sleep 500ms
 Type "kk" Sleep 500ms                    # not-found

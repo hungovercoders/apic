@@ -28,6 +28,7 @@ The check's heuristic is misfiring on this codebase. Use the check's documented 
 | DAST, other rule false positives | `.zap/rules.tsv` → `<alert-ref>\tIGNORE\t# why` (`10055-13`), or a bare plugin id for every alert of that plugin | Per-alert or per-plugin, site-wide |
 | Accessibility (axe-core) | `disabledRules` in the spec, or scope the spec to exclude the offending selector | Per-rule or per-element |
 | Vulnerability (Trivy) | `.trivyignore` with the CVE ID + a `# why` line | Per-CVE |
+| Licence (`security:licences`, dependency review) | the package's purl under `allow-dependencies-licenses` in `.github/dependency-review-config.yml` + a `# why` line; both checks honour it | Per-package |
 | Complexity (lizard) | Refactor the function, or raise `hygiene.complexity.max_ccn` in `.slopstopper.yml` (default 15) with a `# why` note. A flagged file that is generated or vendored → `hygiene.complexity.exclude` | Per-repo (the ceiling is global) |
 
 Each suppression is a documented gate exception, not a way to quiet findings that should be fixed. The PR that adds it is the place reviewers catch it.
@@ -49,6 +50,7 @@ Config-driven knobs (no file edit needed beyond `.slopstopper.yml`):
 | `reliability:e2e` | `pages.e2e`, `e2e.max_links` | `/`, `25` |
 | `reliability:{accessibility,seo,broken_links}` | `pages.<check>`, `reliability.coverage.<event>` | `/`, hand-list mode |
 | `hygiene:csp-exceptions` | `headers.source`, `headers.format` | unset (graceful skip) |
+| `hygiene:privacy` | `privacy.page` / `.url` / `.require_link` / `.hosts` | `auto` (first source `privacy.*`) / `auto` / `true` / `[]`; `page: ''` opts out visibly |
 | `hygiene:complexity` | `hygiene.complexity.max_ccn` / `.exclude` | 15 / `[]` (tests and gitignored paths are skipped without it) |
 | `reliability:cwv` | `reliability.cwv.public_report` (report hosting, not a threshold; budgets live in `.ss/lighthouserc.json`) | `false`, so reports stay local |
 

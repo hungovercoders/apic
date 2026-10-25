@@ -56,6 +56,7 @@ every doc in this repo. Report a credential that escapes privately
 ### 🔒 Security
 [![DAST](https://github.com/hungovercoders/apic/actions/workflows/ss-security-dast-check.yml/badge.svg?branch=main)](https://github.com/hungovercoders/apic/actions/workflows/ss-security-dast-check.yml)
 [![SAST](https://github.com/hungovercoders/apic/actions/workflows/ss-security-sast-check.yml/badge.svg?branch=main)](https://github.com/hungovercoders/apic/actions/workflows/ss-security-sast-check.yml)
+[![Licences](https://github.com/hungovercoders/apic/actions/workflows/ss-security-licences-check.yml/badge.svg?branch=main)](https://github.com/hungovercoders/apic/actions/workflows/ss-security-licences-check.yml)
 [![Secrets](https://github.com/hungovercoders/apic/actions/workflows/ss-security-secrets-check.yml/badge.svg?branch=main)](https://github.com/hungovercoders/apic/actions/workflows/ss-security-secrets-check.yml)
 [![Dependency CVEs](https://github.com/hungovercoders/apic/actions/workflows/ss-security-vulnerability-all-check.yml/badge.svg?branch=main)](https://github.com/hungovercoders/apic/actions/workflows/ss-security-vulnerability-all-check.yml)
 [![Dependency Review](https://github.com/hungovercoders/apic/actions/workflows/ss-security-vulnerability-new-check.yml/badge.svg?branch=main)](https://github.com/hungovercoders/apic/actions/workflows/ss-security-vulnerability-new-check.yml)
@@ -67,6 +68,7 @@ every doc in this repo. Report a credential that escapes privately
 [![Docs Accuracy](https://github.com/hungovercoders/apic/actions/workflows/ss-hygiene-docs-accuracy-check.yml/badge.svg?branch=main)](https://github.com/hungovercoders/apic/actions/workflows/ss-hygiene-docs-accuracy-check.yml)
 [![Docs Size](https://github.com/hungovercoders/apic/actions/workflows/ss-hygiene-docs-size-check.yml/badge.svg?branch=main)](https://github.com/hungovercoders/apic/actions/workflows/ss-hygiene-docs-size-check.yml)
 [![Docs Structure](https://github.com/hungovercoders/apic/actions/workflows/ss-hygiene-docs-structure-check.yml/badge.svg?branch=main)](https://github.com/hungovercoders/apic/actions/workflows/ss-hygiene-docs-structure-check.yml)
+[![Privacy Statement](https://github.com/hungovercoders/apic/actions/workflows/ss-hygiene-privacy-check.yml/badge.svg?branch=main)](https://github.com/hungovercoders/apic/actions/workflows/ss-hygiene-privacy-check.yml)
 [![Entry Files](https://github.com/hungovercoders/apic/actions/workflows/ss-hygiene-entry-files-check.yml/badge.svg?branch=main)](https://github.com/hungovercoders/apic/actions/workflows/ss-hygiene-entry-files-check.yml)
 
 ### ✅ Reliability

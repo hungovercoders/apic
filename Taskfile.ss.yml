@@ -356,6 +356,20 @@ tasks:
     cmds:
       - slopstopper run hygiene:csp-exceptions
 
+  hygiene:privacy:
+    desc: Check the privacy statement names the host and every third party the CSP allows
+    summary: |
+      For a repo with a browser surface hosted somewhere that keeps traffic
+      data (wrangler config, netlify.toml, vercel.json or urls.production):
+      finds the privacy page, and fails unless it names the host, every
+      third-party origin the CSP source allows, Workers Logs when they are
+      on, and a date. Skips on the api and library profiles.
+
+      Usage:
+        task ss:hygiene:privacy
+    cmds:
+      - slopstopper run hygiene:privacy
+
   hygiene:docs-accuracy:
     desc: Check documentation for broken links + stale refs
     summary: |
@@ -415,7 +429,7 @@ tasks:
       - slopstopper run hygiene:openapi -- {{.CLI_ARGS}}
 
   hygiene:test:
-    desc: Run all hygiene checks (docs-size, docs-structure, docs-accuracy, entry-files, csp-exceptions, complexity)
+    desc: Run all hygiene checks (docs-size, docs-structure, docs-accuracy, entry-files, csp-exceptions, privacy, complexity)
     # Deliberately excludes hygiene:openapi. This aggregate is what the
     # installed pre-push hook runs. It is all-static by design, because
     # adding a URL-driven check would make every `git push` hit the
@@ -426,6 +440,7 @@ tasks:
       - task: hygiene:docs-accuracy
       - task: hygiene:entry-files
       - task: hygiene:csp-exceptions
+      - task: hygiene:privacy
       - task: hygiene:complexity
 
   # ───────────── Security (need external tools on PATH) ─────────────
@@ -451,6 +466,19 @@ tasks:
         task ss:security:vulnerability:all
     cmds:
       - slopstopper run security:vulnerability:all
+
+  security:licences:
+    desc: Judge every resolved dependency's licence against the allowlist
+    summary: |
+      Reads package-lock.json (npm) and `pip inspect` (Python) and judges
+      each package's licence against .github/dependency-review-config.yml,
+      the same policy the dependency review applies to a PR's diff. No
+      tool to install. See docs/security/LICENCES.md.
+
+      Usage:
+        task ss:security:licences
+    cmds:
+      - slopstopper run security:licences
 
   security:dast:
     desc: Run dynamic application security testing using OWASP ZAP
@@ -531,18 +559,18 @@ tasks:
       - slopstopper run security:api-headers -- {{.CLI_ARGS}}
 
   security:scan:
-    desc: Run full security scan suite (SAST + vulnerabilities + DAST + API headers + secrets)
+    desc: Run full security scan suite (SAST + vulnerabilities + licences + DAST + API headers + secrets)
     # Runs every scan even when an earlier one fails. sast exits 1 on
     # findings, and a sequential `task:` list would stop there and never
     # reach secrets. Calls the CLI the way each shim does and exits with
     # the worst code: 2 (couldn't run) > 1 > 0. A target passed after `--`
     # goes to dast and api-headers, as their shims pass it; the other
-    # three take no arguments and would reject it.
+    # four take no arguments and would reject it.
     #   task ss:security:scan -- https://staging.example.com
     cmds:
       - |
         worst=0
-        for check in sast vulnerability:all dast api-headers secrets; do
+        for check in sast vulnerability:all licences dast api-headers secrets; do
           code=0
           # `|| code=$?` is needed because Task's shell exits on a failure.
           case "$check" in

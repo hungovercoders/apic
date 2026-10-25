@@ -61,7 +61,9 @@ the prose checks. The site's content is not reference for working on apic;
   files and `apic.yaml` name). Keep them true: a new
   third-party script, form or analytics snippet means updating both, and
   the page's "last checked" date. The CSP will block such a script until
-  `_headers` allows it, which is the prompt.
+  `_headers` allows it, which is the prompt, and `task ss:hygiene:privacy`
+  fails until the page names every origin the CSP then allows, the host,
+  Workers Logs when `wrangler.jsonc` turns them on, and a date.
 
 ## Deploys
 

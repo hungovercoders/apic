@@ -1,6 +1,8 @@
 # .github/dependency-review-config.yml: seeded by slopstopper install.sh,
-# read by ss-security-vulnerability-new-check.yml. Yours to edit: a refresh
-# never overwrites it.
+# read by ss-security-vulnerability-new-check.yml (the dependency review on
+# a PR's new dependencies) and by ss-security-licences-check.yml (every
+# resolved dependency that ships, `task ss:security:licences`). Yours to
+# edit: a refresh never overwrites it.
 #
 # The dependency review on each pull request fails when a dependency the PR
 # introduces carries a licence outside this list. The default allows the

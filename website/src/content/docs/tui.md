@@ -110,7 +110,7 @@ then the environment, so the key hint and anything in flight stay in view.
 |---|---|
 | <kbd>↑</kbd>/<kbd>k</kbd>, <kbd>↓</kbd>/<kbd>j</kbd> | Move between requests |
 | <kbd>g</kbd>, <kbd>G</kbd> | First and last request |
-| <kbd>/</kbd> | Filter by id, URL, method, file or description |
+| <kbd>/</kbd> | Filter by id, URL, method, file or description; <kbd>↑</kbd>/<kbd>↓</kbd> move through the matches while you type, <kbd>enter</kbd> keeps the filter |
 | <kbd>enter</kbd> | Run the selected request |
 | <kbd>f</kbd> | Run every request in its file, in order, as a flow |
 | <kbd>a</kbd> | Run every request in the project |
@@ -121,7 +121,7 @@ then the environment, so the key hint and anything in flight stay in view.
 | <kbd>c</kbd> | Show the selected request as curl; again for HTTPie, PowerShell, Python, JavaScript, Go, then back to the response |
 | <kbd>J</kbd>, <kbd>K</kbd> | Scroll the right pane a line down or up |
 | <kbd>pgup</kbd>/<kbd>ctrl+u</kbd>, <kbd>pgdn</kbd>/<kbd>ctrl+d</kbd> | Scroll the right pane half a page |
-| <kbd>e</kbd> | Switch to the next environment |
+| <kbd>e</kbd>, <kbd>E</kbd> | Switch to the next and the previous environment |
 | <kbd>r</kbd> | Reload the project from disk |
 | <kbd>o</kbd> | Open the request's file at its line in `$EDITOR` |
 | <kbd>x</kbd> | Clear the session for this environment |

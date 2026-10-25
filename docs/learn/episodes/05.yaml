@@ -139,10 +139,12 @@ shots:
       Sleep 1s
       Type "/" Sleep 1s
       Type "todo" Sleep 2s
+      Down Sleep 1s
+      Up Sleep 1s
       Enter Sleep 2s
       Escape Sleep 2s
     say:
-      - Slash filters the list as you type, by id, URL, method, file or description. Enter keeps the filter, escape clears it.
+      - Slash filters the list as you type, by id, URL, method, file or description. The arrows move through the matches. Enter keeps the filter, escape clears it.
 
   - chapter: Find, switch, edit, reload
     clip: env

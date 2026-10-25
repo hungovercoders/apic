@@ -60,27 +60,42 @@ func (m *Model) confirmKey(msg Key) Cmd {
 	return nil
 }
 
-// filterKey edits the filter while it is being typed.
+// filterKey edits the filter while it is being typed. The arrows move the
+// cursor through the matches, as a fuzzy finder does, so a letter is never
+// needed for that. Only a change to the text puts the cursor back on the
+// first match; enter, and any key the prompt has no use for, leave it
+// where it is.
 func (m *Model) filterKey(msg Key) Cmd {
 	switch msg.Type {
 	case KeyEnter:
 		m.filtering = false
+	case KeyUp:
+		m.move(-1)
+	case KeyDown:
+		m.move(1)
+	case KeyCtrlC:
+		return m.quit()
 	case KeyEsc:
 		m.filtering = false
 		m.filter = ""
+		m.resetCursor()
 	case KeyBackspace:
 		if r := []rune(m.filter); len(r) > 0 {
 			m.filter = string(r[:len(r)-1])
 		}
-	case KeyCtrlC:
-		return m.quit()
+		m.resetCursor()
 	case KeyRune:
 		m.filter += string(msg.Rune)
+		m.resetCursor()
 	}
+	return nil
+}
+
+// resetCursor puts the cursor on the first row the filter leaves visible.
+func (m *Model) resetCursor() {
 	m.cursor = 0
 	m.clampCursor()
 	m.selected = m.selectedReq()
-	return nil
 }
 
 // keyAction is what one binding does in the main view.
@@ -117,7 +132,8 @@ func (m *Model) keyActions() []keyAction {
 		{k.Headers, do(func() { m.showHeaders = !m.showHeaders; m.tab = tabResponse })},
 		{k.Curl, do(func() { m.codeLang = (m.codeLang + 1) % (len(snippet.Languages) + 1); m.tab = tabResponse })},
 		{k.Open, m.openEditor},
-		{k.Env, m.cycleEnv},
+		{k.Env, func() Cmd { return m.cycleEnv(1) }},
+		{k.PrevEnv, func() Cmd { return m.cycleEnv(-1) }},
 		{k.Reload, m.reload},
 		{k.Clear, m.askClear},
 		{k.LineUp, do(func() { m.vp.scroll(-1) })},
@@ -289,8 +305,9 @@ func (m *Model) finishRun(rs *runState) {
 	m.lastSummary = strings.TrimSpace(output.SummaryLine(m.theme, results))
 }
 
-// cycleEnv switches to the next environment and rebuilds the runner.
-func (m *Model) cycleEnv() Cmd {
+// cycleEnv switches to the environment delta places along the list (1 for
+// the next, -1 for the previous, wrapping) and rebuilds the runner.
+func (m *Model) cycleEnv(delta int) Cmd {
 	if m.inflight != nil {
 		return m.setStatus("busy: wait for the run to finish")
 	}
@@ -303,7 +320,7 @@ func (m *Model) cycleEnv() Cmd {
 	next := m.envs[0]
 	for i, e := range m.envs {
 		if e == m.env {
-			next = m.envs[(i+1)%len(m.envs)]
+			next = m.envs[(i+delta+len(m.envs))%len(m.envs)]
 			break
 		}
 	}

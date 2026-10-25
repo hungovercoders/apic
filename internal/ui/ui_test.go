@@ -168,6 +168,33 @@ func TestFilter(t *testing.T) {
 	}
 }
 
+// The arrows move through the matches while the filter prompt is open,
+// enter keeps that position, and more text puts the cursor back on the
+// first match.
+func TestFilterArrowsMoveWhileTyping(t *testing.T) {
+	f := newFixture(t, runner.Options{})
+	f.press("/", "t", "o", "d", "o", "down")
+	if !f.m.filtering || f.m.Selected().ID() != "list-open-todos" {
+		t.Fatalf("down should move to the second match and keep the prompt open, got %s filtering=%v", f.m.Selected().ID(), f.m.filtering)
+	}
+	f.press("tab", "pgdown", "left", "home")
+	if f.m.Selected().ID() != "list-open-todos" {
+		t.Fatalf("keys the prompt has no use for should leave the cursor alone, got %s", f.m.Selected().ID())
+	}
+	f.press("enter")
+	if f.m.filtering || f.m.Selected().ID() != "list-open-todos" {
+		t.Fatalf("enter should keep the cursor where the arrows left it, got %s", f.m.Selected().ID())
+	}
+	f.press("/", "down", "down", "s")
+	if f.m.Selected().ID() != "list-todos" {
+		t.Fatalf("more text should return to the first match, got %s", f.m.Selected().ID())
+	}
+	f.press("up")
+	if f.m.Selected().ID() != "list-todos" {
+		t.Fatalf("up at the first match stays put, got %s", f.m.Selected().ID())
+	}
+}
+
 func TestRunSelectedAndBusy(t *testing.T) {
 	f := newFixture(t, runner.Options{})
 	cmd := f.press("enter")
@@ -383,6 +410,10 @@ func TestEnvCycleRebuildsRunner(t *testing.T) {
 	f.press("e")
 	if f.m.Env() != "local" {
 		t.Fatalf("cycling wraps around, got %s", f.m.Env())
+	}
+	f.press("E")
+	if f.m.Env() != "other" || len(f.rebuilt) != 3 {
+		t.Fatalf("E should go back one, wrapping: env=%s rebuilt=%v", f.m.Env(), f.rebuilt)
 	}
 }
 

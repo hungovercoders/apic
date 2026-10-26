@@ -43,7 +43,7 @@ differently; the commands and the results are the same.
 | 6 | [Authentication](06-authentication.md) | bearer, basic, API keys, OAuth2, AWS SigV4, `exec` | coming soon |
 | 7 | [Behaviour tests with Gherkin](07-gherkin.md) | `# @step`, features, reports | coming soon |
 | 8 | [CI without leaking secrets](08-ci.md) | GitHub Actions, `--redact`, JUnit | coming soon |
-| 9 | [From OpenAPI to a project, and back to curl](09-import-export.md) | `import`, `curl`, Postman import | coming soon |
+| 9 | [From OpenAPI to a project, and back to curl](09-import-export.md) | `import`, `mock`, `curl`, Postman import | coming soon |
 | 10 | [Agents and MCP](10-agents.md) | The shell contract, `claude mcp add` | coming soon |
 | 11 | [Real APIs and the Taskfile front door](11-real-apis.md) | The httpbin, GitHub and Spotify examples | coming soon |
 | 12 | [Editors](12-editors.md) | The VS Code extension, JetBrains, Neovim | coming soon |

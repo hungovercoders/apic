@@ -22,6 +22,7 @@ apic run auth.http --json | jq   # a file as a flow, one JSON line each
 apic test                        # Gherkin features, same requests
 claude mcp add api -- apic mcp   # an agent calls them as tools
 apic ui --demo                   # or just the UI on the fake API
+apic mock openapi.yaml           # a mock of your own spec
 ```
 
 ## Install
@@ -45,9 +46,8 @@ the [`.http` format](https://apic.sh/format/) and [authentication](https://apic.
 ## Contributing
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) first, [AGENTS.md](AGENTS.md) if you
-are an AI agent, and [docs/README.md](docs/README.md) for the routing table for
-every doc in this repo. Report a credential that escapes privately
-([SECURITY.md](SECURITY.md)).
+are an AI agent, and [docs/README.md](docs/README.md) for the routing table.
+Report a credential that escapes privately ([SECURITY.md](SECURITY.md)).
 
 ## Pipeline status
 

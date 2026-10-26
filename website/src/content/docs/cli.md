@@ -923,6 +923,76 @@ them.
 `skipped` lists the files that were already there and were left alone; it
 is omitted when there are none.
 
+## apic mock
+
+```
+apic mock <openapi.yaml|openapi.json> [--port <port>]
+```
+
+Serves an OpenAPI 3 document as a mock API, so the requests
+[`apic import`](#apic-import) wrote from the same document can run before
+the API exists. Every operation answers with the response the document
+declares:
+
+- the first 2xx response, else `default`, else the first one declared; a
+  `2XX` key serves 200, and an operation with no responses answers 200
+  with no body;
+- a body from the media type's `example`, its first named `examples`
+  entry, else a value built from the schema the way `import` builds request
+  bodies (examples, defaults and enums when present, fixed sample values
+  for `uuid` and `date-time` strings, so the same call gives the same
+  answer every time);
+- the response's declared `headers`, from their examples or schemas, and
+  `Content-Type` from the media type; an `Accept` header picks among the
+  media types, the first is served otherwise.
+
+A `Prefer` header line on a request picks another documented response for
+that request: `Prefer: code=404` serves the `404` response (its class,
+`4XX`, or `default` served with that status when the exact code is not
+declared), and `Prefer: example=name` one of the media type's named
+examples. A choice the document does not offer is a 406 whose JSON body
+says what is missing. An unknown path is a 404 and a known path under
+another method a 405 with `Allow`, both with a JSON body, so `apic run`
+shows why.
+
+Paths are served as written and, when the first server URL has a path
+such as `/v1`, under that prefix too, so `baseUrl` can be either. The
+server listens on localhost only. It keeps no state and validates nothing:
+a `POST` answers with the document's example, not with what was sent, and
+a later `GET` does not know about it. For a stateful fake with a known
+shape there is [`apic demo`](#apic-demo); the
+[comparison](comparison.md#deliberately-not-planned) page says what the
+mock will not grow into.
+
+| Flag | Meaning |
+|---|---|
+| `--port <port>` | Localhost port to serve on. Must be `1-65535`. Default `8090`. |
+
+```sh
+apic mock openapi.yaml                       # terminal 1
+apic import openapi.yaml -o api              # terminal 2: the requests it describes
+apic run list-pets -C api --var baseUrl=http://localhost:8090
+```
+
+`--json` prints one startup object and then keeps serving:
+
+```json
+{
+  "spec": "openapi.yaml",
+  "url": "http://localhost:8090",
+  "routes": [
+    {"method": "GET", "path": "/pets", "status": 200, "name": "listPets"},
+    {"method": "GET", "path": "/pets/{petId}", "status": 200, "name": "showPetById"}
+  ],
+  "listening": true
+}
+```
+
+`skipped` lists operations that could not be served, with the reason (two
+path templates that cannot be told apart, such as `/a/{x}` and `/{y}/b`);
+it is omitted when there are none. A document that is not OpenAPI 3, has a
+`$ref` that does not resolve or declares no operations is `E215`.
+
 ## apic init
 
 ```
@@ -1311,6 +1381,18 @@ apic mcp [--http <host:port> [--token <bearer>]] [flags]
 |---|---|
 | `--http <string>` | serve the streamable HTTP transport on this host:port instead of stdio |
 | `--token <string>` | bearer token clients must send (default $APIC_MCP_TOKEN); required off the loopback interface |
+
+### apic mock
+
+Serve an OpenAPI 3 document as a mock API, so requests can run before the backend exists.
+
+```
+apic mock <openapi.yaml|openapi.json> [flags]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--port <int>` | port to serve the mock API on (default `8090`) |
 
 ### apic run
 

@@ -59,6 +59,7 @@ Content-Type: application/json
 | `apic mcp` | Serve the project to agents over MCP |
 | `apic lsp` | Language server for any LSP editor ([set-up](editors.md#any-editor-with-an-lsp-client)) |
 | `apic demo` | Scaffold and serve the bundled fake API |
+| `apic mock <spec>` | Serve an OpenAPI 3 document as a stateless mock API; a `Prefer: code=404` header line picks another documented response |
 
 **Targets:** `get-user` (by name) · `users.http` (whole file as a flow) ·
 `users.http#get-user` · `users.http#3` (third request).

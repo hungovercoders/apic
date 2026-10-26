@@ -1,17 +1,11 @@
 package cli
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"net"
-	"net/http"
-	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/hungovercoders/apic/internal/demoapi"
-	"github.com/hungovercoders/apic/internal/runner"
 )
 
 func (a *App) demoCmd() *cobra.Command {
@@ -37,14 +31,11 @@ project this command just wrote unless you cd into it or pass -C.`,
   apic ui -C apic-demo --env local           # or the UI, same directory`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if port < 1 || port > 65535 {
-				return runner.Usage(runner.CodeFlag, "--port must be between 1 and 65535")
-			}
 			// Bind first: a port already in use fails here, before anything is
-			// written or "listening" is printed (E214 names this command).
-			ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+			// written or "listening" is printed.
+			ln, err := listenLocal(port)
 			if err != nil {
-				return runner.Usage(runner.CodeServer, err.Error())
+				return err
 			}
 			defer func() { _ = ln.Close() }()
 			written, skipped, err := demoapi.WriteProject(out, port, force)
@@ -78,27 +69,7 @@ project this command just wrote unless you cd into it or pass -C.`,
 				fmt.Fprintf(a.Stdout, "demo api listening on %s\n", url)
 				fmt.Fprintf(a.Stdout, "try: apic run login whoami -C %s --env local\n", out)
 			}
-			// Timeouts rather than http.ListenAndServe: the demo server is
-			// short-lived and local, but a server with no read timeout is
-			// still a server a single stalled connection can tie up.
-			srv := &http.Server{
-				Handler:           demoapi.New(),
-				ReadHeaderTimeout: 10 * time.Second,
-				ReadTimeout:       30 * time.Second,
-				WriteTimeout:      30 * time.Second,
-				IdleTimeout:       60 * time.Second,
-			}
-			// Ctrl-C stops the server cleanly.
-			go func() {
-				<-cmd.Context().Done()
-				shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				defer cancel()
-				_ = srv.Shutdown(shutdown)
-			}()
-			if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				return runner.Usage(runner.CodeServer, err.Error())
-			}
-			return nil
+			return serveLocal(cmd.Context(), ln, demoapi.New())
 		},
 	}
 	cmd.Flags().StringVarP(&out, "out", "o", "apic-demo", "directory to write the example project into")

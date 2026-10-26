@@ -56,6 +56,18 @@ shots:
     say:
       - "The permanent fix is the one-line apic.yaml from lesson two. Now the health check runs."
 
+  - chapter: The document as the server
+    clip: mock
+    setup:
+      - blocks: [8]
+    tape: |
+      Type "apic run list-todos -C todos-api --var baseUrl=http://localhost:8090" Enter Sleep 4s
+      Type "cat todos-api/contract.http" Enter Sleep 3s
+      Type "apic run missing-todo -C todos-api --var baseUrl=http://localhost:8090" Enter Sleep 4s
+    say:
+      - "This lesson has been lucky so far: the demo API is running. On a real project the document often arrives before the backend. apic mock serves the document itself, every operation answering with the response it declares, and a var on the command line points one run at it. That is the Todo schema read back."
+      - "The document also promised a 404, and the mock serves any documented response on request: a Prefer header line asks for it. This proves the requests and the document agree. It proves nothing about the API, because there is none yet. Stop the mock, and back to the demo."
+
   - chapter: The tidy-up
     clip: unauth
     tape: |
@@ -66,7 +78,7 @@ shots:
   - chapter: The tidy-up
     clip: tidy
     setup:
-      - blocks: [8, 9]
+      - blocks: [13, 14]
     tape: |
       Type "cat todos-api/auth.http" Enter Sleep 3s
       Type "head -8 todos-api/todos.http" Enter Sleep 4s
@@ -78,7 +90,7 @@ shots:
   - chapter: A Postman collection
     clip: postman
     setup:
-      - blocks: [11]
+      - blocks: [16]
         replace: ["apic import todos.postman_collection.json -o postman-api --postman-env local.postman_environment.json\n", ""]
     tape: |
       Type "apic import todos.postman_collection.json -o postman-api --postman-env local.postman_environment.json" Enter Sleep 5s

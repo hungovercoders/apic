@@ -22,6 +22,7 @@ apic run auth.http --json | jq   # a file as a flow, one JSON line each
 apic test                        # Gherkin features, same requests
 claude mcp add api -- apic mcp   # an agent calls them as tools
 apic ui --demo                   # or just the UI on the fake API
+apic mock openapi.yaml           # or a mock of your own spec, until the API exists
 ```
 
 ## Install

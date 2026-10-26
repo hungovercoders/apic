@@ -75,6 +75,7 @@ with the first rather than listing. The key is absent when nothing is close.
 | [E212](#e212) | 2 | feature file problem |
 | [E213](#e213) | 2 | needs a terminal |
 | [E214](#e214) | 2 | server could not start |
+| [E215](#e215) | 2 | mock could not be built |
 | [E300](#e300) | 3 | request failed |
 | [E301](#e301) | 3 | could not connect |
 | [E302](#e302) | 3 | timed out |
@@ -258,9 +259,17 @@ Exit 2. `apic ui` is interactive: it refuses `--json` and a stdout that is not a
 
 ### E214 server could not start
 
-Exit 2. `apic mcp --http` or `apic demo` could not listen where it was asked to.
+Exit 2. `apic mcp --http`, `apic demo` or `apic mock` could not listen where it was asked to.
 
 **What to do:** Check the address or port is free and allowed.
+
+<a id="e215"></a>
+
+### E215 mock could not be built
+
+Exit 2. `apic mock` could not use the document it was given: it is not OpenAPI 3, a `$ref` in it does not resolve, or it declares no operations to serve.
+
+**What to do:** Check the file is an OpenAPI 3 document with at least one operation under paths.
 
 ## E3xx: the network
 

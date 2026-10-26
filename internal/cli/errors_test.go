@@ -72,6 +72,7 @@ func errorCases() map[runner.Code]errorCase {
 		runner.CodeFeatures:        {files: get(""), args: []string{"test"}},
 		runner.CodeTerminal:        {files: get(""), args: []string{"ui"}},
 		runner.CodeServer:          {files: get(""), args: []string{"mcp", "--http", "256.0.0.1:1"}},
+		runner.CodeMock:            {files: map[string]string{"spec.json": "{\"not\": \"a spec\"}"}, args: []string{"mock", "{{dir}}/spec.json"}},
 		runner.CodeTransport: {files: get(""), args: []string{"run", "a.http"}, setup: func(t *testing.T) string {
 			// A server that hangs up without answering: not a refused
 			// connection, not a timeout, just a failed request.

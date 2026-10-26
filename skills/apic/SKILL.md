@@ -110,8 +110,12 @@ Content-Type: application/json
 
 `apic import openapi.yaml`, `apic import collection.postman.json` and
 `apic import --curl '<command>' --into file.http` write requests from what
-already exists; use them before writing many by hand. `apic curl <id>` and
-`apic snippet <id> --lang python` show a request to someone without apic.
+already exists; use them before writing many by hand. `apic mock openapi.yaml
+--port 8090` serves the same document's responses on localhost, so the
+imported requests run with `--var baseUrl=http://localhost:8090` before the
+API exists (a `Prefer: code=404` header line asks for that documented
+response). `apic curl <id>` and `apic snippet <id> --lang python` show a
+request to someone without apic.
 
 Read [references/cheatsheet.md](references/cheatsheet.md) for every
 directive, selector, assertion operator, built-in placeholder and the

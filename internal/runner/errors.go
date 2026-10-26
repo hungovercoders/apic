@@ -48,6 +48,7 @@ const (
 	CodeFeatures        Code = "E212"
 	CodeTerminal        Code = "E213"
 	CodeServer          Code = "E214"
+	CodeMock            Code = "E215"
 	CodeTransport       Code = "E300"
 	CodeConnect         Code = "E301"
 	CodeTimeout         Code = "E302"
@@ -140,7 +141,10 @@ var Catalogue = []Entry{
 		"`apic ui` is interactive: it refuses `--json` and a stdout that is not a terminal."},
 	{CodeServer, ExitUsage, "server could not start",
 		"Check the address or port is free and allowed.",
-		"`apic mcp --http` or `apic demo` could not listen where it was asked to."},
+		"`apic mcp --http`, `apic demo` or `apic mock` could not listen where it was asked to."},
+	{CodeMock, ExitUsage, "mock could not be built",
+		"Check the file is an OpenAPI 3 document with at least one operation under paths.",
+		"`apic mock` could not use the document it was given: it is not OpenAPI 3, a `$ref` in it does not resolve, or it declares no operations to serve."},
 	{CodeTransport, ExitTransport, "request failed",
 		"The message has the underlying error; check the URL and the network.",
 		"The request could not complete for a reason none of the E3xx codes below describes."},

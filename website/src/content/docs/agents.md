@@ -204,6 +204,15 @@ subset in [the format guide](format.md), give every request a `# @name`, add an
 writes a correct skeleton to start from, and the
 [cheat sheet](cheatsheet.md) fits in a prompt.
 
+When the task comes with an OpenAPI document and no running API,
+`apic import openapi.yaml -o api` writes the requests and
+`apic mock openapi.yaml` serves the document's declared responses on
+localhost, so `apic run <id> -C api --var baseUrl=http://localhost:8090`
+proves the requests match the contract before the backend exists; a
+`Prefer: code=404` header line asks for a documented error response. It
+proves nothing about the API itself, so point `baseUrl` at the real one
+when there is one. See [`apic mock`](cli.md#apic-mock).
+
 ## Reading these docs as an agent
 
 Every page here is also available as plain text, so an agent can read the

@@ -25,7 +25,8 @@ under `src/content/docs/learn/`; `docs/` is reference for working on apic
 rather than using it; and the generators are under `scripts/`.
 
 Two things worth knowing: the OpenAPI and Postman readers are hand-written
-walkers, not libraries, and the VS Code extension never parses `.http`
+walkers, not libraries (the OpenAPI one also serves `apic mock`, from
+`internal/openapi/mock.go`), and the VS Code extension never parses `.http`
 files itself (it reads `--json`).
 
 ## Commands

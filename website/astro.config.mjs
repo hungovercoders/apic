@@ -39,10 +39,9 @@ export default defineConfig({
 				{ tag: 'link', attrs: { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' } },
 				// The colour a phone's browser paints its own bar: Starlight's header
 				// background (--sl-color-bg-nav) in each scheme, so the bar does not
-				// sit as a pale strip above a dark header. Media queries follow the
-				// OS, as the picker's default does; a script would cost a CSP hash.
-				{ tag: 'meta', attrs: { name: 'theme-color', media: '(prefers-color-scheme: light)', content: '#f6f7f9' } },
-				{ tag: 'meta', attrs: { name: 'theme-color', media: '(prefers-color-scheme: dark)', content: '#23262f' } },
+				// sit as a pale strip above a dark header. The site is dark by
+				// default, so the bar is too; a script would cost a CSP hash.
+				{ tag: 'meta', attrs: { name: 'theme-color', content: '#23262f' } },
 			],
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/hungovercoders/apic' },
@@ -52,7 +51,11 @@ export default defineConfig({
 			},
 			customCss: ['./src/styles/custom.css'],
 			// Starlight's footer plus the privacy line (src/components/Footer.astro).
-			components: { Footer: './src/components/Footer.astro' },
+			components: {
+				Footer: './src/components/Footer.astro',
+				// Dark unless the visitor chose otherwise (src/components/ThemeProvider.astro).
+				ThemeProvider: './src/components/ThemeProvider.astro',
+			},
 			// Internal links and anchors are checked at build time, which is
 			// what `mkdocs build --strict` used to do.
 			plugins: [starlightLinksValidator()],

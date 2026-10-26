@@ -29,10 +29,10 @@ type Route struct {
 // keeps no state and validates nothing: it is the document read back, so a
 // request file can run before the API it describes exists.
 type Mock struct {
-	Routes  []Route
-	Skipped []string // operations that could not be registered, with the reason
-	mux     *http.ServeMux
-	methods []string // the methods some route serves, for the 405 Allow header
+	Routes   []Route
+	Skipped  []string // operations that could not be registered, with the reason
+	mux      *http.ServeMux
+	patterns map[string]*dispatch // what is registered on the mux, by its "METHOD /path" pattern
 }
 
 // NewMock builds the mock for an OpenAPI 3 document (YAML or JSON). The
@@ -44,15 +44,14 @@ func NewMock(data []byte) (*Mock, error) {
 		return nil, err
 	}
 	prefix := d.basePath()
-	m := &Mock{mux: http.NewServeMux()}
-	seen := map[string]bool{}
+	m := &Mock{mux: http.NewServeMux(), patterns: map[string]*dispatch{}}
 	for _, p := range d.entries(d.get(d.root, "paths")) {
 		if !strings.HasPrefix(strings.TrimSpace(p.key), "/") {
 			continue // an extension key, not a path
 		}
 		for _, e := range d.entries(p.value) {
 			if httpMethods[e.key] {
-				m.add(d.mockRoute(strings.ToUpper(e.key), p.key, d.resolve(e.value)), prefix, seen)
+				m.add(d.mockRoute(strings.ToUpper(e.key), p.key, d.resolve(e.value)), prefix)
 			}
 		}
 	}
@@ -80,61 +79,154 @@ func (d *document) basePath() string {
 	return strings.TrimRight(u.Path, "/")
 }
 
-// add registers a route under its own path and the server prefix, or
-// records why it could not be.
-func (m *Mock) add(rt *mockRoute, prefix string, seen map[string]bool) {
-	patterns := []string{muxPattern(rt.path)}
-	if prefix != "" {
-		patterns = append(patterns, muxPattern(prefix+rt.path))
+// add registers a route under its own path, or records why it could not
+// be, then under the server prefix as well. The prefixed alias is a
+// convenience: when the document also declares that path outright, the
+// declared operation keeps it and nothing is reported.
+func (m *Mock) add(rt *mockRoute, prefix string) {
+	pat, partial := muxPattern(rt.path)
+	if partial {
+		rt.exact = templateRegexp(prefix, rt.path)
 	}
-	for _, pat := range patterns {
-		if err := m.register(rt.method+" "+pat, rt); err != nil {
-			m.Skipped = append(m.Skipped, fmt.Sprintf("%s %s: %v", rt.method, rt.path, err))
-			return
-		}
+	if err := m.attach(rt.method+" "+pat, rt); err != nil {
+		m.Skipped = append(m.Skipped, fmt.Sprintf("%s %s: %v", rt.method, rt.path, err))
+		return
+	}
+	if prefix != "" {
+		alias, _ := muxPattern(prefix + rt.path)
+		_ = m.attach(rt.method+" "+alias, rt)
 	}
 	m.Routes = append(m.Routes, Route{Method: rt.method, Path: rt.path, Status: rt.def.status, Name: rt.name})
-	if !seen[rt.method] {
-		seen[rt.method] = true
-		m.methods = append(m.methods, rt.method)
+}
+
+// attach adds a route to the dispatcher for a pattern, registering the
+// pattern on the mux the first time it is seen.
+func (m *Mock) attach(pattern string, rt *mockRoute) error {
+	d := m.patterns[pattern]
+	if d == nil {
+		d = &dispatch{}
+		if err := m.register(pattern, d); err != nil {
+			return err
+		}
+		m.patterns[pattern] = d
 	}
+	switch {
+	case rt.exact != nil:
+		d.exact = append(d.exact, rt)
+	case d.plain == nil:
+		d.plain = rt
+	default:
+		return errors.New("its path is the same as an earlier operation's")
+	}
+	return nil
 }
 
 // register adds a pattern to the mux, turning the panic ServeMux raises for
-// a pattern it cannot hold beside the ones registered into an error.
+// a pattern it cannot hold into an error that says why.
 func (m *Mock) register(pattern string, h http.Handler) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = errors.New("its path conflicts with another operation's")
+			msg := fmt.Sprint(r)
+			if strings.Contains(msg, "conflicts with") {
+				err = errors.New("its path conflicts with another operation's")
+				return
+			}
+			err = errors.New("ServeMux rejects its path: " + strings.TrimPrefix(strings.SplitN(msg, "\n", 2)[0], "http: "))
 		}
 	}()
 	m.mux.Handle(pattern, h)
 	return nil
 }
 
-// muxPattern turns an OpenAPI path template into a ServeMux pattern. Each
-// segment holding a {parameter} becomes a wildcard segment (ServeMux wants a
-// whole segment named by an identifier, where OpenAPI allows {pet-id} and
-// {name}.json), a trailing slash becomes an exact match rather than a
-// prefix, and the path is rooted.
-func muxPattern(path string) string {
+// dispatch serves the operations that share one ServeMux pattern. A
+// template with literal text around a parameter, such as
+// /files/{name}.json, needs the same wildcard segment as /files/{id}, so
+// the mux pattern is /files/{p0} for both; the routes with literal text
+// are tried first, each against its own expression, and the plain
+// {parameter} route takes what is left.
+type dispatch struct {
+	exact []*mockRoute
+	plain *mockRoute
+}
+
+func (d *dispatch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	for _, rt := range d.exact {
+		if rt.exact.MatchString(r.URL.Path) {
+			rt.ServeHTTP(w, r)
+			return
+		}
+	}
+	if d.plain != nil {
+		d.plain.ServeHTTP(w, r)
+		return
+	}
+	writeMockError(w, http.StatusNotFound, fmt.Sprintf("%s %s is not in the document", r.Method, r.URL.Path))
+}
+
+// cleanPath is a path template with its whitespace removed and a leading
+// slash, as the importer and the mock both read one.
+func cleanPath(path string) string {
 	path = strings.Join(strings.Fields(path), "")
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
-	segs := strings.Split(path, "/")
+	return path
+}
+
+// muxPattern turns an OpenAPI path template into a ServeMux pattern. Each
+// segment holding a {parameter} becomes a wildcard segment (ServeMux wants a
+// whole segment named by an identifier, where OpenAPI allows {pet-id} and
+// {name}.json), and a trailing slash becomes an exact match rather than a
+// prefix. partial reports a segment with literal text around its
+// parameter, which the wildcard over-matches and templateRegexp narrows.
+func muxPattern(path string) (pattern string, partial bool) {
+	segs := strings.Split(cleanPath(path), "/")
 	n := 0
 	for i, s := range segs {
-		if strings.ContainsAny(s, "{}") {
-			segs[i] = fmt.Sprintf("{p%d}", n)
-			n++
+		if !strings.ContainsAny(s, "{}") {
+			continue
 		}
+		whole := strings.HasPrefix(s, "{") && strings.HasSuffix(s, "}") && strings.Count(s, "{") == 1
+		if !whole {
+			partial = true
+		}
+		segs[i] = fmt.Sprintf("{p%d}", n)
+		n++
 	}
-	out := strings.Join(segs, "/")
-	if strings.HasSuffix(out, "/") {
-		out += "{$}"
+	pattern = strings.Join(segs, "/")
+	if strings.HasSuffix(pattern, "/") {
+		pattern += "{$}"
 	}
-	return out
+	return pattern, partial
+}
+
+// templateRegexp matches exactly the paths a template describes, with the
+// server prefix optional: literal text as written, each {parameter} as one
+// non-empty segment or part of one.
+func templateRegexp(prefix, path string) *regexp.Regexp {
+	var b strings.Builder
+	b.WriteString("^")
+	if prefix != "" {
+		b.WriteString("(?:" + regexp.QuoteMeta(prefix) + ")?")
+	}
+	rest := cleanPath(path)
+	for rest != "" {
+		open := strings.IndexByte(rest, '{')
+		if open < 0 {
+			b.WriteString(regexp.QuoteMeta(rest))
+			break
+		}
+		b.WriteString(regexp.QuoteMeta(rest[:open]))
+		size := strings.IndexByte(rest[open:], '}')
+		if size < 0 {
+			b.WriteString(regexp.QuoteMeta(rest[open:]))
+			break
+		}
+		b.WriteString("[^/]+")
+		rest = rest[open+size+1:]
+	}
+	b.WriteString("$")
+	return regexp.MustCompile(b.String())
 }
 
 // mockRoute is one operation: its documented responses and the one served
@@ -143,6 +235,7 @@ type mockRoute struct {
 	method, path, name string
 	responses          []*mockResponse
 	def                *mockResponse
+	exact              *regexp.Regexp // set when the template has literal text around a parameter
 }
 
 // mockResponse is one entry of an operation's responses, rendered once.
@@ -156,7 +249,8 @@ type mockResponse struct {
 // mockMedia is one content type of a response: its body and named examples.
 type mockMedia struct {
 	contentType string
-	body        []byte // nil when the media type declares neither an example nor a schema
+	name        string // the media type alone, lower-case, for Accept matching
+	body        []byte // nil when the media type declares nothing the mock can serve
 	examples    map[string][]byte
 }
 
@@ -215,26 +309,39 @@ func defaultResponse(rs []*mockResponse) *mockResponse {
 
 func (d *document) mockMedia(contentType string, media *yaml.Node) *mockMedia {
 	media = d.resolve(media)
-	mm := &mockMedia{contentType: contentType, examples: map[string][]byte{}}
+	mm := &mockMedia{contentType: contentType, name: mediaTypeName(contentType), examples: map[string][]byte{}}
 	if v, ok := d.mediaExample(media); ok {
 		mm.body = renderBody(contentType, v)
 	}
 	for _, ex := range d.entries(d.get(media, "examples")) {
 		if v := d.getRaw(ex.value, "value"); v != nil {
-			mm.examples[ex.key] = renderBody(contentType, decode(v))
+			if body := renderBody(contentType, decode(v)); body != nil {
+				mm.examples[ex.key] = body
+			}
 		}
 	}
 	return mm
 }
 
-// renderBody serialises an example for the wire: a string as it is for a
-// non-JSON media type, JSON for everything else. The importer's
-// placeholders become the same fixed values it writes into a verbatim body,
-// so a mocked response is the same on every call.
+// renderBody serialises an example for the wire. A JSON media type gets
+// JSON; any other gets a string as it is and a scalar as text, and nil for
+// an object or a list, since JSON under an XML or CSV content type would
+// mislead (the importer refuses the same). The importer's placeholders
+// become the fixed values it writes into a verbatim body, so a mocked
+// response is the same on every call.
 func renderBody(contentType string, v any) []byte {
 	v = concretize(v)
-	if s, ok := v.(string); ok && !isJSON(contentType) {
-		return []byte(s)
+	if !isJSON(contentType) {
+		switch t := v.(type) {
+		case string:
+			return []byte(t)
+		case *orderedObject, []any:
+			return nil
+		case nil:
+			return nil
+		default:
+			return []byte(fmt.Sprint(t))
+		}
 	}
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
@@ -243,12 +350,16 @@ func renderBody(contentType string, v any) []byte {
 	return append(data, '\n')
 }
 
+// framingHeaders are set by the server from what it sends, never from the
+// document: a documented Content-Length would truncate the body.
+var framingHeaders = map[string]bool{"content-type": true, "content-length": true, "transfer-encoding": true, "connection": true}
+
 // mockHeaders renders a response's declared headers from their examples or
 // schemas; Content-Type comes from the media type instead.
 func (d *document) mockHeaders(hs *yaml.Node) [][2]string {
 	var out [][2]string
 	for _, h := range d.entries(hs) {
-		if strings.EqualFold(h.key, "Content-Type") {
+		if framingHeaders[strings.ToLower(h.key)] {
 			continue
 		}
 		if v, ok := d.headerExample(d.resolve(h.value)); ok {
@@ -288,9 +399,11 @@ func headerText(v any) string {
 // ServeHTTP routes to the operation, or answers 405 (with Allow) when the
 // path is known under another method and 404 when it is not. Both carry a
 // JSON message rather than the mux's plain text, so `apic run` shows why.
+// The mux's own answer for a near miss (a redirect from /pets to a declared
+// /pets/) is a miss too: a path the document does not declare is a 404.
 func (m *Mock) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if _, pattern := m.mux.Handler(r); pattern != "" {
-		m.mux.ServeHTTP(w, r)
+	if d := m.lookup(r); d != nil {
+		d.ServeHTTP(w, r)
 		return
 	}
 	if allow := m.allowed(r); len(allow) > 0 {
@@ -305,17 +418,27 @@ func (m *Mock) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // allowed lists the methods under which the request's path is an operation.
 func (m *Mock) allowed(r *http.Request) []string {
 	var allow []string
-	for _, method := range m.methods {
-		if method == r.Method {
+	tried := map[string]bool{r.Method: true}
+	for _, rt := range m.Routes {
+		if tried[rt.Method] {
 			continue
 		}
+		tried[rt.Method] = true
 		probe := r.Clone(r.Context())
-		probe.Method = method
-		if _, pattern := m.mux.Handler(probe); pattern != "" {
-			allow = append(allow, method)
+		probe.Method = rt.Method
+		if m.lookup(probe) != nil {
+			allow = append(allow, rt.Method)
 		}
 	}
 	return allow
+}
+
+// lookup is the dispatcher the mux routes a request to, or nil when the
+// mux would answer itself: not found, method not allowed, or a redirect.
+func (m *Mock) lookup(r *http.Request) *dispatch {
+	h, _ := m.mux.Handler(r)
+	d, _ := h.(*dispatch)
+	return d
 }
 
 // reStatusCode is a concrete status code a Prefer header may ask for.
@@ -390,18 +513,23 @@ func (res *mockResponse) pick(accept string) *mockMedia {
 		return nil
 	}
 	for _, a := range strings.Split(accept, ",") {
-		a = strings.ToLower(strings.TrimSpace(strings.SplitN(a, ";", 2)[0]))
+		a = mediaTypeName(a)
 		if a == "" || a == "*/*" {
 			break
 		}
 		for _, m := range res.media {
-			ct := strings.ToLower(strings.TrimSpace(strings.SplitN(m.contentType, ";", 2)[0]))
-			if ct == a || (strings.HasSuffix(a, "/*") && strings.HasPrefix(ct, strings.TrimSuffix(a, "*"))) {
+			if m.name == a || (strings.HasSuffix(a, "/*") && strings.HasPrefix(m.name, strings.TrimSuffix(a, "*"))) {
 				return m
 			}
 		}
 	}
 	return res.media[0]
+}
+
+// mediaTypeName is the media type without its parameters, lower-case:
+// "application/json" for "Application/JSON; charset=utf-8".
+func mediaTypeName(contentType string) string {
+	return strings.ToLower(strings.TrimSpace(strings.SplitN(contentType, ";", 2)[0]))
 }
 
 // parsePrefer reads a Prefer header (RFC 7240) into lower-case names and

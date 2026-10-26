@@ -298,19 +298,188 @@ func TestMockPetstore(t *testing.T) {
 }
 
 func TestMuxPattern(t *testing.T) {
-	for in, want := range map[string]string{
-		"/pets":              "/pets",
-		"/pets/{petId}":      "/pets/{p0}",
-		"/pets/{pet-id}/x":   "/pets/{p0}/x",
-		"/files/{name}.json": "/files/{p0}",
-		"/a/{b}/c/{d}":       "/a/{p0}/c/{p1}",
-		"/pets/":             "/pets/{$}",
-		"/":                  "/{$}",
-		"pets":               "/pets",
-		"/with space/{x}":    "/withspace/{p0}",
+	for in, want := range map[string]struct {
+		pattern string
+		partial bool
+	}{
+		"/pets":              {"/pets", false},
+		"/pets/{petId}":      {"/pets/{p0}", false},
+		"/pets/{pet-id}/x":   {"/pets/{p0}/x", false},
+		"/files/{name}.json": {"/files/{p0}", true},
+		"/a/{b}/c/{d}":       {"/a/{p0}/c/{p1}", false},
+		"/v{major}.{minor}":  {"/{p0}", true},
+		"/pets/":             {"/pets/{$}", false},
+		"/":                  {"/{$}", false},
+		"pets":               {"/pets", false},
+		"/with space/{x}":    {"/withspace/{p0}", false},
 	} {
-		if got := muxPattern(in); got != want {
-			t.Errorf("muxPattern(%q) = %q, want %q", in, got, want)
+		pattern, partial := muxPattern(in)
+		if pattern != want.pattern || partial != want.partial {
+			t.Errorf("muxPattern(%q) = %q, %v; want %q, %v", in, pattern, partial, want.pattern, want.partial)
 		}
+	}
+}
+
+// A template with literal text around its parameter matches only paths
+// with that text, and shares its wildcard segment with a plain sibling.
+func TestMockPartialSegmentTemplates(t *testing.T) {
+	m, srv := newMockServer(t, `
+openapi: 3.0.3
+info: {title: t, version: "1"}
+servers: [{url: http://localhost/v2}]
+paths:
+  /files/{name}.json:
+    get:
+      responses:
+        "200": {description: ok, content: {application/json: {example: {kind: json}}}}
+  /files/{id}:
+    get:
+      responses:
+        "200": {description: ok, content: {application/json: {example: {kind: plain}}}}
+  /reports/{name}.csv:
+    get:
+      responses:
+        "200": {description: ok, content: {text/csv: {example: "a,b\n"}}}
+`)
+	if len(m.Routes) != 3 || len(m.Skipped) != 0 {
+		t.Fatalf("routes %+v skipped %v", m.Routes, m.Skipped)
+	}
+	for _, c := range []struct {
+		path string
+		want string
+		code int
+	}{
+		{"/files/a.json", `"kind": "json"`, 200},
+		{"/v2/files/a.json", `"kind": "json"`, 200},
+		{"/files/a.xml", `"kind": "plain"`, 200},
+		{"/files/a", `"kind": "plain"`, 200},
+		{"/reports/daily.csv", "a,b\n", 200},
+		{"/reports/daily.txt", "is not in the document", 404},
+		{"/v2/reports/daily.csv", "a,b\n", 200},
+	} {
+		res, body := mockCall(t, srv, "GET", c.path, nil)
+		if res.status != c.code || !strings.Contains(body, c.want) {
+			t.Errorf("GET %s = %d %q, want %d with %q", c.path, res.status, body, c.code, c.want)
+		}
+	}
+}
+
+// A declared /v1/items keeps its path; the prefixed alias of /items yields
+// to it silently and /items is still served and reported.
+func TestMockAliasYieldsToDeclaredPath(t *testing.T) {
+	m, srv := newMockServer(t, `
+openapi: 3.0.3
+info: {title: t, version: "1"}
+servers: [{url: http://x/v1}]
+paths:
+  /v1/items:
+    get:
+      responses:
+        "200": {description: ok, content: {text/plain: {example: first}}}
+  /items:
+    get:
+      responses:
+        "200": {description: ok, content: {text/plain: {example: second}}}
+`)
+	if len(m.Routes) != 2 || len(m.Skipped) != 0 {
+		t.Fatalf("routes %+v skipped %v", m.Routes, m.Skipped)
+	}
+	if _, body := mockCall(t, srv, "GET", "/v1/items", nil); body != "first" {
+		t.Fatalf("/v1/items = %q", body)
+	}
+	if _, body := mockCall(t, srv, "GET", "/items", nil); body != "second" {
+		t.Fatalf("/items = %q", body)
+	}
+	// Two operations on what ServeMux sees as the same path: the second is
+	// reported, and the 405 Allow header names the methods actually served.
+	m2, srv2 := newMockServer(t, `
+openapi: 3.0.3
+info: {title: t, version: "1"}
+paths:
+  /pets/{id}:
+    get: {responses: {"200": {description: ok}}}
+  /pets/{petId}:
+    get: {responses: {"200": {description: ok}}}
+    delete: {responses: {"204": {description: ok}}}
+`)
+	if len(m2.Routes) != 2 || len(m2.Skipped) != 1 || !strings.Contains(m2.Skipped[0], "GET /pets/{petId}: its path is the same") {
+		t.Fatalf("routes %+v skipped %v", m2.Routes, m2.Skipped)
+	}
+	if res, _ := mockCall(t, srv2, "PUT", "/pets/1", nil); res.status != 405 || res.header.Get("Allow") != "GET, DELETE" {
+		t.Fatalf("405 = %d allow %q", res.status, res.header.Get("Allow"))
+	}
+}
+
+// Headers the server derives from what it sends are not taken from the
+// document, and a structured example under a non-JSON media type is no body
+// rather than JSON under a misleading content type.
+func TestMockFramingHeadersAndNonJSONBodies(t *testing.T) {
+	_, srv := newMockServer(t, `
+openapi: 3.0.3
+info: {title: t, version: "1"}
+paths:
+  /sized:
+    get:
+      responses:
+        "200":
+          description: ok
+          headers:
+            Content-Length: {schema: {type: integer, example: 3}}
+            Transfer-Encoding: {schema: {type: string, example: chunked}}
+            X-Kept: {schema: {type: string, example: yes}}
+          content:
+            application/json:
+              example: {message: "longer than three bytes"}
+  /xml:
+    get:
+      responses:
+        "200":
+          description: ok
+          content:
+            application/xml:
+              schema: {type: object, properties: {id: {type: integer}}}
+  /count:
+    get:
+      responses:
+        "200":
+          description: ok
+          content:
+            text/plain:
+              example: 42
+`)
+	res, body := mockCall(t, srv, "GET", "/sized", nil)
+	if res.status != 200 || !strings.Contains(body, "longer than three bytes") || res.header.Get("X-Kept") != "yes" || res.header.Get("Transfer-Encoding") == "chunked" {
+		t.Fatalf("sized = %d %q %v", res.status, body, res.header)
+	}
+	res, body = mockCall(t, srv, "GET", "/xml", nil)
+	if res.status != 200 || body != "" || res.header.Get("Content-Type") != "" {
+		t.Fatalf("xml = %d %q %q", res.status, body, res.header.Get("Content-Type"))
+	}
+	if res, body := mockCall(t, srv, "GET", "/count", nil); body != "42" || res.header.Get("Content-Type") != "text/plain" {
+		t.Fatalf("count = %q %q", body, res.header.Get("Content-Type"))
+	}
+}
+
+// A path the document does not declare is a 404, not a redirect to a
+// trailing-slash form it does declare; and an invalid path is reported for
+// what it is.
+func TestMockNoRedirectsAndInvalidPaths(t *testing.T) {
+	m, srv := newMockServer(t, `
+openapi: 3.0.3
+info: {title: t, version: "1"}
+paths:
+  /pets/:
+    get: {responses: {"200": {description: ok, content: {text/plain: {example: slash}}}}}
+  //evil.example/x:
+    get: {responses: {"200": {description: ok}}}
+`)
+	if len(m.Routes) != 1 || len(m.Skipped) != 1 || !strings.Contains(m.Skipped[0], "ServeMux rejects its path") || strings.Contains(m.Skipped[0], "conflicts") {
+		t.Fatalf("routes %+v skipped %v", m.Routes, m.Skipped)
+	}
+	if res, body := mockCall(t, srv, "GET", "/pets/", nil); res.status != 200 || body != "slash" {
+		t.Fatalf("/pets/ = %d %q", res.status, body)
+	}
+	if res, body := mockCall(t, srv, "GET", "/pets", nil); res.status != 404 || !strings.Contains(body, "GET /pets is not in the document") {
+		t.Fatalf("/pets = %d %q", res.status, body)
 	}
 }

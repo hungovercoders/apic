@@ -333,15 +333,12 @@ func (d *document) operation(path, method string, op *yaml.Node, shared []parame
 	// The path lands on the request line, which the runner renders as a
 	// template: no line breaks, no template markers, and always rooted so a
 	// key such as `@evil.example` cannot rewrite the host.
-	path = noTemplate(strings.Join(strings.Fields(path), ""), "%7B", "%7D")
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
+	path = noTemplate(cleanPath(path), "%7B", "%7D")
 	o := &operation{Path: path, Method: method,
 		OperationID: str(d.get(op, "operationId")), Summary: str(d.get(op, "summary")), Description: str(d.get(op, "description"))}
 	o.Params = mergeParams(shared, d.parameters(d.get(op, "parameters")))
 	o.Body, o.ContentType, o.BodyRaw = d.exampleBody(d.get(op, "requestBody"))
-	if o.ContentType != "" && strings.EqualFold(strings.TrimSpace(strings.SplitN(o.ContentType, ";", 2)[0]), "multipart/form-data") {
+	if mediaTypeName(o.ContentType) == "multipart/form-data" {
 		o.Parts = d.multipartParts(d.get(op, "requestBody"))
 		if len(o.Parts) > 0 {
 			o.Body, o.BodyRaw = "", false
@@ -654,7 +651,7 @@ func (d *document) exampleBody(rb *yaml.Node) (body, contentType string, raw boo
 		case int, int64, uint64, float64, bool, json.Number:
 			return fmt.Sprint(v), ct, false // a scalar serialises the same under any media type
 		}
-		if strings.EqualFold(strings.TrimSpace(strings.SplitN(ct, ";", 2)[0]), "application/x-www-form-urlencoded") {
+		if mediaTypeName(ct) == "application/x-www-form-urlencoded" {
 			if obj, ok := v.(*orderedObject); ok {
 				// Percent-encoding would turn a {{$uuid}} placeholder into
 				// literal text the runner no longer recognises, so form
@@ -662,7 +659,7 @@ func (d *document) exampleBody(rb *yaml.Node) (body, contentType string, raw boo
 				return formEncode(concretize(obj).(*orderedObject)), ct, raw
 			}
 		}
-		if strings.EqualFold(strings.TrimSpace(strings.SplitN(ct, ";", 2)[0]), "multipart/form-data") {
+		if mediaTypeName(ct) == "multipart/form-data" {
 			if _, ok := v.(*orderedObject); ok {
 				return "", ct, false // the operation builds the parts from the schema
 			}

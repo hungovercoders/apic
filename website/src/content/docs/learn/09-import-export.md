@@ -1,10 +1,11 @@
 ---
 title: "Lesson 9: From OpenAPI to a project, and back to curl"
-description: "Lesson 9: turn an OpenAPI document, a Postman collection or a curl command into a project, tidy it, and export a curl command back out."
+description: "Lesson 9: turn an OpenAPI document, a Postman collection or a curl command into a project, run the draft against a mock of the document, tidy it, and export a curl command back out."
 ---
 **Goal.** Turn an OpenAPI document, a Postman collection or a curl command
-into a project, tidy the draft into something that runs green, and get a
-curl command back out for the machine that has no apic.
+into a project, run the draft against a mock of the document before any
+API exists, tidy it into something that runs green, and get a curl command
+back out for the machine that has no apic.
 
 ## You will need
 
@@ -27,8 +28,9 @@ each into a first draft of `.http` files, and a draft is all they are: the
 work of this lesson is turning one into something runnable.
 
 The demo API has no published spec, so write a small one for its todos.
-Three operations under a `todos` tag, one untagged health check, and a
-schema with an example:
+Three operations under a `todos` tag, one untagged health check, and
+schemas with examples for what goes in and what comes back (the responses
+matter in step 3, when the document itself is the server):
 
 <!-- learn -->
 ```sh
@@ -48,7 +50,11 @@ paths:
           in: query
           schema: { type: boolean }
       responses:
-        "200": { description: ok }
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Todo" } }
     post:
       tags: [todos]
       operationId: createTodo
@@ -59,7 +65,11 @@ paths:
           application/json:
             schema: { $ref: "#/components/schemas/NewTodo" }
       responses:
-        "201": { description: created }
+        "201":
+          description: created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Todo" }
   /todos/{todoId}:
     get:
       tags: [todos]
@@ -71,7 +81,16 @@ paths:
           required: true
           schema: { type: string }
       responses:
-        "200": { description: ok }
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Todo" }
+        "404":
+          description: no such todo
+          content:
+            application/json:
+              example: { error: not found }
   /health:
     get:
       operationId: health
@@ -83,6 +102,12 @@ components:
       type: object
       required: [title]
       properties:
+        title: { type: string, example: Buy milk }
+        done: { type: boolean, default: false }
+    Todo:
+      type: object
+      properties:
+        id: { type: string, example: "1" }
         title: { type: string, example: Buy milk }
         done: { type: boolean, default: false }
 EOF
@@ -118,12 +143,14 @@ cat todos-api/todos.http
 # @assert status == 200
 GET {{baseUrl}}/todos
     # ?done={{done}}  (optional)
+Accept: application/json
 
 ### Create a todo
 # @name create-todo
 # @assert status == 201
 POST {{baseUrl}}/todos
 Content-Type: application/json
+Accept: application/json
 
 {
   "title": "Buy milk",
@@ -134,14 +161,16 @@ Content-Type: application/json
 # @name get-todo
 # @assert status == 200
 GET {{baseUrl}}/todos/{{todoId}}
+Accept: application/json
 ```
 
 Everything the spec knew is there: the `operationId` in kebab-case as the
 name, the summary as the title, the first 2xx code as an assertion, the
 optional query parameter as a commented line to uncomment, the path
-parameter as `{{todoId}}`, and a body built from the schema with its
-example and its default. What the spec did not know is the interesting
-part, and the next two steps find it.
+parameter as `{{todoId}}`, an `Accept` header because the responses are
+JSON, and a body built from the schema with its example and its default.
+What the spec did not know is the interesting part, and steps 2 and 4
+find it.
 
 ### 2. Check the draft before sending anything
 
@@ -160,8 +189,8 @@ api.http
 health       GET     {{baseUrl}}/health            :6    GET /health
 todos.http
 list-todos   GET     {{baseUrl}}/todos             :6    List todos
-create-todo  POST    {{baseUrl}}/todos             :12   Create a todo
-get-todo     GET     {{baseUrl}}/todos/{{todoId}}  :23   Fetch one todo
+create-todo  POST    {{baseUrl}}/todos             :13   Create a todo
+get-todo     GET     {{baseUrl}}/todos/{{todoId}}  :25   Fetch one todo
 
 4 requests in 2 files · apic describe <id> · apic run <id> · apic ui
 ```
@@ -208,9 +237,108 @@ GET http://localhost:8089/health
 ✓ status == 200
 ```
 
-### 3. Tidy the draft until it runs green
+### 3. Run the draft against the document itself
 
-Now the todos:
+This lesson has been lucky so far: the demo API is running. On a real
+project the document often arrives before the backend, and a draft with
+nothing to send to is hard to judge. `apic mock` serves the document
+itself: every operation answers with the response it declares, its
+example or a value built from its schema. Start it in the background, on
+a port of its own, and keep its process id so you can stop it later:
+
+<!-- learn -->
+```sh
+apic mock todos-openapi.yaml --port 8090 > mock.log 2>&1 < /dev/null &
+echo $! > mock.pid
+sleep 1
+cat mock.log
+```
+
+```
+mock api listening on http://localhost:8090 · 4 routes from todos-openapi.yaml
+  GET   /todos           200
+  POST  /todos           201
+  GET   /todos/{todoId}  200
+  GET   /health          200
+try: apic run <request> --var baseUrl=http://localhost:8090
+```
+
+The env file still points at the demo on 8089, and a `--var` on the
+command line wins over it ([lesson 2](02-variables-and-environments.md)),
+so pointing one run at the mock is one flag:
+
+<!-- learn -->
+```sh
+apic run list-todos -C todos-api --var baseUrl=http://localhost:8090
+```
+
+```
+GET http://localhost:8090/todos
+200 OK · 0 ms · 70 B
+
+[
+  {
+    "id": "1",
+    "title": "Buy milk",
+    "done": false
+  }
+]
+
+✓ status == 200
+```
+
+That is the `Todo` schema read back: one element, the examples and the
+default filled in. The document also promised a 404 for a todo that does
+not exist, and the mock serves any documented response on request: a
+`Prefer: code=404` header line asks for that one. Put the error path in a
+file of its own, with the assertions the document lets you make:
+
+<!-- learn -->
+```sh
+cat > todos-api/contract.http <<'EOF'
+### A todo that does not exist
+# @name missing-todo
+# @assert status == 404
+# @assert body.$.error == "not found"
+GET {{baseUrl}}/todos/999
+Prefer: code=404
+EOF
+```
+
+<!-- learn -->
+```sh
+apic run missing-todo -C todos-api --var baseUrl=http://localhost:8090
+```
+
+```
+GET http://localhost:8090/todos/999
+404 Not Found · 0 ms · 27 B
+
+{
+  "error": "not found"
+}
+
+✓ status == 404
+✓ body.$.error == not found
+```
+
+Be clear about what this proves. The requests and the document agree:
+the paths, the methods, the shapes and the status codes match, and the
+assertions you wrote are ones the contract supports. It proves nothing
+about the API, because there is none yet, and the mock keeps no state: a
+`create-todo` against it answers with the schema's example, and a
+`get-todo` after it knows nothing about what was created. When the
+backend exists, the env file takes you there and the same files run
+against it. Here the backend is the demo, so stop the mock:
+
+<!-- learn -->
+```sh
+kill "$(cat mock.pid)"
+```
+
+### 4. Tidy the draft until it runs green
+
+Now the todos, against the demo again:
 
 <!-- learn -->
 ```sh
@@ -232,8 +360,10 @@ exit 1
 The spec never mentioned authentication, which is common: security
 schemes are the part of an OpenAPI document most often left out or left
 vague. This is the tidy-up every import needs, and it is the same four
-directives the course has used since lessons 3 and 6. Add a login request that
-captures the token:
+directives the course has used since lessons 3 and 6. (It is also why
+`contract.http` from step 3 cannot run against the demo as it stands: the
+mock asked for no token because the document named none.) Add a login
+request that captures the token:
 
 <!-- learn -->
 ```sh
@@ -308,7 +438,7 @@ above `list-todos`: the three requests all declare the dependency, and
 it ran once. That is the whole method for any import: generate, run, and
 add the directive that the failure asks for, until the file is green.
 
-### 4. From a Postman collection
+### 5. From a Postman collection
 
 A Postman export is a JSON file; `apic import` recognises it by its
 content. Write a small collection with the same two things a real one
@@ -403,7 +533,7 @@ apic run log-in list-todos -C postman-api | tail -4
 2 passed · 2 requests · 0 ms
 ```
 
-### 5. From a curl command
+### 6. From a curl command
 
 The third source is the curl command in a README or a bug report.
 `--curl` turns one into a block, and `--into` appends it to a file of the
@@ -442,12 +572,12 @@ apic run finish-todo -C todos-api | tail -1
 ```
 
 But look at what it carries: a literal token, the way the curl command
-did. The tidy-up is the same as in step 3: replace the `Authorization`
+did. The tidy-up is the same as in step 4: replace the `Authorization`
 line with `# @auth bearer {{token}}` and `# @ref login`, and `/todos/1`
 with `/todos/{{todoId}}`. An import gives you the shape; the directives
 give you the project.
 
-### 6. Back to curl
+### 7. Back to curl
 
 The way out is `apic curl`: the request with every variable resolved, as
 a shell command, for a machine that has curl and nothing else, or for a
@@ -531,7 +661,7 @@ true
 ```
 
 (Without `jq`: `apic run todos.http -C todos-api --json | grep -c '"ok":true'`
-prints `4`, one per request in the file, `finish-todo` from step 5
+prints `4`, one per request in the file, `finish-todo` from step 6
 included.)
 
 ## Exercise
@@ -555,7 +685,7 @@ apic run get-inventory -C petstore
 The importer names the request from its `operationId`
 (`getInventory`); `apic list` shows every id if the name differs. The
 `apic.yaml` line is the same fix as step 2, and the first thing to
-add after that is usually `# @auth`, as in step 3. Pick a second
+add after that is usually `# @auth`, as in step 4. Pick a second
 request that needs a path parameter and give it a `{{variable}}` from
 a capture on the first.
 
@@ -565,6 +695,8 @@ a capture on the first.
 
 - [`apic import`](../cli.md#apic-import), every mapping for OpenAPI,
   Postman and curl, and what each importer reports as unsupported
+- [`apic mock`](../cli.md#apic-mock), how a response is chosen and built,
+  the `Prefer` header, and what the mock deliberately does not do
 - [`apic curl`](../cli.md#apic-curl) and the [auth](../auth.md) mapping
   onto curl's own flags
 - [Comparison](../comparison.md) with Postman, Bruno, Hurl and httpyac,
@@ -573,7 +705,7 @@ a capture on the first.
 <details>
 <summary>Episode script</summary>
 
-**Length.** 10 minutes.
+**Length.** 12 minutes.
 
 **Cold open (0:00).** A README with six curl commands and a Postman
 collection with test scripts nobody has run in a year. "You do not
@@ -584,15 +716,19 @@ start from zero. Here is how you start from what you have."
 1. The OpenAPI import: what the spec knew, what it did not.
 2. Validate and list on a draft; the missing environment and the
    one-line `apic.yaml`.
-3. The 401 and the tidy-up: login, `# @ref`, `# @auth`, `# @capture`,
+3. `apic mock`: the document as the server, `--var baseUrl` to point
+   one run at it, `Prefer: code=404` for the error path, and what it
+   proves (the requests match the contract) and does not (anything
+   about the API).
+4. The 401 and the tidy-up: login, `# @ref`, `# @auth`, `# @capture`,
    and the file running as a flow. "Generate, run, add the directive
    the failure asks for."
-4. The Postman collection: folders to files, the environment and its
+5. The Postman collection: folders to files, the environment and its
    secret, test scripts to directives, the `note` lines for what
    could not be translated.
-5. The curl import with `--into`, and the literal token it carries.
-6. `apic curl`, `| sh`, and `--redact` for a bug report.
-7. Checkpoint, then the petstore exercise.
+6. The curl import with `--into`, and the literal token it carries.
+7. `apic curl`, `| sh`, and `--redact` for a bug report.
+8. Checkpoint, then the petstore exercise.
 
 **Shot list.** One terminal, 100x30, font size 16, the docs theme.
 `docs/learn/tapes/09.tape` drives it. Zoom on the `note` line of the

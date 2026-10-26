@@ -156,9 +156,13 @@ address one named request. Both retry a request until its assertions pass
 ## Against Postman
 
 Postman is a hosted product with collaboration, mocking, monitoring and a
-cloud workspace. apic is a local file runner with none of that. The overlap
-is only "send a request with variables and check the result", and there
-apic's answer is plain files in git, no account, no runtime.
+cloud workspace. apic is a local file runner: the one of those it has is
+mocking, and only the stateless kind, where `apic mock openapi.yaml` serves
+a document's declared responses on localhost so the requests `apic import`
+wrote from it can run before the API exists; Postman's mock servers are
+hosted and remember what was sent. The rest of the overlap is only "send a
+request with variables and check the result", and there apic's answer is
+plain files in git, no account, no runtime.
 `apic import collection.postman.json` brings a collection across: folders,
 requests, variables, environments, auth and the simple `pm.test` checks;
 pre-request scripts and the rest of the test scripts are listed as notes,
@@ -204,3 +208,7 @@ hatch:
 | MQTT and AMQP | Messaging, not HTTP. | The broker's own client, or httpyac. |
 | A GUI beyond the terminal UI and the VS Code extension | The editors already are the GUI for `.http` files; apic's job is everywhere else. | `apic ui`, the [VS Code extension](editors.md), or any editor that reads `.http`. |
 | A hosted workspace | apic is plain files in git with no account; collaboration is the repository. | Git, pull requests and CI with the [GitHub Action](getting-started.md#7-put-it-in-ci). |
+| A stateful mock | The moment a `POST` changes what a later `GET` returns, the mock needs storage, identity and reset rules, and stops being the spec read back. | `apic demo` for a stateful fake with a known shape; a real backend otherwise. |
+| Request validation in the mock | Checking a request against its schema is a contract-testing tool with its own error language; apic's checks are `# @assert` on responses. | A `# @assert` on the real API, or [Prism](https://stoplight.io/open-source/prism), which validates both sides. |
+| Recording and proxying | A mock that records a real API is a capture tool with credentials in the middle of it, which changes what apic has to be careful about. | Point the env file at the real base URL; the mock is only for before the backend exists. |
+| Dynamic responses, latency and faults | Templated bodies, delays and injected errors are scripting by another door, which is already the first row of this table. | A `Prefer:` header to pick a different documented response; `GET /slow` and `GET /status/{code}` on `apic demo` for timing and failure cases. |

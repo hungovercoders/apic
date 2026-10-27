@@ -48,13 +48,13 @@ Content-Type: application/json
 | `apic select <id> <selector>` | A value from the last recorded response, without sending again; `--entry 2` for the one before |
 | `apic curl <id>` | The equivalent curl command |
 | `apic snippet <id> --lang python` | The request as httpie, powershell, python, js or go code |
-| `apic init [dir]` | Scaffold a project, Agent Skill included (`--no-skill`) |
+| `apic init [dir]` | Scaffold a project, Agent Skill and `.mcp.json` included (`--no-skill`, `--no-mcp`) |
 | `apic skill [install]` | Print the briefing for an AI agent, or write it into `.claude/skills` and `.agents/skills` |
 | `apic import <spec>` | `.http` files from an OpenAPI 3 document or a Postman collection (`--postman-env` for its environments) |
 | `apic import --curl '<cmd>' --into f.http` | One request block from a curl command |
 | `apic validate` | Parse everything and report problems (CI); `--format github\|sarif` |
 | `apic fmt [--check\|--diff]` | Canonical formatting for `.http` files; `-` filters stdin; `file.http#name` for one request |
-| `apic mcp` | Serve the project to agents over MCP |
+| `apic mcp [install]` | Serve the project to agents over MCP, or register the server in `.mcp.json` |
 | `apic lsp` | Language server for any LSP editor ([set-up](https://apic.sh/editors/#any-editor-with-an-lsp-client)) |
 | `apic demo` | Scaffold and serve the bundled fake API |
 | `apic mock <spec>` | Serve an OpenAPI 3 document as a stateless mock API; a `Prefer: code=404` header line picks another documented response |

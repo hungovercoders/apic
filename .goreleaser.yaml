@@ -127,6 +127,7 @@ homebrew_casks:
       - man/apic-init.1
       - man/apic-list.1
       - man/apic-lsp.1
+      - man/apic-mcp-install.1
       - man/apic-mcp.1
       - man/apic-mock.1
       - man/apic-run.1
@@ -217,6 +218,10 @@ dockers_v2:
       org.opencontainers.image.version: "{{ .Version }}"
       org.opencontainers.image.revision: "{{ .FullCommit }}"
       org.opencontainers.image.created: "{{ .Date }}"
+      # The MCP registry lists this image for `apic mcp` (server.json, and
+      # the mcp-registry job in release.yml) and checks, before it will,
+      # that the image names the server it publishes.
+      io.modelcontextprotocol.server.name: io.github.hungovercoders/apic
 
 # The image is signed keylessly like checksums.txt: the signature is bound to
 # the release workflow's identity and recorded in the transparency log, and

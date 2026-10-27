@@ -110,32 +110,16 @@ Commit the result so every clone briefs its agents.`,
 // root, symlinks followed, so neither `--to ../x` nor a link under
 // .claude/skills can put the files outside the project.
 func writeSkill(root string, dirs []string, create, overwrite bool) (written, unchanged, skipped []string, err error) {
-	if create {
-		if err := os.MkdirAll(root, 0o755); err != nil { //nolint:gosec // the project directory the user named, which they browse and commit
-			return nil, nil, nil, runner.Usage(runner.CodeFile, err.Error())
-		}
-	} else if info, err := os.Stat(root); err != nil || !info.IsDir() {
-		return nil, nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s is not a directory; the skill is installed into an existing project (apic init creates one)", root))
-	}
-	// Confine compares real, absolute paths: `apic init my-api` names the
-	// root relative to the working directory, and on macOS a temporary
-	// directory is a symlink. The paths reported are the ones the user
-	// named, joined as the scaffold's are, not the resolved ones.
-	absRoot, err := filepath.Abs(root)
+	absRoot, err := writeRoot(root, create, "the skill")
 	if err != nil {
-		return nil, nil, nil, runner.Usage(runner.CodeFile, err.Error())
+		return nil, nil, nil, err
 	}
 	files := skills.Files()
 	for _, dir := range dirs {
 		for _, name := range skills.Paths() {
-			rel := filepath.Join(dir, skills.Name, filepath.FromSlash(name))
-			shown := filepath.Join(root, rel)
-			target, err := project.Confine(absRoot, absRoot, rel)
-			if errors.Is(err, project.ErrOutsideRoot) {
-				return nil, nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s resolves outside %s; the skill is installed under the project", shown, root))
-			}
+			shown, target, err := confinedPath(root, absRoot, filepath.Join(dir, skills.Name, filepath.FromSlash(name)), "the skill")
 			if err != nil {
-				return nil, nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s: %v", shown, err))
+				return nil, nil, nil, err
 			}
 			content := []byte(files[name])
 			if existing, err := os.ReadFile(target); err == nil { //nolint:gosec // the skill file this command wrote before, confined to the project above
@@ -158,6 +142,49 @@ func writeSkill(root string, dirs []string, create, overwrite bool) (written, un
 		}
 	}
 	return written, unchanged, skipped, nil
+}
+
+// writeRoot returns the absolute path of root, the directory the user
+// named for the files a command writes: made when create is set (apic
+// init), otherwise required to exist (install, where a missing one is a
+// mistyped project). what names the files in the error. The path is
+// absolute because Confine compares real paths: `apic init my-api` names
+// the root relative to the working directory, and on macOS a temporary
+// directory is a symlink.
+func writeRoot(root string, create bool, what string) (string, error) {
+	if create {
+		if err := os.MkdirAll(root, 0o755); err != nil { //nolint:gosec // the project directory the user named, which they browse and commit
+			return "", runner.Usage(runner.CodeFile, err.Error())
+		}
+	} else if info, err := os.Stat(root); err != nil || !info.IsDir() {
+		return "", runner.Usage(runner.CodeFile, fmt.Sprintf("%s is not a directory; %s is written into an existing project (apic init creates one)", root, what))
+	}
+	abs, err := filepath.Abs(root)
+	if err != nil {
+		return "", runner.Usage(runner.CodeFile, err.Error())
+	}
+	return abs, nil
+}
+
+// confinedPath resolves rel, a path the user named under root, for a file
+// a command writes: the path to report (root joined with rel, as the
+// scaffold's are, or rel itself when it is absolute) and the real target,
+// which must lie under absRoot, symlinks followed, so neither `--to ../x`
+// nor a link under the root can put the file outside it. what names the
+// files in the error.
+func confinedPath(root, absRoot, rel, what string) (shown, target string, err error) {
+	shown = rel
+	if !filepath.IsAbs(rel) {
+		shown = filepath.Join(root, rel)
+	}
+	target, err = project.Confine(absRoot, absRoot, rel)
+	if errors.Is(err, project.ErrOutsideRoot) {
+		return "", "", runner.Usage(runner.CodeFile, fmt.Sprintf("%s resolves outside %s; %s is written under it", shown, root, what))
+	}
+	if err != nil {
+		return "", "", runner.Usage(runner.CodeFile, fmt.Sprintf("%s: %v", shown, err))
+	}
+	return shown, target, nil
 }
 
 func orEmpty(s []string) []string {

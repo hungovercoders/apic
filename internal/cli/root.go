@@ -205,11 +205,13 @@ func (a *App) printError(err error, exit int) {
 	}
 	lines = append(lines, fmt.Sprintf("  %s %s · see %s", info.Code, info.Title, info.URL))
 	dim := isTerminal(a.Stderr)
-	if !dim {
+	if !dim && info.Code != runner.CodeTerminal {
 		// A pipe or a log is more often read by a script or an agent than
 		// by a person, and --json serves those better; a hint it never
-		// sees on a terminal costs a person nothing.
-		lines = append(lines, `  --json prints this error as one object to branch on: {"error": {"code", "message", "hint", "exit"}}`)
+		// sees on a terminal costs a person nothing. Not for the one
+		// error --json cannot help with: a command that needs a terminal
+		// (apic ui) refuses --json too.
+		lines = append(lines, `  --json prints this error as one {"error": {...}} object to branch on; see https://apic.sh/agents/#errors`)
 	}
 	for _, l := range lines {
 		if dim {

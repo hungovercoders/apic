@@ -95,22 +95,35 @@ func TestMCPInstallMergesAndRefusesWhatItCannotRead(t *testing.T) {
 	}
 	serverArgs(t, doc)
 
-	// --to picks the file, under the directory; a subdirectory is made.
+	// --to picks the file, under the directory; a subdirectory is made,
+	// and an absolute path is reported as given.
 	if code, _, errb := execute(t, "-C", dir, "mcp", "install", dir, "--to", ".cursor/mcp.json"); code != 0 {
 		t.Fatalf("code=%d err=%s", code, errb)
 	}
 	serverArgs(t, readMCPConfig(t, filepath.Join(dir, ".cursor", "mcp.json")))
+	abs := filepath.Join(dir, "tools", "mcp.json")
+	if code, out, errb := execute(t, "-C", dir, "mcp", "install", dir, "--to", abs, "--no-color"); code != 0 || !strings.Contains(out, "wrote "+abs+"\n") {
+		t.Fatalf("absolute --to: code=%d err=%s out=%s", code, errb, out)
+	}
 	if code, _, errb := execute(t, "-C", dir, "mcp", "install", dir, "--to", "../outside.json"); code != 2 || !strings.Contains(errb, "E210") {
 		t.Fatalf("outside the directory: code=%d err=%s", code, errb)
 	}
 
-	// A file that is not JSON is reported, not replaced.
-	mustWrite(t, path, "not json")
-	if code, _, errb := execute(t, "-C", dir, "mcp", "install", dir); code != 2 || !strings.Contains(errb, "E210") || !strings.Contains(errb, "not a JSON object") {
-		t.Fatalf("code=%d err=%s", code, errb)
+	// An empty file is an empty document; one that is not JSON, or whose
+	// mcpServers is not an object, is reported and left as it is.
+	mustWrite(t, path, "")
+	if code, _, errb := execute(t, "-C", dir, "mcp", "install", dir); code != 0 {
+		t.Fatalf("empty file: code=%d err=%s", code, errb)
 	}
-	if data, _ := os.ReadFile(path); string(data) != "not json" { //nolint:gosec // a test file in a temporary directory
-		t.Fatalf("the file was replaced: %s", data)
+	serverArgs(t, readMCPConfig(t, path))
+	for _, bad := range []string{"not json", "null", `{"mcpServers": ["x"]}`} {
+		mustWrite(t, path, bad)
+		if code, _, errb := execute(t, "-C", dir, "mcp", "install", dir); code != 2 || !strings.Contains(errb, "E210") || !strings.Contains(errb, "not a") {
+			t.Fatalf("%s: code=%d err=%s", bad, code, errb)
+		}
+		if data, _ := os.ReadFile(path); string(data) != bad { //nolint:gosec // a test file in a temporary directory
+			t.Fatalf("%s: the file was replaced: %s", bad, data)
+		}
 	}
 	// A directory that does not exist is a mistyped project.
 	if code, _, errb := execute(t, "mcp", "install", filepath.Join(dir, "missing")); code != 2 || !strings.Contains(errb, "E210") {
@@ -126,10 +139,27 @@ func TestInitRegistersTheServerUnlessToldNotTo(t *testing.T) {
 	if args := serverArgs(t, readMCPConfig(t, filepath.Join(dir, ".mcp.json"))); strings.Join(args, " ") != "mcp" {
 		t.Fatalf("args = %q", args)
 	}
-	// A second init, or one with --force, keeps the file: the entry is
-	// already there, so it is neither written nor "kept".
-	if code, out, _ := execute(t, "--json", "init", dir, "--force"); code != 0 || strings.Contains(out, ".mcp.json") {
+	// A second init finds the entry there, so it is neither written nor
+	// "kept". An entry the team has changed is kept unless --force, like
+	// every other file.
+	if code, out, _ := execute(t, "--json", "init", dir); code != 0 || strings.Contains(out, ".mcp.json") {
 		t.Fatalf("code=%d out=%s", code, out)
+	}
+	if code, _, errb := execute(t, "-C", filepath.Join(dir, "api"), "--env", "dev", "mcp", "install", dir); code != 0 {
+		t.Fatalf("code=%d err=%s", code, errb)
+	}
+	path := filepath.Join(dir, ".mcp.json")
+	if code, out, _ := execute(t, "init", dir, "--no-color"); code != 0 || !strings.Contains(out, "kept  "+path) {
+		t.Fatalf("code=%d out=%s", code, out)
+	}
+	if args := serverArgs(t, readMCPConfig(t, path)); strings.Join(args, " ") != "mcp --dir api --env dev" {
+		t.Fatalf("init replaced the entry without --force: %q", args)
+	}
+	if code, out, _ := execute(t, "init", dir, "--force", "--no-color"); code != 0 || !strings.Contains(out, "wrote "+path) {
+		t.Fatalf("code=%d out=%s", code, out)
+	}
+	if args := serverArgs(t, readMCPConfig(t, path)); strings.Join(args, " ") != "mcp" {
+		t.Fatalf("--force should replace the entry: %q", args)
 	}
 	bare := t.TempDir()
 	if code, _, errb := execute(t, "init", bare, "--no-mcp"); code != 0 {
@@ -144,11 +174,16 @@ func TestInitRegistersTheServerUnlessToldNotTo(t *testing.T) {
 // reader is more likely a script or an agent than a person.
 func TestErrorOffTerminalPointsAtJSON(t *testing.T) {
 	code, _, errb := execute(t, "-C", t.TempDir(), "run", "nope")
-	if code != 2 || !strings.Contains(errb, "\n  --json prints this error as one object to branch on") {
+	if code != 2 || !strings.Contains(errb, "\n  --json prints this error as one") {
 		t.Fatalf("code=%d err=%s", code, errb)
 	}
 	code, _, errb = execute(t, "--json", "-C", t.TempDir(), "run", "nope")
 	if code != 2 || strings.Contains(errb, "--json prints") || !strings.HasPrefix(errb, `{"error":`) {
 		t.Fatalf("under --json the object stands alone: code=%d err=%s", code, errb)
+	}
+	// Not on the one error --json cannot help with: apic ui refuses it.
+	code, _, errb = execute(t, "-C", t.TempDir(), "ui")
+	if code != 2 || !strings.Contains(errb, "E213") || strings.Contains(errb, "--json prints") {
+		t.Fatalf("apic ui: code=%d err=%s", code, errb)
 	}
 }

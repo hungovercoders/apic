@@ -845,9 +845,11 @@ registers the server without a command of its own. The entry runs `apic
 mcp`, with `--dir` naming the project (`-C`) relative to `dir` when the
 two differ and `--env` when one is given. Other servers in the file are
 kept, an entry already named `api` is replaced, and one already holding
-the same text is reported as `unchanged`; a file that is not a JSON
-object is E210 rather than overwritten. `apic init` writes the same entry
-into a new project (`--no-mcp` leaves it out).
+the same text is reported as `unchanged`; an empty file is an empty
+document, and a file that is not a JSON object, or whose `mcpServers` is
+not one, is E210 rather than overwritten. `apic init` writes the same
+entry into a new project (`--no-mcp` leaves it out), keeping one already
+there unless `--force`.
 
 | Flag | Meaning |
 |---|---|
@@ -1033,8 +1035,9 @@ under `.claude/skills/apic` and `.agents/skills/apic`, so an AI agent
 working in the project knows how to use apic from the first session, and
 a `.mcp.json` registering [`apic mcp`](#apic-mcp) for the agents that
 read it. Existing files are kept unless `--force` is given, the skill's
-included (`apic skill install` refreshes it); the `.gitignore` is
-appended to and the `.mcp.json` merged into rather than replaced.
+and an `apic mcp` entry already in `.mcp.json` included (`apic skill
+install` and `apic mcp install` refresh them); the `.gitignore` is
+appended to and the rest of `.mcp.json` kept.
 
 | Flag | Default | Meaning |
 |---|---|---|

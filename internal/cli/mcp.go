@@ -15,7 +15,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/hungovercoders/apic/internal/mcp"
-	"github.com/hungovercoders/apic/internal/project"
 	"github.com/hungovercoders/apic/internal/runner"
 )
 
@@ -117,7 +116,7 @@ the result.`,
 			if err != nil {
 				return err
 			}
-			written, unchanged, err := writeMCPConfig(dir, files, serverArgs)
+			written, unchanged, _, err := writeMCPConfig(dir, files, serverArgs, true)
 			if err != nil {
 				return err
 			}
@@ -170,47 +169,52 @@ func mcpServerArgs(configDir, projectDir, env string) ([]string, error) {
 
 // writeMCPConfig puts the server entry into each of files under dir,
 // merging with what a file holds: its other servers and top-level keys
-// stay, the apic entry is set, and a file already holding the same entry
-// is reported as unchanged. A file that is not a JSON object is an error
-// rather than overwritten. Every path is confined to dir, as the skill's
-// are to the project.
-func writeMCPConfig(dir string, files, serverArgs []string) (written, unchanged []string, err error) {
-	absDir, err := filepath.Abs(dir)
+// stay and the apic entry is set. A file already holding the same entry
+// is reported as unchanged; one holding a different apic entry is
+// overwritten, or with overwrite false kept and reported as skipped, as
+// `apic init` keeps every file a user may have tailored. An empty file is
+// an empty document; one that is not a JSON object, or whose mcpServers
+// is not one, is an error rather than overwritten. Every path is confined
+// to dir, as the skill's are to the project.
+func writeMCPConfig(dir string, files, serverArgs []string, overwrite bool) (written, unchanged, skipped []string, err error) {
+	absDir, err := writeRoot(dir, false, "the configuration")
 	if err != nil {
-		return nil, nil, runner.Usage(runner.CodeFile, err.Error())
-	}
-	if info, err := os.Stat(absDir); err != nil || !info.IsDir() {
-		return nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s is not a directory; the configuration is written into an existing project (apic init creates one)", dir))
+		return nil, nil, nil, err
 	}
 	entry := map[string]any{"command": "apic", "args": serverArgs}
 	for _, name := range files {
-		shown := filepath.Join(dir, name)
-		target, err := project.Confine(absDir, absDir, name)
-		if errors.Is(err, project.ErrOutsideRoot) {
-			return nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s resolves outside %s; the configuration is written under the directory", shown, dir))
-		}
+		shown, target, err := confinedPath(dir, absDir, name, "the configuration")
 		if err != nil {
-			return nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s: %v", shown, err))
+			return nil, nil, nil, err
 		}
 		doc := map[string]any{}
 		existing, err := os.ReadFile(target) //nolint:gosec // the MCP configuration the user's agent reads, confined to the directory above
 		switch {
-		case err == nil:
+		case err == nil && len(bytes.TrimSpace(existing)) > 0:
 			if err := json.Unmarshal(existing, &doc); err != nil {
-				return nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s is not a JSON object: %v", shown, err))
+				return nil, nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s is not a JSON object: %v", shown, err))
 			}
-			if doc == nil { // the file held null
-				doc = map[string]any{}
+			if doc == nil {
+				return nil, nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s is not a JSON object: it holds null", shown))
 			}
-		case !errors.Is(err, fs.ErrNotExist):
-			return nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s: %v", shown, err))
+		case err != nil && !errors.Is(err, fs.ErrNotExist):
+			return nil, nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s: %v", shown, err))
 		}
-		servers, _ := doc["mcpServers"].(map[string]any)
-		if servers == nil {
+		var servers map[string]any
+		switch v := doc["mcpServers"].(type) {
+		case nil:
 			servers = map[string]any{}
+		case map[string]any:
+			servers = v
+		default:
+			return nil, nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s: mcpServers is not an object, so the entry has nowhere to go; nothing was written", shown))
 		}
 		if sameJSON(servers[mcpServerName], entry) {
 			unchanged = append(unchanged, shown)
+			continue
+		}
+		if _, exists := servers[mcpServerName]; exists && !overwrite {
+			skipped = append(skipped, shown)
 			continue
 		}
 		servers[mcpServerName] = entry
@@ -220,17 +224,17 @@ func writeMCPConfig(dir string, files, serverArgs []string) (written, unchanged 
 		enc.SetEscapeHTML(false)
 		enc.SetIndent("", "  ")
 		if err := enc.Encode(doc); err != nil {
-			return nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s: %v", shown, err))
+			return nil, nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s: %v", shown, err))
 		}
 		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil { //nolint:gosec // a configuration directory the user's agents read and the user commits
-			return nil, nil, runner.Usage(runner.CodeFile, err.Error())
+			return nil, nil, nil, runner.Usage(runner.CodeFile, err.Error())
 		}
 		if err := os.WriteFile(target, buf.Bytes(), 0o644); err != nil { //nolint:gosec // public project configuration the user commits, confined to the directory above
-			return nil, nil, runner.Usage(runner.CodeFile, err.Error())
+			return nil, nil, nil, runner.Usage(runner.CodeFile, err.Error())
 		}
 		written = append(written, shown)
 	}
-	return written, unchanged, nil
+	return written, unchanged, skipped, nil
 }
 
 // sameJSON reports whether two values encode to the same JSON, which is

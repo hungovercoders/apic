@@ -26,8 +26,9 @@ features/smoke.feature to run with apic test, the Agent Skill under
 knows how to use apic (see apic skill; --no-skill leaves it out, apic skill
 install refreshes it), and a .mcp.json registering apic mcp for the
 agents that read it (--no-mcp leaves it out; apic mcp install writes it
-elsewhere). Existing files are left alone unless --force is given; the
-.gitignore and .mcp.json are merged into rather than replaced.`,
+elsewhere). Existing files are left alone unless --force is given, an
+apic entry already in .mcp.json included; the .gitignore is appended to
+and the rest of .mcp.json kept.`,
 		Example: `  apic init
   apic init api --base-url https://dev.example.com --env dev
   apic init --json`,
@@ -56,13 +57,15 @@ elsewhere). Existing files are left alone unless --force is given; the
 			}
 			if !noMCP {
 				// The entry runs apic mcp from the project itself, so it
-				// needs no --dir; merged into an existing file, like the
-				// .gitignore, rather than kept or replaced.
-				wrote, _, err := writeMCPConfig(dir, []string{mcpConfigFile}, []string{"mcp"})
+				// needs no --dir. The rest of an existing file is kept, and
+				// so is a different apic entry unless --force: a team may
+				// have pointed it at another directory or environment.
+				wrote, _, kept, err := writeMCPConfig(dir, []string{mcpConfigFile}, []string{"mcp"}, force)
 				if err != nil {
 					return err
 				}
 				written = append(written, wrote...)
+				skipped = append(skipped, kept...)
 			}
 			if a.g.json {
 				return a.writeJSON(struct {

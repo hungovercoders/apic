@@ -4,6 +4,7 @@
 //	go run ./scripts/changelog 0.2.0           # print a version's section (Unreleased with none)
 //	go run ./scripts/changelog -write          # the site's changelog page, and the docs' version pins
 //	go run ./scripts/changelog -release v0.2.0 # release.yml: the notes, after checking the tag
+//	go run ./scripts/changelog -latest         # release.yml: the version to release from main
 //
 // The newest dated section is the current release. -write renders the file
 // as the site's changelog page and rewrites every place the docs pin a
@@ -30,6 +31,7 @@ func main() {
 	file := flag.String("file", "CHANGELOG.md", "the changelog to read")
 	write := flag.Bool("write", false, "write the site's changelog page and the docs' version pins")
 	release := flag.String("release", "", "check that this tag is the newest dated section and the docs name it, then print its notes")
+	latest := flag.Bool("latest", false, "print the newest dated section's version, which a push to main releases")
 	flag.Parse()
 	data, err := os.ReadFile(*file) //nolint:gosec // the changelog the caller named
 	if err != nil {
@@ -38,6 +40,12 @@ func main() {
 	changelog := string(data)
 	root := filepath.Dir(*file)
 	switch {
+	case *latest:
+		v, err := Latest(changelog)
+		if err != nil {
+			fail(err)
+		}
+		fmt.Println(v)
 	case *write:
 		if err := Write(root, changelog); err != nil {
 			fail(err)

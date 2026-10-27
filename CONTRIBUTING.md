@@ -52,7 +52,8 @@ publishing), `task docs` (preview the documentation site).
   flag, a directive, an MCP tool, a fix they could have hit, a change to
   `--json` or an exit code) gets a line under Unreleased in
   [CHANGELOG.md](CHANGELOG.md), in the same pull request. The release's
-  notes are that section, and a tag without one does not release.
+  notes are that section, and merging the pull request that dates it
+  is what releases it (see docs/releasing.md).
 - **The comparison kept honest.** A change that closes a gap another tool
   covers (a parity issue) updates its row in the table in
   [comparison.md](website/src/content/docs/comparison.md), and the "does not

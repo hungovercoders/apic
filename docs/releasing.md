@@ -13,14 +13,28 @@
   newest dated section that is not a prerelease. A test fails until it
   has run, so a dated section cannot merge with docs naming the last
   release. The page leaves Unreleased out, so the pull requests that add
-  lines there need not run it. Merge the release pull request, then push
-  the tag straight away: the site deploys from `main`, so until the
-  release is out its install commands name archives that do not exist
-  yet.
-- `release.yml` runs `scripts/changelog -release <tag>` first. It fails the
-  run with nothing built unless the tag is the newest dated section and
-  the docs already name it, then passes the section to goreleaser as
-  `--release-notes`; `task notes -- 0.2.0` prints what it would attach.
+  lines there need not run it.
+- Merging the release pull request is the release. `release.yml` runs on
+  every push to `main` that changes `CHANGELOG.md`: its `plan` job takes
+  the newest dated section (`scripts/changelog -latest`) and does nothing
+  when that version already has a GitHub release, which is every push
+  that only added lines under Unreleased. Otherwise the `goreleaser` job
+  checks out the commit that brought the dated heading onto `main` (found
+  with `git log -S`, so a manual run or a re-run never ships work merged
+  since), runs the checks below, tags it, and releases it in the same run.
+  The tag is pushed with `GITHUB_TOKEN`, which starts no workflow, so the
+  run is the only release of it. The site, which deploys from `main`,
+  names the new version for the minutes the release takes; if a release
+  fails, its install commands name archives that do not exist until it is
+  fixed and re-run, so treat a red release run as urgent. Pushing a
+  version tag by hand still releases that tag, and the `release`
+  concurrency group makes a hand-pushed tag that races the merge wait and
+  then find the release done.
+- Before tagging, the job runs `scripts/changelog -release <tag>`. It fails
+  the run with nothing built or tagged unless the tag is the newest dated
+  section and the docs already name it, then passes the section to
+  goreleaser as `--release-notes`; `task notes -- 0.2.0` prints what it
+  would attach.
   A prerelease tag (`v0.3.0-rc.1`) needs its own dated section like any
   other, and leaves the docs' pins on the last stable release.
   The generator's tests also check the file's shape (Unreleased first, a
@@ -44,8 +58,9 @@
   snapshot and fails hard without cosign, so `task snapshot` passes
   `--skip=sign,sbom` — a local snapshot is a build sanity check, not a
   release.
-- Before a tag: the changelog section above, `task check`, then
-  `task snapshot` to prove archive names, contents and version injection.
+- Before merging a release pull request: the changelog section above,
+  `task check`, then `task snapshot` to prove archive names, contents and
+  version injection.
   `apic version` from an extracted archive must report the version, not
   `dev` — a typo in the ldflags path fails silently.
 - The image `ghcr.io/hungovercoders/apic` is `Dockerfile` built by
@@ -95,8 +110,8 @@
   including a tampered checksum.
 - After each release, `release.yml` force-moves the major tag (`v0` today,
   `v1` later) to the released commit so `setup-apic@v0` follows the newest
-  release. The job only runs for tags containing a dot, so the moving tag
-  never starts a release of its own.
+  release. The `plan` job releases only tags containing a dot, so the
+  moving tag never starts a release of its own.
 - The VS Code extension is released separately, on `vscode-v<version>`
   tags: `vscode-release.yml` checks the tag against
   `editors/vscode/package.json`, runs the extension's tests, publishes to the

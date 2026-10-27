@@ -9,15 +9,20 @@
   above it, and run `task docs:changelog`, which renders the site's
   changelog page and rewrites every place the docs pin a release (the
   install commands, `setup-apic`'s `version:`, the image tags in the
-  cookbook, the course's sample output) to the newest dated section. A
-  test fails until it has run, so a dated section cannot merge with docs
-  naming the last release. Merge it, then push the tag straight away: the
-  site deploys from `main`, so until the release is out its install
-  commands name archives that do not exist yet.
+  cookbook and on the verifying page, the course's sample output) to the
+  newest dated section that is not a prerelease. A test fails until it
+  has run, so a dated section cannot merge with docs naming the last
+  release. The page leaves Unreleased out, so the pull requests that add
+  lines there need not run it. Merge the release pull request, then push
+  the tag straight away: the site deploys from `main`, so until the
+  release is out its install commands name archives that do not exist
+  yet.
 - `release.yml` runs `scripts/changelog -release <tag>` first. It fails the
   run with nothing built unless the tag is the newest dated section and
   the docs already name it, then passes the section to goreleaser as
   `--release-notes`; `task notes -- 0.2.0` prints what it would attach.
+  A prerelease tag (`v0.3.0-rc.1`) needs its own dated section like any
+  other, and leaves the docs' pins on the last stable release.
   The generator's tests also check the file's shape (Unreleased first, a
   date on every release, newest first, a link reference for each
   version). A new place in the docs that names the current release goes

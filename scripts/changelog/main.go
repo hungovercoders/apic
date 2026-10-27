@@ -49,7 +49,7 @@ func main() {
 		}
 		fmt.Println(body)
 	default:
-		version := "Unreleased"
+		version := unreleased
 		if flag.NArg() == 1 {
 			version = strings.TrimPrefix(flag.Arg(0), "v")
 		} else if flag.NArg() > 1 {
@@ -69,18 +69,43 @@ func fail(err error) {
 	os.Exit(1)
 }
 
-// Latest is the current release: the version of the newest dated section,
-// the upper end of a range heading.
+// unreleased is the name of the section a change goes under until its
+// release is cut.
+const unreleased = "Unreleased"
+
+// semver matches a release's version: three numbers, and a prerelease
+// suffix for a release candidate (0.3.0-rc.1).
+var semver = regexp.MustCompile(`^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$`)
+
+// Latest is the newest release: the version of the newest dated section,
+// the upper end of a range heading. It is what release.yml checks the tag
+// against.
 func Latest(changelog string) (string, error) {
+	return newest(changelog, func(string) bool { return true })
+}
+
+// Stable is the newest release that is not a prerelease, which is what the
+// docs pin: a release candidate is for those who ask for it by name.
+func Stable(changelog string) (string, error) {
+	return newest(changelog, func(v string) bool { return !strings.Contains(v, "-") })
+}
+
+func newest(changelog string, want func(string) bool) (string, error) {
 	for _, line := range strings.Split(changelog, "\n") {
 		m := heading.FindStringSubmatch(line)
 		if m == nil || m[3] == "" {
 			continue
 		}
+		v := m[1]
 		if m[2] != "" {
-			return m[2], nil
+			v = m[2]
 		}
-		return m[1], nil
+		if !semver.MatchString(v) {
+			return "", fmt.Errorf("CHANGELOG.md: %q is not a version like 0.2.0 or 0.3.0-rc.1", v)
+		}
+		if want(v) {
+			return v, nil
+		}
 	}
 	return "", fmt.Errorf("CHANGELOG.md has no dated release section")
 }
@@ -98,13 +123,27 @@ func Release(root, changelog, tag string) (string, error) {
 	if tag != latest {
 		return "", fmt.Errorf("the tag is %s but CHANGELOG.md's newest dated section is %s: date this release's section (## [%s] - YYYY-MM-DD) and run task docs:changelog before tagging", tag, latest, tag)
 	}
-	if stale, err := Stale(root, changelog); err != nil {
+	stale, err := Stale(root, changelog)
+	if err != nil {
 		return "", err
-	} else if len(stale) > 0 {
-		return "", fmt.Errorf("%s do not name %s yet: run task docs:changelog before tagging", strings.Join(stale, ", "), tag)
+	}
+	var problems []string
+	for _, f := range stale {
+		if f == Page {
+			problems = append(problems, f+" does not match CHANGELOG.md's releases")
+		} else {
+			problems = append(problems, f+" pins another version than the newest stable release")
+		}
+	}
+	if len(problems) > 0 {
+		return "", fmt.Errorf("%s: run task docs:changelog and merge it before tagging", strings.Join(problems, "; "))
 	}
 	return Section(changelog, tag)
 }
+
+// linkRef matches a Markdown link reference definition, "[0.2.0]: url",
+// which the file's compare links at the end are.
+var linkRef = regexp.MustCompile(`^\[[^\]]+\]: `)
 
 // heading matches a release heading: "## [0.2.0] - 2026-10-27", the
 // "## [Unreleased]" section, or a range such as "## [0.1.1] to [0.1.3] -
@@ -112,13 +151,17 @@ func Release(root, changelog, tag string) (string, error) {
 var heading = regexp.MustCompile(`^## \[([^\]]+)\](?: to \[([^\]]+)\])?(?: - (\d{4}-\d{2}-\d{2}))?\s*$`)
 
 // Section returns the body under version's heading, the lines up to the
-// next "## " heading with the blank lines around them removed. A range
+// next "## " heading or the link references that end the file, with the
+// blank lines around them removed. A range
 // heading serves every version it names and the ones between. The body
 // must not be empty: a release with nothing to say has nothing to attach.
 func Section(changelog, version string) (string, error) {
 	var body []string
 	found := false
 	for _, line := range strings.Split(changelog, "\n") {
+		if found && linkRef.MatchString(line) {
+			break
+		}
 		if strings.HasPrefix(line, "## ") {
 			if found {
 				break
@@ -156,10 +199,26 @@ func covers(from, to, version string) bool {
 	return compareVersions(from, version) <= 0 && compareVersions(version, to) <= 0
 }
 
-// compareVersions orders dotted numeric versions, a non-numeric part
-// sorting after any number, so "0.10.0" is above "0.9.1" and "Unreleased"
-// above everything.
+// compareVersions orders versions: numerically by their dotted parts, so
+// "0.10.0" is above "0.9.1"; a prerelease below the release it leads to,
+// so "0.3.0-rc.1" is below "0.3.0" and above "0.2.0"; and a word such as
+// Unreleased above everything.
 func compareVersions(a, b string) int {
+	a, preA, _ := strings.Cut(a, "-")
+	b, preB, _ := strings.Cut(b, "-")
+	if c := compareParts(a, b); c != 0 || preA == preB {
+		return c
+	}
+	switch {
+	case preA == "":
+		return 1
+	case preB == "":
+		return -1
+	}
+	return compareParts(preA, preB)
+}
+
+func compareParts(a, b string) int {
 	as, bs := strings.Split(a, "."), strings.Split(b, ".")
 	for i := 0; i < len(as) || i < len(bs); i++ {
 		var x, y int
@@ -218,9 +277,14 @@ func Check(changelog string) []string {
 			continue
 		}
 		from, to, date := m[1], m[2], m[3]
+		for _, v := range []string{from, to} {
+			if v != "" && v != unreleased && !semver.MatchString(v) {
+				problems = append(problems, fmt.Sprintf("line %d: %q is not a version like 0.2.0 or 0.3.0-rc.1", n+1, v))
+			}
+		}
 		if first {
 			first = false
-			if from != "Unreleased" {
+			if from != unreleased {
 				problems = append(problems, fmt.Sprintf("line %d: the first section must be Unreleased", n+1))
 			}
 		}
@@ -228,7 +292,7 @@ func Check(changelog string) []string {
 			if v == "" {
 				continue
 			}
-			if v != "Unreleased" && date == "" {
+			if v != unreleased && date == "" {
 				problems = append(problems, fmt.Sprintf("line %d: %s has no release date", n+1, v))
 			}
 			if !refs[v] {

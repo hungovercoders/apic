@@ -25,7 +25,7 @@ transparency log. Verifying checks that chain.
 You need [cosign](https://github.com/sigstore/cosign#installation).
 
 ```sh
-VERSION=v0.1.0
+VERSION=v0.2.0
 BASE="https://github.com/hungovercoders/apic/releases/download/$VERSION"
 
 curl -fsSLO "$BASE/checksums.txt"
@@ -61,7 +61,7 @@ The image `ghcr.io/hungovercoders/apic` is signed by the same workflow, keyless,
 so the same two identity flags apply:
 
 ```sh
-cosign verify ghcr.io/hungovercoders/apic:0.1.0 \
+cosign verify ghcr.io/hungovercoders/apic:0.2.0 \
   --certificate-identity-regexp '^https://github\.com/hungovercoders/apic/\.github/workflows/release\.yml@refs/tags/' \
   --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'
 ```
@@ -74,7 +74,7 @@ The image also carries an SBOM attestation, which buildx attached when it
 built it:
 
 ```sh
-docker buildx imagetools inspect ghcr.io/hungovercoders/apic:0.1.0 --format '{{ json .SBOM }}'
+docker buildx imagetools inspect ghcr.io/hungovercoders/apic:0.2.0 --format '{{ json .SBOM }}'
 ```
 
 ## Read the SBOM

@@ -14,14 +14,6 @@ fixes something without changing what the binary accepts. Every release's
 notes on GitHub are its section here, so a change a user would notice
 gets a line under Unreleased in the pull request that makes it.
 
-## [Unreleased]
-
-### Added
-
-- This changelog, on [apic.sh/changelog](https://apic.sh/changelog/) and
-  attached to each release on GitHub as its notes, in place of a list of
-  commits.
-
 ## [0.2.0] - 2026-10-27
 
 ### Added
@@ -121,7 +113,6 @@ with one static binary for Linux, macOS and Windows.
 - `apic skill` and `apic init` carry the Agent Skill that briefs an AI
   agent on all of the above.
 
-[Unreleased]: https://github.com/hungovercoders/apic/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/hungovercoders/apic/compare/v0.1.4...v0.2.0
 [0.1.4]: https://github.com/hungovercoders/apic/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/hungovercoders/apic/compare/v0.1.2...v0.1.3

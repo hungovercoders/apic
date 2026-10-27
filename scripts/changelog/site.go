@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -22,59 +21,84 @@ root; edit that file and run task docs:changelog. -->
 
 `
 
+// blankRuns is three or more newlines, which the page folds into one blank
+// line where a section was taken out.
+var blankRuns = regexp.MustCompile(`\n{3,}`)
+
 // SitePage renders CHANGELOG.md as the site's page: the file's own title
-// gives way to the page's front matter, and an Unreleased section with
-// nothing in it is left out, since a reader of the site has nothing to see
-// there. One with lines in it stays: the site is built from main, so it is
-// what main has that no release carries yet.
+// gives way to the page's front matter, and the Unreleased section is left
+// out with its link reference. The page lists releases a reader can
+// install; what main has that no release carries yet is for contributors,
+// and leaving it off means a pull request that adds a line under
+// Unreleased does not touch the page, only the one that dates a release.
 func SitePage(changelog string) string {
-	text := strings.ReplaceAll(changelog, "\r\n", "\n")
-	// The H1 is the page's title, from the front matter.
+	text := changelog
 	if strings.HasPrefix(text, "# ") {
 		_, text, _ = strings.Cut(text, "\n")
 	}
-	if body, err := Section(text, "Unreleased"); err != nil && body == "" {
-		// Nothing unreleased: drop the heading and its link reference.
-		text = strings.Replace(text, "## [Unreleased]\n", "", 1)
-		lines := strings.Split(text, "\n")
-		kept := lines[:0]
-		for _, l := range lines {
-			if !strings.HasPrefix(l, "[Unreleased]: ") {
-				kept = append(kept, l)
-			}
+	var kept []string
+	skipping := false
+	for _, line := range strings.Split(text, "\n") {
+		if m := heading.FindStringSubmatch(line); m != nil {
+			skipping = m[1] == unreleased
+		} else if skipping && strings.HasPrefix(line, "[") {
+			skipping = false // the link references after the last section
 		}
-		text = strings.Join(kept, "\n")
+		if skipping || strings.HasPrefix(line, "["+unreleased+"]: ") {
+			continue
+		}
+		kept = append(kept, line)
 	}
-	text = regexp.MustCompile(`\n{3,}`).ReplaceAllString(text, "\n\n")
+	text = blankRuns.ReplaceAllString(strings.Join(kept, "\n"), "\n\n")
 	return pageHead + strings.TrimSpace(text) + "\n"
 }
 
-// A Pin is one place the docs name the current release, as a pattern for
-// the whole phrase and its text with {v} for the version (0.2.0) and
-// {minor} for the minor (0.2). Every pin must match at least once, so a
-// reworded line fails the test instead of keeping an old version quietly.
+// A Pin is one place the docs name the current release: a pattern for the
+// whole phrase, with any version in it, and the phrase's text with {v} for
+// the version (0.2.0) and {minor} for its minor (0.2). Every pin must
+// match at least once, so a reworded line fails the test instead of
+// keeping an old version quietly.
 type Pin struct {
-	File    string // relative to the repository root
-	Pattern string // a regular expression for the phrase, any version in it
-	Text    string // the phrase with {v} and {minor}
+	File string // relative to the repository root
+	re   *regexp.Regexp
+	Text string
 }
 
-// ver matches a version in a pin's pattern.
-const ver = `\d+\.\d+\.\d+`
+// Patterns for a version in a pin: a full version, prerelease included so
+// a pin rewritten from one cannot keep its suffix, and a minor.
+const (
+	ver   = `\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?`
+	minor = `\d+\.\d+`
+)
+
+func pin(file, pattern, text string) Pin {
+	return Pin{File: file, re: regexp.MustCompile(pattern), Text: text}
+}
 
 // Pins are the places the docs name the current release. A new one goes
 // here, not into the page by hand.
 var Pins = []Pin{
-	{"website/src/content/docs/getting-started.mdx", `V=` + ver + `   # the release, without the v`, `V={v}   # the release, without the v`},
-	{"website/src/content/docs/getting-started.mdx", `with: version:\nv` + ver + "` to pin one", "with: version:\nv{v}` to pin one"},
-	{"website/src/content/docs/cookbook.md", "`with: version: v" + ver + "`", "`with: version: v{v}`"},
-	{"website/src/content/docs/cookbook.md", "tagged with the version \\(`" + ver + "` and `v" + ver + "`\\), the minor \\(`v\\d+\\.\\d+`\\)", "tagged with the version (`{v}` and `v{v}`), the minor (`v{minor}`)"},
-	{"website/src/content/docs/learn/index.md", `written for apic v` + ver + ` or newer`, `written for apic v{v} or newer`},
-	{"website/src/content/docs/learn/01-first-request.md", `apic v` + ver + ` · `, `apic v{v} · `},
-	{"website/src/content/docs/learn/01-first-request.md", `"version": "v` + ver + `"`, `"version": "v{v}"`},
-	{"website/src/content/docs/learn/04-assertions.md", `"version": "v` + ver + `"`, `"version": "v{v}"`},
-	{"website/src/content/docs/learn/08-ci.md", `version: v` + ver, `version: v{v}`},
-	{"website/src/content/docs/learn/09-import-export.md", `"version": "v` + ver + `"`, `"version": "v{v}"`},
+	pin("website/src/content/docs/getting-started.mdx", `V=`+ver+`   # the release, without the v`, `V={v}   # the release, without the v`),
+	pin("website/src/content/docs/getting-started.mdx", "with: version:\nv"+ver+"` to pin one", "with: version:\nv{v}` to pin one"),
+	pin("website/src/content/docs/cookbook.md", "`with: version: v"+ver+"`", "`with: version: v{v}`"),
+	pin("website/src/content/docs/cookbook.md", "tagged with the version \\(`"+ver+"` and `v"+ver+"`\\), the minor \\(`v"+minor+"`\\)", "tagged with the version (`{v}` and `v{v}`), the minor (`v{minor}`)"),
+	pin("website/src/content/docs/cookbook.md", `COPY --from=ghcr.io/hungovercoders/apic:v`+minor+` `, `COPY --from=ghcr.io/hungovercoders/apic:v{minor} `),
+	pin("website/src/content/docs/verifying.md", `VERSION=v`+ver+"\n", "VERSION=v{v}\n"),
+	pin("website/src/content/docs/verifying.md", `ghcr.io/hungovercoders/apic:`+ver+` `, `ghcr.io/hungovercoders/apic:{v} `),
+	pin("website/src/content/docs/learn/index.md", `written for apic v`+ver+` or newer`, `written for apic v{v} or newer`),
+	pin("website/src/content/docs/learn/01-first-request.md", `apic v`+ver+` · `, `apic v{v} · `),
+	pin("website/src/content/docs/learn/01-first-request.md", `"version": "v`+ver+`"`, `"version": "v{v}"`),
+	pin("website/src/content/docs/learn/04-assertions.md", `"version": "v`+ver+`"`, `"version": "v{v}"`),
+	pin("website/src/content/docs/learn/08-ci.md", `version: v`+ver, `version: v{v}`),
+	pin("website/src/content/docs/learn/09-import-export.md", `"version": "v`+ver+`"`, `"version": "v{v}"`),
+	pin("setup-apic/README.md", `version: v`+ver+` # or "latest"`, `version: v{v} # or "latest"`),
+}
+
+var minorPrefix = regexp.MustCompile(`^` + minor)
+
+// minorOf is a version's major.minor: 0.2 for 0.2.0 and for 0.2.0-rc.1.
+func minorOf(version string) string {
+	return minorPrefix.FindString(version)
 }
 
 // pinned returns a file's text with every pin in it naming version.
@@ -85,22 +109,20 @@ func pinned(root, file, version string) (before, after string, err error) {
 	}
 	before = string(data)
 	after = before
-	minor := version[:strings.LastIndex(version, ".")]
+	text := strings.NewReplacer("{v}", version, "{minor}", minorOf(version))
 	for _, p := range Pins {
 		if p.File != file {
 			continue
 		}
-		re := regexp.MustCompile(p.Pattern)
-		if !re.MatchString(after) {
-			return "", "", fmt.Errorf("%s: no match for the pin %q; reword it in Pins (scripts/changelog/site.go) rather than in the page", file, p.Pattern)
+		if !p.re.MatchString(after) {
+			return "", "", fmt.Errorf("%s: no match for the pin %q; reword it in Pins (scripts/changelog/site.go) rather than in the page", file, p.re)
 		}
-		text := strings.NewReplacer("{v}", version, "{minor}", minor).Replace(p.Text)
-		after = re.ReplaceAllLiteralString(after, text)
+		after = p.re.ReplaceAllLiteralString(after, text.Replace(p.Text))
 	}
 	return before, after, nil
 }
 
-// files is every page the site's changelog and the pins touch, the page
+// files is every file the site's changelog and the pins touch, the page
 // first, each once.
 func files() []string {
 	out := []string{Page}
@@ -114,41 +136,46 @@ func files() []string {
 	return out
 }
 
-// expected returns what each file should hold for this changelog.
-func expected(root, changelog string) (map[string][2]string, error) {
-	latest, err := Latest(changelog)
+// A change is one file as it is and as the changelog says it should be.
+type change struct{ file, current, want string }
+
+// changes returns every file the changelog governs with what it should
+// hold: the site's page, and each pinned page naming the newest stable
+// release.
+func changes(root, changelog string) ([]change, error) {
+	stable, err := Stable(changelog)
 	if err != nil {
 		return nil, err
 	}
-	want := map[string][2]string{}
+	var out []change
 	for _, f := range files() {
 		if f == Page {
 			current, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(Page))) //nolint:gosec // a docs page in the repository
 			if err != nil && !os.IsNotExist(err) {
 				return nil, err
 			}
-			want[f] = [2]string{strings.ReplaceAll(string(current), "\r\n", "\n"), SitePage(changelog)}
+			out = append(out, change{f, string(current), SitePage(changelog)})
 			continue
 		}
-		before, after, err := pinned(root, f, latest)
+		before, after, err := pinned(root, f, stable)
 		if err != nil {
 			return nil, err
 		}
-		want[f] = [2]string{strings.ReplaceAll(before, "\r\n", "\n"), strings.ReplaceAll(after, "\r\n", "\n")}
+		out = append(out, change{f, before, after})
 	}
-	return want, nil
+	return out, nil
 }
 
 // Stale lists the files that do not match the changelog yet.
 func Stale(root, changelog string) ([]string, error) {
-	want, err := expected(root, changelog)
+	all, err := changes(root, changelog)
 	if err != nil {
 		return nil, err
 	}
 	var stale []string
-	for _, f := range files() {
-		if want[f][0] != want[f][1] {
-			stale = append(stale, f)
+	for _, c := range all {
+		if c.current != c.want {
+			stale = append(stale, c.file)
 		}
 	}
 	return stale, nil
@@ -157,18 +184,18 @@ func Stale(root, changelog string) ([]string, error) {
 // Write brings the site's changelog page and every pin in line with the
 // changelog, leaving a file that already matches untouched.
 func Write(root, changelog string) error {
-	want, err := expected(root, changelog)
+	all, err := changes(root, changelog)
 	if err != nil {
 		return err
 	}
-	for _, f := range files() {
-		if bytes.Equal([]byte(want[f][0]), []byte(want[f][1])) {
+	for _, c := range all {
+		if c.current == c.want {
 			continue
 		}
-		if err := os.WriteFile(filepath.Join(root, filepath.FromSlash(f)), []byte(want[f][1]), 0o644); err != nil { //nolint:gosec // a docs page in the repository, meant to be world-readable
+		if err := os.WriteFile(filepath.Join(root, filepath.FromSlash(c.file)), []byte(c.want), 0o644); err != nil { //nolint:gosec // a docs page in the repository, meant to be world-readable
 			return err
 		}
-		fmt.Println("wrote", f)
+		fmt.Println("wrote", c.file)
 	}
 	return nil
 }

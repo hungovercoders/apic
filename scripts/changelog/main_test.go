@@ -53,6 +53,10 @@ func TestSectionFindsAVersionAndRefusesWhatIsNotThere(t *testing.T) {
 	if _, err := Section(sample, "9.9.9"); err == nil {
 		t.Fatal("a missing version should be an error")
 	}
+	// The oldest section ends at the link references, not the file's end.
+	if got, err := Section(sample, "0.1.0"); err != nil || got != "The first release." {
+		t.Fatalf("0.1.0: %q %v", got, err)
+	}
 }
 
 func TestCheckNamesEveryShapeProblem(t *testing.T) {
@@ -68,6 +72,13 @@ func TestCheckNamesEveryShapeProblem(t *testing.T) {
 	}
 	if compareVersions("0.10.0", "0.9.1") <= 0 || compareVersions("Unreleased", "1.0.0") <= 0 || compareVersions("1.0", "1.0.0") != 0 {
 		t.Fatal("version order")
+	}
+	// A prerelease sits between the release before it and the one it leads to.
+	if compareVersions("0.3.0-rc.1", "0.3.0") >= 0 || compareVersions("0.3.0-rc.1", "0.2.0") <= 0 || compareVersions("0.3.0-rc.2", "0.3.0-rc.1") <= 0 {
+		t.Fatal("prerelease order")
+	}
+	if p := strings.Join(Check("## [Unreleased]\n\n## [1] - 2026-10-27\n\nA.\n\n[Unreleased]: u\n[1]: u\n"), "\n"); !strings.Contains(p, `"1" is not a version`) {
+		t.Fatalf("a malformed version: %s", p)
 	}
 }
 
@@ -120,11 +131,29 @@ func TestLatestAndTheSitePage(t *testing.T) {
 		t.Fatalf("front matter in place of the H1:\n%s", page)
 	}
 	if strings.Contains(page, "[Unreleased]") || !strings.Contains(page, "## [0.2.0] - 2026-10-27") || !strings.Contains(page, "[0.2.0]: ") {
-		t.Fatalf("an empty Unreleased goes, the releases stay:\n%s", page)
+		t.Fatalf("Unreleased goes, the releases stay:\n%s", page)
 	}
-	withNews := strings.Replace(sample, "## [Unreleased]\n", "## [Unreleased]\n\n- Coming.\n", 1)
-	if p := SitePage(withNews); !strings.Contains(p, "## [Unreleased]\n\n- Coming.") || !strings.Contains(p, "[Unreleased]: ") {
-		t.Fatalf("an Unreleased with lines stays:\n%s", p)
+	// A line under Unreleased, which every user-facing pull request adds,
+	// leaves the page as it was; so does a heading with trailing spaces.
+	for _, variant := range []string{
+		strings.Replace(sample, "## [Unreleased]\n", "## [Unreleased]\n\n### Added\n\n- Coming.\n", 1),
+		strings.Replace(sample, "## [Unreleased]\n", "## [Unreleased]  \n", 1),
+	} {
+		if p := SitePage(variant); p != page {
+			t.Fatalf("Unreleased changed the page:\n%s", p)
+		}
+	}
+	// Latest is any release, the docs pin the newest stable one, and a
+	// heading that is not a version is an error, not a panic.
+	rc := strings.Replace(sample, "## [0.2.0] - 2026-10-27", "## [0.3.0-rc.1] - 2026-10-28\n\n- Candidate.\n\n## [0.2.0] - 2026-10-27", 1)
+	if v, _ := Latest(rc); v != "0.3.0-rc.1" {
+		t.Fatalf("latest = %q", v)
+	}
+	if v, _ := Stable(rc); v != "0.2.0" {
+		t.Fatalf("stable = %q", v)
+	}
+	if _, err := Latest("## [1] - 2026-10-27\n"); err == nil || !strings.Contains(err.Error(), "not a version") {
+		t.Fatalf("a bad version: %v", err)
 	}
 }
 
@@ -135,8 +164,8 @@ func TestPinsRewriteAndRefuseAMissingPhrase(t *testing.T) {
 	saved := Pins
 	t.Cleanup(func() { Pins = saved })
 	Pins = []Pin{
-		{"a.md", `version: v` + ver, `version: v{v}`},
-		{"a.md", "minor \\(`v\\d+\\.\\d+`\\)", "minor (`v{minor}`)"},
+		pin("a.md", `version: v`+ver, `version: v{v}`),
+		pin("a.md", "minor \\(`v"+minor+"`\\)", "minor (`v{minor}`)"),
 	}
 	if err := os.WriteFile(filepath.Join(root, "a.md"), []byte("version: v0.1.4\nversion: v0.1.4 # x\nminor (`v0.1`)\n"), 0o600); err != nil {
 		t.Fatal(err)
@@ -144,6 +173,20 @@ func TestPinsRewriteAndRefuseAMissingPhrase(t *testing.T) {
 	_, after, err := pinned(root, "a.md", "0.2.0")
 	if err != nil || after != "version: v0.2.0\nversion: v0.2.0 # x\nminor (`v0.2`)\n" {
 		t.Fatalf("%q %v", after, err)
+	}
+	// A prerelease's suffix is part of the version the pin matches, so a
+	// second run changes nothing rather than adding the suffix again.
+	if err := os.WriteFile(filepath.Join(root, "a.md"), []byte(after), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 2; i++ {
+		_, after, err = pinned(root, "a.md", "0.3.0-rc.1")
+		if err != nil || after != "version: v0.3.0-rc.1\nversion: v0.3.0-rc.1 # x\nminor (`v0.3`)\n" {
+			t.Fatalf("run %d: %q %v", i+1, after, err)
+		}
+		if err := os.WriteFile(filepath.Join(root, "a.md"), []byte(after), 0o600); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := os.WriteFile(filepath.Join(root, "a.md"), []byte("reworded\n"), 0o600); err != nil {
 		t.Fatal(err)

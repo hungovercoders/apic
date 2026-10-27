@@ -192,7 +192,7 @@ There, copy the binary into the image you already use:
 
 ```dockerfile
 FROM node:22
-COPY --from=ghcr.io/hungovercoders/apic:v0.1 /apic /usr/local/bin/apic
+COPY --from=ghcr.io/hungovercoders/apic:v0.2 /apic /usr/local/bin/apic
 ```
 
 or run the installer in the job:

@@ -93,6 +93,11 @@ declares no environment `url` on purpose: the slopstopper checks that run on
 - `task docs:cli`: regenerate the "Commands and flags" section at the end of
   the site's `cli.md` from the command tree (`scripts/clidocs`; a test fails
   when it is stale); `task man` writes the man pages goreleaser ships.
+- `task docs:changelog`: regenerate the site's `changelog.md` from
+  `CHANGELOG.md` at the root, and rewrite the version pins in the install
+  commands, the cookbook and the course to its newest dated section
+  (`scripts/changelog`; a test fails when either is stale). See
+  `releasing.md` for when it runs.
 - `task docs:errors`: regenerate the site's `errors.md` from
   `runner.Catalogue` (`scripts/errdocs`; a test fails when it is stale).
 - `task skill`: regenerate `skills/apic/references/cheatsheet.md` from the

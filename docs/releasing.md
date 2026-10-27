@@ -1,18 +1,29 @@
 # Releasing
 
-- The release notes are the tag's section of `CHANGELOG.md`, hand-written
-  in [Keep a Changelog](https://keepachangelog.com/) form: a change a user
-  would notice gets a line under Unreleased in the pull request that makes
-  it, and cutting a release means turning Unreleased into
-  `## [x.y.z] - YYYY-MM-DD`, adding its compare link at the end of the
-  file, and starting a new empty Unreleased above it. `release.yml` runs
-  `scripts/changelog` first, which fails the run with nothing built when
-  the tag has no section or an empty one, and passes the section to
-  goreleaser as `--release-notes`; `task notes -- 0.2.0` prints what it
-  would attach. The generator's test checks the file's shape (Unreleased
-  first, a date on every release, newest first, a link reference for each
-  version), so a malformed heading fails `task test` rather than the
-  release. goreleaser's own commit-list changelog is left configured but
+- `CHANGELOG.md` is where a release is written down, and the rest follows
+  from it. A change a user would notice gets a line under Unreleased in
+  the pull request that makes it, in
+  [Keep a Changelog](https://keepachangelog.com/) form. Cutting a release
+  is one pull request: turn Unreleased into `## [x.y.z] - YYYY-MM-DD`, add
+  its compare link at the end of the file, start a new empty Unreleased
+  above it, and run `task docs:changelog`, which renders the site's
+  changelog page and rewrites every place the docs pin a release (the
+  install commands, `setup-apic`'s `version:`, the image tags in the
+  cookbook, the course's sample output) to the newest dated section. A
+  test fails until it has run, so a dated section cannot merge with docs
+  naming the last release. Merge it, then push the tag straight away: the
+  site deploys from `main`, so until the release is out its install
+  commands name archives that do not exist yet.
+- `release.yml` runs `scripts/changelog -release <tag>` first. It fails the
+  run with nothing built unless the tag is the newest dated section and
+  the docs already name it, then passes the section to goreleaser as
+  `--release-notes`; `task notes -- 0.2.0` prints what it would attach.
+  The generator's tests also check the file's shape (Unreleased first, a
+  date on every release, newest first, a link reference for each
+  version). A new place in the docs that names the current release goes
+  into `Pins` in `scripts/changelog/site.go`, not into the page by hand;
+  a pin whose phrase is reworded fails the test rather than keeping the old
+  version. goreleaser's own commit-list changelog is left configured but
   never used: it listed every commit since the repository began.
 - Releases are signed with cosign, keyless: the certificate is bound to the
   release workflow's OIDC identity, so `release.yml` needs `id-token: write`

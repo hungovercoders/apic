@@ -1,44 +1,109 @@
-// Command changelog prints one release's section of CHANGELOG.md, which is
-// what release.yml attaches to the GitHub release as its notes:
+// Command changelog makes CHANGELOG.md the one place a release is written
+// down, and everything else that names a release follow from it:
 //
-//	go run ./scripts/changelog 0.2.0     # or v0.2.0; nothing for Unreleased
+//	go run ./scripts/changelog 0.2.0           # print a version's section (Unreleased with none)
+//	go run ./scripts/changelog -write          # the site's changelog page, and the docs' version pins
+//	go run ./scripts/changelog -release v0.2.0 # release.yml: the notes, after checking the tag
 //
-// It exits 1 when the file has no section for the version, or an empty
-// one, so a tag nobody wrote notes for fails before anything is built.
-// The test beside it checks the file itself: an Unreleased section first,
-// a date on every released heading, versions in descending order, and a
-// link reference for each.
+// The newest dated section is the current release. -write renders the file
+// as the site's changelog page and rewrites every place the docs pin a
+// release (the install commands, setup-apic's version input, the course's
+// sample output) to that version; `task docs:changelog` runs it, and a test
+// fails when either is stale, so dating a section in a pull request is the
+// one manual step of a release. -release is what release.yml runs before
+// building anything: it fails unless the tag is the newest dated section
+// and the docs already name it, then prints the section as the release's
+// notes. Without a flag the command prints a version's section, exiting 1
+// when there is none or it is empty.
 package main
 
 import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
 
 func main() {
 	file := flag.String("file", "CHANGELOG.md", "the changelog to read")
+	write := flag.Bool("write", false, "write the site's changelog page and the docs' version pins")
+	release := flag.String("release", "", "check that this tag is the newest dated section and the docs name it, then print its notes")
 	flag.Parse()
-	version := "Unreleased"
-	if flag.NArg() == 1 {
-		version = strings.TrimPrefix(flag.Arg(0), "v")
-	} else if flag.NArg() > 1 {
-		fmt.Fprintln(os.Stderr, "usage: changelog [-file CHANGELOG.md] [version]")
-		os.Exit(2)
-	}
 	data, err := os.ReadFile(*file) //nolint:gosec // the changelog the caller named
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		fail(err)
 	}
-	body, err := Section(string(data), version)
+	changelog := string(data)
+	root := filepath.Dir(*file)
+	switch {
+	case *write:
+		if err := Write(root, changelog); err != nil {
+			fail(err)
+		}
+	case *release != "":
+		body, err := Release(root, changelog, strings.TrimPrefix(*release, "v"))
+		if err != nil {
+			fail(err)
+		}
+		fmt.Println(body)
+	default:
+		version := "Unreleased"
+		if flag.NArg() == 1 {
+			version = strings.TrimPrefix(flag.Arg(0), "v")
+		} else if flag.NArg() > 1 {
+			fmt.Fprintln(os.Stderr, "usage: changelog [-file CHANGELOG.md] [-write | -release <tag> | <version>]")
+			os.Exit(2)
+		}
+		body, err := Section(changelog, version)
+		if err != nil {
+			fail(err)
+		}
+		fmt.Println(body)
+	}
+}
+
+func fail(err error) {
+	fmt.Fprintln(os.Stderr, err)
+	os.Exit(1)
+}
+
+// Latest is the current release: the version of the newest dated section,
+// the upper end of a range heading.
+func Latest(changelog string) (string, error) {
+	for _, line := range strings.Split(changelog, "\n") {
+		m := heading.FindStringSubmatch(line)
+		if m == nil || m[3] == "" {
+			continue
+		}
+		if m[2] != "" {
+			return m[2], nil
+		}
+		return m[1], nil
+	}
+	return "", fmt.Errorf("CHANGELOG.md has no dated release section")
+}
+
+// Release returns the notes for tag after checking that it is the release
+// the changelog and the docs describe: the newest dated section, whose
+// version the site's page and pins already carry. A tag cut before the
+// release pull request merged, or one that skipped `task docs:changelog`,
+// fails here with nothing built.
+func Release(root, changelog, tag string) (string, error) {
+	latest, err := Latest(changelog)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		return "", err
 	}
-	fmt.Println(body)
+	if tag != latest {
+		return "", fmt.Errorf("the tag is %s but CHANGELOG.md's newest dated section is %s: date this release's section (## [%s] - YYYY-MM-DD) and run task docs:changelog before tagging", tag, latest, tag)
+	}
+	if stale, err := Stale(root, changelog); err != nil {
+		return "", err
+	} else if len(stale) > 0 {
+		return "", fmt.Errorf("%s do not name %s yet: run task docs:changelog before tagging", strings.Join(stale, ", "), tag)
+	}
+	return Section(changelog, tag)
 }
 
 // heading matches a release heading: "## [0.2.0] - 2026-10-27", the

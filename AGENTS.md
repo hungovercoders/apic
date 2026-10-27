@@ -44,7 +44,7 @@ files itself (it reads `--json`).
 
 - Keep the `.http` dialect compatible with VS Code REST Client and JetBrains: new features go in `# @directive` comments before the request line, never new syntax in the request itself. Document any addition in the site's `format.md`.
 - The `--json` output shape and exit codes are a public contract; change them only with a note on the site's `agents.md` page.
-- A change a user would notice gets a line under Unreleased in `CHANGELOG.md`: the release's notes are that section, and a tag without one does not release.
+- A change a user would notice gets a line under Unreleased in `CHANGELOG.md`: the release's notes are that section, and `task docs:changelog` derives the site's changelog page and the docs' version pins from it.
 - Every command must work non-interactively (no prompts) and respect `--json`. `apic ui` is the single, deliberate exception: it is interactive, has no `--json`, and exits 2 when stdout is not a terminal. `apic mcp` and `apic lsp` are servers that speak their own JSON protocol on stdout, so `--json` has nothing to change for them.
 - A new error gets a code from the catalogue: `runner.Usage(runner.CodeX, msg)` or `usagef(CodeX, …)`, never a bare message; a new code needs an entry in `Catalogue` and a case in `internal/cli/errors_test.go`, which runs a real command for every code.
 - New commands need a section in the site's `cli.md` and a line in its `cheatsheet.md`; a new or changed flag needs `task docs:cli`. A flag's usage text must not contain backticks: cobra reads the first backticked word as the value's name (a test checks).

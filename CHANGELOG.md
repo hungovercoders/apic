@@ -10,6 +10,12 @@ gets a line under Unreleased in the pull request that makes it.
 
 ## [Unreleased]
 
+### Added
+
+- This changelog, on [apic.sh/changelog](https://apic.sh/changelog/) and
+  attached to each release on GitHub as its notes, in place of a list of
+  commits.
+
 ## [0.2.0] - 2026-10-27
 
 ### Added
@@ -30,11 +36,11 @@ gets a line under Unreleased in the pull request that makes it.
 - `apic init` writes the same `.mcp.json` into a new project, beside the
   Agent Skill; `--no-mcp` leaves it out, and an entry a team has changed
   is kept unless `--force`.
-- apic is listed in the [MCP registry](https://registry.modelcontextprotocol.io/)
-  as `io.github.hungovercoders/apic`, the `ghcr.io/hungovercoders/apic`
-  image running `apic mcp` with the project mounted at `/work`, so an MCP
-  client that installs servers from a catalogue finds it. Each release
-  publishes its version.
+- Each release publishes apic to the
+  [MCP registry](https://registry.modelcontextprotocol.io/) as
+  `io.github.hungovercoders/apic`, the `ghcr.io/hungovercoders/apic` image
+  running `apic mcp` with the project mounted at `/work`, so an MCP client
+  that installs servers from a catalogue can find it.
 - The `setup-apic` GitHub Action has a README, with a paragraph for an
   agent running in the job.
 

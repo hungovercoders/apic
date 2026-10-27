@@ -69,7 +69,7 @@ apic version
 ```
 
 ```
-apic v0.1.4 · 1a2b3c4 · go1.26.10 linux/amd64
+apic v0.2.0 · 1a2b3c4 · go1.26.10 linux/amd64
 apic is epic · https://apic.sh/
 ```
 
@@ -338,7 +338,7 @@ GET http://localhost:8089/health
   "service": "apic-demo",
   "status": "ok",
   "uptime_seconds": 12,
-  "version": "v0.1.4"
+  "version": "v0.2.0"
 }
 
 ✓ status == 200

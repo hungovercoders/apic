@@ -61,6 +61,7 @@ export const sidebar = [
 		items: [
 			{ label: 'CLI reference', slug: 'cli' },
 			{ label: 'Errors', slug: 'errors' },
+			{ label: 'Changelog', slug: 'changelog' },
 			{ label: 'FAQ', slug: 'faq' },
 			{ label: 'Comparison', slug: 'comparison' },
 			{ label: 'Verifying a release', slug: 'verifying' },

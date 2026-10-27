@@ -40,10 +40,12 @@ jobs:
           go-version-file: go.mod
       # The release notes are this version's section of CHANGELOG.md,
       # written by hand in the pull requests that made the release (see
-      # docs/releasing.md). No section, no release: fail here, with nothing
-      # built, rather than publish a release that says nothing.
-      - name: The changelog has notes for this version
-        run: go run ./scripts/changelog "$GITHUB_REF_NAME" > "$RUNNER_TEMP/release-notes.md"
+      # docs/releasing.md). The tag must be the newest dated section, and
+      # the site's changelog page and version pins must already name it
+      # (task docs:changelog): fail here, with nothing built, rather than
+      # publish a release that says nothing or docs that name the last one.
+      - name: The changelog and the docs name this version
+        run: go run ./scripts/changelog -release "$GITHUB_REF_NAME" > "$RUNNER_TEMP/release-notes.md"
       # cosign signs checksums.txt; syft builds the per-archive SBOMs. Neither
       # ships with the runner or with goreleaser-action, so both are installed
       # here rather than silently skipped.

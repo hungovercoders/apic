@@ -229,6 +229,11 @@ dockers_v2:
 docker_signs:
   - args: ["sign", "${artifact}@${digest}", "--yes"]
 
+# The release notes are the tag's section of CHANGELOG.md, hand-written:
+# release.yml extracts it (scripts/changelog) and passes it as
+# --release-notes, which replaces the commit list below. That list is only
+# what a release run outside the workflow would get, and it proved to be
+# every commit since the repository began, so do not rely on it.
 changelog:
   use: github
   filters:

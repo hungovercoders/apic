@@ -180,6 +180,11 @@ tasks:
     cmds:
       - go run ./scripts/errdocs
 
+  notes:
+    desc: Print a version's section of CHANGELOG.md, the notes release.yml attaches to its release (task notes -- 0.2.0; no version prints Unreleased)
+    cmds:
+      - go run ./scripts/changelog {{.CLI_ARGS}}
+
   man:
     desc: Write the man pages into man/ (goreleaser does this before packaging)
     cmds:

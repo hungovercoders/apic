@@ -1,5 +1,19 @@
 # Releasing
 
+- The release notes are the tag's section of `CHANGELOG.md`, hand-written
+  in [Keep a Changelog](https://keepachangelog.com/) form: a change a user
+  would notice gets a line under Unreleased in the pull request that makes
+  it, and cutting a release means turning Unreleased into
+  `## [x.y.z] - YYYY-MM-DD`, adding its compare link at the end of the
+  file, and starting a new empty Unreleased above it. `release.yml` runs
+  `scripts/changelog` first, which fails the run with nothing built when
+  the tag has no section or an empty one, and passes the section to
+  goreleaser as `--release-notes`; `task notes -- 0.2.0` prints what it
+  would attach. The generator's test checks the file's shape (Unreleased
+  first, a date on every release, newest first, a link reference for each
+  version), so a malformed heading fails `task test` rather than the
+  release. goreleaser's own commit-list changelog is left configured but
+  never used: it listed every commit since the repository began.
 - Releases are signed with cosign, keyless: the certificate is bound to the
   release workflow's OIDC identity, so `release.yml` needs `id-token: write`
   on the job. There is no private key.
@@ -14,10 +28,10 @@
   snapshot and fails hard without cosign, so `task snapshot` passes
   `--skip=sign,sbom` — a local snapshot is a build sanity check, not a
   release.
-- Before a tag: `task check`, then `task snapshot` to prove archive names,
-  contents and version injection. `apic version` from an extracted archive
-  must report the version, not `dev` — a typo in the ldflags path fails
-  silently.
+- Before a tag: the changelog section above, `task check`, then
+  `task snapshot` to prove archive names, contents and version injection.
+  `apic version` from an extracted archive must report the version, not
+  `dev` — a typo in the ldflags path fails silently.
 - The image `ghcr.io/hungovercoders/apic` is `Dockerfile` built by
   goreleaser's `dockers_v2` for linux/amd64 and linux/arm64: the binary on
   `scratch` with Alpine's CA bundle and a `/tmp`, laid out by an Alpine

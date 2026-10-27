@@ -48,6 +48,11 @@ publishing), `task docs` (preview the documentation site).
   in `cheatsheet.md`; a new or changed flag needs `task docs:cli`, which
   regenerates the reference at the end of `cli.md` (a test fails when it is
   stale); a new `.http` feature needs `format.md`.
+- **A line in the changelog.** A change a user would notice (a command, a
+  flag, a directive, an MCP tool, a fix they could have hit, a change to
+  `--json` or an exit code) gets a line under Unreleased in
+  [CHANGELOG.md](CHANGELOG.md), in the same pull request. The release's
+  notes are that section, and a tag without one does not release.
 - **The comparison kept honest.** A change that closes a gap another tool
   covers (a parity issue) updates its row in the table in
   [comparison.md](website/src/content/docs/comparison.md), and the "does not

@@ -38,6 +38,12 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
+      # The release notes are this version's section of CHANGELOG.md,
+      # written by hand in the pull requests that made the release (see
+      # docs/releasing.md). No section, no release: fail here, with nothing
+      # built, rather than publish a release that says nothing.
+      - name: The changelog has notes for this version
+        run: go run ./scripts/changelog "$GITHUB_REF_NAME" > "$RUNNER_TEMP/release-notes.md"
       # cosign signs checksums.txt; syft builds the per-archive SBOMs. Neither
       # ships with the runner or with goreleaser-action, so both are installed
       # here rather than silently skipped.
@@ -55,7 +61,7 @@ jobs:
       - uses: goreleaser/goreleaser-action@v7
         with:
           version: "~> v2"
-          args: release --clean
+          args: release --clean --release-notes ${{ runner.temp }}/release-notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}

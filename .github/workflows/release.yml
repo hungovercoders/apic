@@ -72,3 +72,54 @@ jobs:
           major="${GITHUB_REF_NAME%%.*}"
           git tag -f "$major" "$GITHUB_REF_NAME"
           git push -f origin "refs/tags/$major"
+
+  # The MCP registry (registry.modelcontextprotocol.io) lists the server the
+  # image provides as io.github.hungovercoders/apic, so an MCP client that
+  # installs servers from a catalogue finds apic there. server.json at the
+  # root is the listing with its version left at 0.0.0; this job fills in
+  # the tag's version and the image it names, which the first job has
+  # pushed by now and which carries the io.modelcontextprotocol.server.name
+  # label the registry checks (see .goreleaser.yaml). A job of its own, so
+  # a registry outage fails the listing and not the release.
+  mcp-registry:
+    needs: goreleaser
+    if: contains(github.ref_name, '.')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # mcp-publisher login github-oidc
+    env:
+      # Bumped deliberately, never "latest": the archive is verified against
+      # the registry's own release signature for this exact tag.
+      MCP_PUBLISHER_VERSION: v1.8.1
+    steps:
+      - uses: actions/checkout@v7
+      - uses: sigstore/cosign-installer@v3
+      - name: Download and verify mcp-publisher
+        run: |
+          set -euo pipefail
+          os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+          arch="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+          archive="mcp-publisher_${os}_${arch}.tar.gz"
+          base_url="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}"
+
+          curl --fail --location --silent --show-error --output "$archive" "$base_url/$archive"
+          curl --fail --location --silent --show-error --output "$archive.sigstore.json" "$base_url/$archive.sigstore.json"
+          cosign verify-blob \
+            --bundle "$archive.sigstore.json" \
+            --certificate-identity "https://github.com/modelcontextprotocol/registry/.github/workflows/release.yml@refs/tags/${MCP_PUBLISHER_VERSION}" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            "$archive"
+          tar xzf "$archive" mcp-publisher
+          rm -f "$archive" "$archive.sigstore.json"
+      - name: Set the version and the image in server.json
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          jq --arg v "$version" \
+            '.version = $v | .packages[].identifier = "ghcr.io/hungovercoders/apic:" + $v' \
+            server.json > server.tmp && mv server.tmp server.json
+          cat server.json
+      - name: Authenticate to the MCP registry
+        run: ./mcp-publisher login github-oidc
+      - name: Publish the listing
+        run: ./mcp-publisher publish

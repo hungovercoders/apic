@@ -1,16 +1,21 @@
 package cli
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/hungovercoders/apic/internal/mcp"
+	"github.com/hungovercoders/apic/internal/project"
 	"github.com/hungovercoders/apic/internal/runner"
 )
 
@@ -66,5 +71,173 @@ without a bearer token guarding it.`,
 	}
 	cmd.Flags().StringVar(&httpAddr, "http", "", "serve the streamable HTTP transport on this host:port instead of stdio")
 	cmd.Flags().StringVar(&token, "token", "", "bearer token clients must send (default $APIC_MCP_TOKEN); required off the loopback interface")
+	cmd.AddCommand(a.mcpInstallCmd())
 	return cmd
+}
+
+// mcpConfigFile is the project-scoped MCP configuration Claude Code reads
+// from the directory it starts in, in the {"mcpServers": {…}} shape Cursor
+// (.cursor/mcp.json), Windsurf and the other clients accept too. `apic mcp
+// install` and `apic init` register the server there under mcpServerName,
+// the name the docs' `claude mcp add api` example uses.
+const (
+	mcpConfigFile = ".mcp.json"
+	mcpServerName = "api"
+)
+
+func (a *App) mcpInstallCmd() *cobra.Command {
+	var into []string
+	cmd := &cobra.Command{
+		Use:   "install [dir]",
+		Short: "Register the server in the project's .mcp.json for the agents that read it",
+		Long: `install writes an entry that runs "apic mcp" into <dir>/.mcp.json, the
+project-scoped MCP configuration Claude Code reads from the directory it
+starts in; dir is the current directory unless given. The entry names the
+project (-C) relative to dir when the two differ, and the environment
+(--env) when one is given, so an agent gets the same tools "claude mcp
+add" would register, from a file every clone of the repository shares.
+Other servers in the file are kept; an entry already named "api" is
+replaced, and one already holding the same text is left alone. Cursor
+reads the same shape from .cursor/mcp.json: --to names the file. Commit
+the result.`,
+		Example: `  apic mcp install                          # .mcp.json in the current directory
+  apic mcp install -C api --env dev         # the entry runs apic mcp --dir api --env dev
+  apic mcp install --to .cursor/mcp.json    # Cursor`,
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dir := "."
+			if len(args) == 1 {
+				dir = args[0]
+			}
+			files := []string{mcpConfigFile}
+			if len(into) > 0 {
+				files = into
+			}
+			serverArgs, err := mcpServerArgs(dir, a.g.dir, a.g.env)
+			if err != nil {
+				return err
+			}
+			written, unchanged, err := writeMCPConfig(dir, files, serverArgs)
+			if err != nil {
+				return err
+			}
+			if a.g.json {
+				return a.writeJSON(struct {
+					Written   []string `json:"written"`
+					Unchanged []string `json:"unchanged"`
+				}{orEmpty(written), orEmpty(unchanged)})
+			}
+			for _, f := range written {
+				fmt.Fprintf(a.Stdout, "%s %s\n", theme.OK.Render("wrote"), f)
+			}
+			for _, f := range unchanged {
+				fmt.Fprintf(a.Stdout, "%s %s\n", theme.Dim.Render("unchanged"), f)
+			}
+			return nil
+		},
+	}
+	cmd.Flags().StringArrayVar(&into, "to", nil, "file under dir to write instead of .mcp.json (repeatable)")
+	return cmd
+}
+
+// mcpServerArgs is the argument list the registered entry runs apic with:
+// mcp, then --dir with the project as a path relative to the directory the
+// configuration lives in (where the agent starts) when the two differ, in
+// forward slashes so the committed file works on every platform, then
+// --env when one is set.
+func mcpServerArgs(configDir, projectDir, env string) ([]string, error) {
+	args := []string{"mcp"}
+	absConfig, err := filepath.Abs(configDir)
+	if err != nil {
+		return nil, runner.Usage(runner.CodeFile, err.Error())
+	}
+	absProject, err := filepath.Abs(projectDir)
+	if err != nil {
+		return nil, runner.Usage(runner.CodeFile, err.Error())
+	}
+	rel, err := filepath.Rel(absConfig, absProject)
+	if err != nil {
+		rel = absProject // another drive: only an absolute path reaches it
+	}
+	if rel != "." {
+		args = append(args, "--dir", filepath.ToSlash(rel))
+	}
+	if env != "" {
+		args = append(args, "--env", env)
+	}
+	return args, nil
+}
+
+// writeMCPConfig puts the server entry into each of files under dir,
+// merging with what a file holds: its other servers and top-level keys
+// stay, the apic entry is set, and a file already holding the same entry
+// is reported as unchanged. A file that is not a JSON object is an error
+// rather than overwritten. Every path is confined to dir, as the skill's
+// are to the project.
+func writeMCPConfig(dir string, files, serverArgs []string) (written, unchanged []string, err error) {
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		return nil, nil, runner.Usage(runner.CodeFile, err.Error())
+	}
+	if info, err := os.Stat(absDir); err != nil || !info.IsDir() {
+		return nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s is not a directory; the configuration is written into an existing project (apic init creates one)", dir))
+	}
+	entry := map[string]any{"command": "apic", "args": serverArgs}
+	for _, name := range files {
+		shown := filepath.Join(dir, name)
+		target, err := project.Confine(absDir, absDir, name)
+		if errors.Is(err, project.ErrOutsideRoot) {
+			return nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s resolves outside %s; the configuration is written under the directory", shown, dir))
+		}
+		if err != nil {
+			return nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s: %v", shown, err))
+		}
+		doc := map[string]any{}
+		existing, err := os.ReadFile(target) //nolint:gosec // the MCP configuration the user's agent reads, confined to the directory above
+		switch {
+		case err == nil:
+			if err := json.Unmarshal(existing, &doc); err != nil {
+				return nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s is not a JSON object: %v", shown, err))
+			}
+			if doc == nil { // the file held null
+				doc = map[string]any{}
+			}
+		case !errors.Is(err, fs.ErrNotExist):
+			return nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s: %v", shown, err))
+		}
+		servers, _ := doc["mcpServers"].(map[string]any)
+		if servers == nil {
+			servers = map[string]any{}
+		}
+		if sameJSON(servers[mcpServerName], entry) {
+			unchanged = append(unchanged, shown)
+			continue
+		}
+		servers[mcpServerName] = entry
+		doc["mcpServers"] = servers
+		var buf bytes.Buffer
+		enc := json.NewEncoder(&buf)
+		enc.SetEscapeHTML(false)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(doc); err != nil {
+			return nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s: %v", shown, err))
+		}
+		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil { //nolint:gosec // a configuration directory the user's agents read and the user commits
+			return nil, nil, runner.Usage(runner.CodeFile, err.Error())
+		}
+		if err := os.WriteFile(target, buf.Bytes(), 0o644); err != nil { //nolint:gosec // public project configuration the user commits, confined to the directory above
+			return nil, nil, runner.Usage(runner.CodeFile, err.Error())
+		}
+		written = append(written, shown)
+	}
+	return written, unchanged, nil
+}
+
+// sameJSON reports whether two values encode to the same JSON, which is
+// how an entry read back from a file ([]any) is compared with the one
+// about to be written ([]string).
+func sameJSON(a, b any) bool {
+	x, errA := json.Marshal(a)
+	y, errB := json.Marshal(b)
+	return errA == nil && errB == nil && bytes.Equal(x, y)
 }

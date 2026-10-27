@@ -205,6 +205,12 @@ func (a *App) printError(err error, exit int) {
 	}
 	lines = append(lines, fmt.Sprintf("  %s %s · see %s", info.Code, info.Title, info.URL))
 	dim := isTerminal(a.Stderr)
+	if !dim {
+		// A pipe or a log is more often read by a script or an agent than
+		// by a person, and --json serves those better; a hint it never
+		// sees on a terminal costs a person nothing.
+		lines = append(lines, `  --json prints this error as one object to branch on: {"error": {"code", "message", "hint", "exit"}}`)
+	}
 	for _, l := range lines {
 		if dim {
 			l = theme.Dim.Render(l)

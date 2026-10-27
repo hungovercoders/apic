@@ -90,17 +90,29 @@ step goes away: `apic run whoami --json` prints `login`'s object and then
 ## 2. MCP (Claude Code, Cursor, Windsurf, any MCP client)
 
 `apic mcp` serves the project over stdio, or over HTTP for an agent that
-is not on the same machine. Register it once:
+is not on the same machine. Register it once, in the repository, so
+every clone has it:
 
 ```sh
-# Claude Code
-claude mcp add api -- apic mcp --dir ./api --env dev
+apic mcp install -C ./api --env dev        # writes .mcp.json, which Claude Code reads
+apic mcp install --to .cursor/mcp.json     # Cursor reads the same shape from here
 ```
 
+`apic init` writes the same `.mcp.json` into a new project. The file is
+what you would write by hand, and any MCP client takes it:
+
 ```json
-// Cursor (.cursor/mcp.json), Windsurf, and any other MCP client
-{"mcpServers": {"api": {"command": "apic", "args": ["mcp", "--dir", "./api", "--env", "dev"]}}}
+{"mcpServers": {"api": {"command": "apic", "args": ["mcp", "--dir", "api", "--env", "dev"]}}}
 ```
+
+```sh
+claude mcp add api -- apic mcp --dir ./api --env dev   # per machine instead
+```
+
+A client that installs servers from a catalogue finds apic in the
+[MCP registry](https://registry.modelcontextprotocol.io/) as
+`io.github.hungovercoders/apic`: the `ghcr.io/hungovercoders/apic` image
+running `apic mcp` with the project mounted at `/work`.
 
 Tools exposed:
 

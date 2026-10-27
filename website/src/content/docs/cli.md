@@ -818,6 +818,7 @@ for a collection it adds `private_env_file` and
 
 ```
 apic mcp [--dir <path>] [--env <name>] [--http <host:port> [--token <bearer>]]
+apic mcp install [dir] [--to <file>]...
 ```
 
 Serves the project over the Model Context Protocol on stdin/stdout until
@@ -833,8 +834,31 @@ pass one. See [agents.md](agents.md).
 | `--token <bearer>` | The bearer token clients must send. Default `$APIC_MCP_TOKEN`. Required when `--http` binds anything but the loopback interface; the server refuses to start otherwise. |
 
 ```sh
-claude mcp add api -- apic mcp --dir ./api --env dev
+apic mcp install -C api --env dev                   # .mcp.json, read by Claude Code
+claude mcp add api -- apic mcp --dir ./api --env dev  # the same, by hand
 ```
+
+`mcp install` writes the entry into `<dir>/.mcp.json` (`dir` defaults to
+the current directory), the project-scoped configuration Claude Code
+reads from the directory it starts in, so every clone of the repository
+registers the server without a command of its own. The entry runs `apic
+mcp`, with `--dir` naming the project (`-C`) relative to `dir` when the
+two differ and `--env` when one is given. Other servers in the file are
+kept, an entry already named `api` is replaced, and one already holding
+the same text is reported as `unchanged`; a file that is not a JSON
+object is E210 rather than overwritten. `apic init` writes the same entry
+into a new project (`--no-mcp` leaves it out).
+
+| Flag | Meaning |
+|---|---|
+| `--to <file>` | Write this file under `dir` instead of `.mcp.json`; repeatable. `.cursor/mcp.json` for Cursor, which reads the same shape. |
+
+`--json` prints `{"written": [...], "unchanged": [...]}`.
+
+For a client that installs servers from a catalogue, apic is listed in
+the [MCP registry](https://registry.modelcontextprotocol.io/) as
+`io.github.hungovercoders/apic`, running the `ghcr.io/hungovercoders/apic`
+image with the project mounted at `/work`.
 
 ## apic lsp
 
@@ -996,7 +1020,7 @@ it is omitted when there are none. A document that is not OpenAPI 3, has a
 ## apic init
 
 ```
-apic init [dir] [--base-url URL] [--env NAME] [--force] [--no-skill]
+apic init [dir] [--base-url URL] [--env NAME] [--force] [--no-skill] [--no-mcp]
 ```
 
 Writes a working starting point into `dir` (default: the current
@@ -1004,12 +1028,13 @@ directory): `apic.yaml` (with `history: 10`, so `apic history` and `apic
 select` work from the first run), `http-client.env.json`, a `http-client.private.env.json`
 with mode 0600, `api.http` with two annotated requests, a
 `features/smoke.feature`, `.gitignore` lines for the private env file,
-`.env` and `.apic/`, and the [Agent Skill](agents.md#3-a-skill-claude-code-codex-cursor-any-agent-that-loads-skills)
+`.env` and `.apic/`, the [Agent Skill](agents.md#3-a-skill-claude-code-codex-cursor-any-agent-that-loads-skills)
 under `.claude/skills/apic` and `.agents/skills/apic`, so an AI agent
-working in the project knows how to use apic from the first session.
-Existing files are kept unless `--force` is given, the skill's included
-(`apic skill install` refreshes it), and the `.gitignore` is appended to
-rather than replaced.
+working in the project knows how to use apic from the first session, and
+a `.mcp.json` registering [`apic mcp`](#apic-mcp) for the agents that
+read it. Existing files are kept unless `--force` is given, the skill's
+included (`apic skill install` refreshes it); the `.gitignore` is
+appended to and the `.mcp.json` merged into rather than replaced.
 
 | Flag | Default | Meaning |
 |---|---|---|
@@ -1017,6 +1042,7 @@ rather than replaced.
 | `--env` | `dev` | Name of the first environment, also written as `env:` in `apic.yaml`. |
 | `--force` | off | Overwrite files that already exist. |
 | `--no-skill` | off | Do not write the Agent Skill. |
+| `--no-mcp` | off | Do not register `apic mcp` in `.mcp.json`. |
 
 `--json` prints `{"out", "env", "written", "skipped"}`.
 
@@ -1347,6 +1373,7 @@ apic init [dir] [flags]
 | `--base-url <string>` | baseUrl for the environment (default `https://api.example.com`) |
 | `--env <string>` | name of the first environment (default `dev`) |
 | `--force` | overwrite existing files |
+| `--no-mcp` | do not register apic mcp in .mcp.json |
 | `--no-skill` | do not write the Agent Skill into .claude/skills and .agents/skills |
 
 ### apic list
@@ -1381,6 +1408,18 @@ apic mcp [--http <host:port> [--token <bearer>]] [flags]
 |---|---|
 | `--http <string>` | serve the streamable HTTP transport on this host:port instead of stdio |
 | `--token <string>` | bearer token clients must send (default $APIC_MCP_TOKEN); required off the loopback interface |
+
+### apic mcp install
+
+Register the server in the project's .mcp.json for the agents that read it.
+
+```
+apic mcp install [dir] [flags]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--to <string>` | file under dir to write instead of .mcp.json (repeatable) |
 
 ### apic mock
 

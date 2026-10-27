@@ -14,18 +14,20 @@ import (
 
 func (a *App) initCmd() *cobra.Command {
 	var baseURL, envName string
-	var force, noSkill bool
+	var force, noSkill, noMCP bool
 	cmd := &cobra.Command{
 		Use:   "init [dir]",
 		Short: "Scaffold a new apic project: config, env files and a first request",
 		Long: `init writes a small, working project into dir (default: the current
 directory): apic.yaml, http-client.env.json, a gitignored
 http-client.private.env.json, api.http with one annotated request, a
-features/smoke.feature to run with apic test, and the Agent Skill under
+features/smoke.feature to run with apic test, the Agent Skill under
 .claude/skills and .agents/skills so an AI agent working in the project
 knows how to use apic (see apic skill; --no-skill leaves it out, apic skill
-install refreshes it). Existing files are left alone unless --force is
-given.`,
+install refreshes it), and a .mcp.json registering apic mcp for the
+agents that read it (--no-mcp leaves it out; apic mcp install writes it
+elsewhere). Existing files are left alone unless --force is given; the
+.gitignore and .mcp.json are merged into rather than replaced.`,
 		Example: `  apic init
   apic init api --base-url https://dev.example.com --env dev
   apic init --json`,
@@ -51,6 +53,16 @@ given.`,
 				}
 				written = append(written, wrote...)
 				skipped = append(skipped, kept...)
+			}
+			if !noMCP {
+				// The entry runs apic mcp from the project itself, so it
+				// needs no --dir; merged into an existing file, like the
+				// .gitignore, rather than kept or replaced.
+				wrote, _, err := writeMCPConfig(dir, []string{mcpConfigFile}, []string{"mcp"})
+				if err != nil {
+					return err
+				}
+				written = append(written, wrote...)
 			}
 			if a.g.json {
 				return a.writeJSON(struct {
@@ -78,6 +90,7 @@ given.`,
 	cmd.Flags().StringVar(&envName, "env", "dev", "name of the first environment")
 	cmd.Flags().BoolVar(&force, "force", false, "overwrite existing files")
 	cmd.Flags().BoolVar(&noSkill, "no-skill", false, "do not write the Agent Skill into .claude/skills and .agents/skills")
+	cmd.Flags().BoolVar(&noMCP, "no-mcp", false, "do not register apic mcp in .mcp.json")
 	return cmd
 }
 

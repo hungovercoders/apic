@@ -19,7 +19,7 @@ func fromGit(dir, commit string) reader {
 			if strings.Contains(msg, "does not exist") || strings.Contains(msg, "exists on disk, but not in") {
 				return "", &fs.PathError{Op: "read", Path: commit + ":" + path, Err: fs.ErrNotExist}
 			}
-			return "", fmt.Errorf("git show %s:%s: %v: %s", commit, path, err, msg)
+			return "", fmt.Errorf("git show %s:%s: %w: %s", commit, path, err, msg)
 		}
 		return out.String(), nil
 	}
@@ -37,7 +37,7 @@ func fromGit(dir, commit string) reader {
 func ReleaseCommit(dir, head, tag string) (string, error) {
 	out, err := exec.Command("git", "-C", dir, "rev-list", "--first-parent", head).Output() //nolint:gosec // git, with a ref from this repository
 	if err != nil {
-		return "", fmt.Errorf("git rev-list %s: %v", head, err)
+		return "", fmt.Errorf("git rev-list %s: %w", head, err)
 	}
 	var candidates []string // newest first
 	for _, c := range strings.Fields(string(out)) {

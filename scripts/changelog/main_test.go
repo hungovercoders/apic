@@ -133,8 +133,10 @@ func TestTheChangelogIsWellFormed(t *testing.T) {
 }
 
 // The site's changelog page and every version pin in the docs follow the
-// newest dated section, so a release pull request that dates one fails
-// here until `task docs:changelog` has caught the docs up.
+// published release in website/released-version, so a hand edit to the
+// intro, a published section or a pinned page fails here until
+// `task docs:changelog` has caught the docs up. Dating a new section does
+// not: it is above the published release until release.yml publishes it.
 func TestTheDocsNameTheCurrentRelease(t *testing.T) {
 	root := filepath.Join("..", "..")
 	data, err := os.ReadFile(filepath.Join(root, "CHANGELOG.md"))
@@ -183,7 +185,7 @@ func TestLatestAndTheSitePage(t *testing.T) {
 	if v, _ := Latest(rc); v != "0.3.0-rc.1" {
 		t.Fatalf("latest = %q", v)
 	}
-	if v, _ := Stable(rc); v != "0.2.0" {
+	if v, _ := Stable(rc, ""); v != "0.2.0" {
 		t.Fatalf("stable = %q", v)
 	}
 	if _, err := Latest("## [1] - 2026-10-27\n"); err == nil || !strings.Contains(err.Error(), "not a version") {
@@ -517,5 +519,83 @@ func TestPublishMovesTheDocs(t *testing.T) {
 	write(Released, "0.9.0\n")
 	if _, err := Stale(fromDisk(root), changelog); err == nil || !strings.Contains(err.Error(), Released) {
 		t.Fatalf("a recorded release with no section: %v", err)
+	}
+}
+
+// The review's cases for Unwrap: what Markdown reads as a continuation is
+// joined even when it looks like a block, and what is a block of its own
+// is not joined into the line above.
+func TestUnwrapFollowsMarkdown(t *testing.T) {
+	for in, want := range map[string]string{
+		// "#157" is not a heading, and "2." cannot interrupt a paragraph.
+		"- Fixes the crash reported in\n  #157 when the file is empty.": "- Fixes the crash reported in #157 when the file is empty.",
+		"- Exit code\n  2. now means usage.":                            "- Exit code 2. now means usage.",
+		// Sibling items stay apart, whatever their numbers; 1. interrupts.
+		"1. one\n2. two\n3. three":      "1. one\n2. two\n3. three",
+		"- a\n  1. nested\n  2. nested": "- a\n  1. nested\n  2. nested",
+		"Text that\n# Heading\nafter":   "Text that\n# Heading\nafter",
+		// A quote's lines join without their markers.
+		"> **Note**: this is a\n> wrapped quote.": "> **Note**: this is a wrapped quote.",
+		"Text\n> quote": "Text\n> quote",
+		// Indented code keeps its lines.
+		"Example:\n\n    apic run login\n    apic run whoami": "Example:\n\n    apic run login\n    apic run whoami",
+		// A table needs its delimiter row; a wrapped "|" is prose.
+		"| a | b |\n|---|---|\n| 1 | 2 |": "| a | b |\n|---|---|\n| 1 | 2 |",
+		"- splits on\n  | when quoted":    "- splits on | when quoted",
+	} {
+		if got := Unwrap(in); got != want {
+			t.Errorf("Unwrap(%q)\n got %q\nwant %q", in, got, want)
+		}
+	}
+}
+
+// A section's notes carry the link definitions they use, whether written
+// at the end of the section or in the file's closing block, so they read
+// the same on GitHub as in the file.
+func TestSectionCarriesTheReferencesItUses(t *testing.T) {
+	changelog := strings.Replace(sample, "The first release.\n", "The first release: see [docs].\n\n[docs]: https://x\n", 1)
+	changelog = strings.Replace(changelog, "- A thing.", "- A thing, as [the spec][spec] says.", 1) + "[spec]: https://spec\n"
+	if p := Check(changelog); len(p) != 0 {
+		t.Fatalf("well formed: %v", p)
+	}
+	if got, err := Section(changelog, "0.1.0"); err != nil || got != "The first release: see [docs].\n\n[docs]: https://x" {
+		t.Fatalf("0.1.0: %q %v", got, err)
+	}
+	if got, err := Section(changelog, "0.2.0"); err != nil || !strings.HasSuffix(got, "says.\n\n[spec]: https://spec") {
+		t.Fatalf("0.2.0: %q %v", got, err)
+	}
+	if got, _ := Section(changelog, "0.1.1"); strings.Contains(got, "[docs]: ") {
+		t.Fatalf("a section that does not use a reference does not carry it: %q", got)
+	}
+}
+
+// Publish writes nothing unless the whole regeneration succeeds.
+func TestPublishIsAllOrNothing(t *testing.T) {
+	root := t.TempDir()
+	saved := Pins
+	t.Cleanup(func() { Pins = saved })
+	Pins = []Pin{pin("docs.md", "version: v{v}")}
+	changelog := "# Changelog\n\n## [Unreleased]\n\n## [0.2.0] - 2026-10-02\n\nSecond.\n\n## [0.1.0] - 2026-10-01\n\nFirst.\n\n[Unreleased]: u\n[0.2.0]: u\n[0.1.0]: u\n"
+	for name, content := range map[string]string{"docs.md": "version: v0.1.0\n", Released: "0.1.0\n"} {
+		path := filepath.Join(root, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := Write(root, changelog); err != nil {
+		t.Fatal(err)
+	}
+	// The pin's phrase is gone, so regenerating fails: nothing moves.
+	if err := os.WriteFile(filepath.Join(root, "docs.md"), []byte("reworded\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := Publish(root, changelog, "0.2.0"); err == nil || !strings.Contains(err.Error(), "no match for the pin") {
+		t.Fatalf("publish with a missing pin: %v", err)
+	}
+	if data, _ := os.ReadFile(filepath.Join(root, filepath.FromSlash(Released))); string(data) != "0.1.0\n" {
+		t.Fatalf("the record moved anyway: %q", data)
 	}
 }

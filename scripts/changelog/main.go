@@ -32,6 +32,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -141,11 +142,17 @@ func Latest(changelog string) (string, error) {
 	return newest(changelog, func(string) bool { return true })
 }
 
-// Stable is the newest release that is not a prerelease, which is what the
-// docs pin: a release candidate is for those who ask for it by name.
-func Stable(changelog string) (string, error) {
-	return newest(changelog, func(v string) bool { return !strings.Contains(v, "-") })
+// Stable is the newest release that is not a prerelease, at or below upTo
+// when that is set: what the docs pin, a release candidate being for those
+// who ask for it by name.
+func Stable(changelog, upTo string) (string, error) {
+	return newest(changelog, func(v string) bool {
+		return isStable(v) && (upTo == "" || compareVersions(v, upTo) <= 0)
+	})
 }
+
+// isStable reports whether a version is a release rather than a prerelease.
+func isStable(v string) bool { return !strings.Contains(v, "-") }
 
 func newest(changelog string, want func(string) bool) (string, error) {
 	if problems := Check(changelog); len(problems) > 0 {
@@ -163,17 +170,18 @@ func newest(changelog string, want func(string) bool) (string, error) {
 }
 
 // Release returns the notes for tag after checking that it is the release
-// the changelog and the docs describe: the newest dated section, whose
-// version the site's page and pins already carry. A tag cut before the
-// release pull request merged, or one that skipped `task docs:changelog`,
-// fails here with nothing built.
+// to cut: the newest dated section, with the site's page and pins current
+// for the release published before it (they move to tag only once it is
+// out, by -publish). A tag cut before the release pull request merged, or
+// on a commit whose docs a hand edit left stale, fails here with nothing
+// built.
 func Release(read reader, changelog, tag string) (string, error) {
 	latest, err := Latest(changelog)
 	if err != nil {
 		return "", err
 	}
 	if tag != latest {
-		return "", fmt.Errorf("the tag is %s but CHANGELOG.md's newest dated section is %s: date this release's section (## [%s] - YYYY-MM-DD) and run task docs:changelog before tagging", tag, latest, tag)
+		return "", fmt.Errorf("the tag is %s but CHANGELOG.md's newest dated section is %s: date this release's section (## [%s] - YYYY-MM-DD) before tagging", tag, latest, tag)
 	}
 	stale, err := Stale(read, changelog)
 	if err != nil {
@@ -182,13 +190,13 @@ func Release(read reader, changelog, tag string) (string, error) {
 	var problems []string
 	for _, f := range stale {
 		if f == Page {
-			problems = append(problems, f+" does not match CHANGELOG.md's releases")
+			problems = append(problems, f+" does not match CHANGELOG.md")
 		} else {
-			problems = append(problems, f+" pins another version than the newest stable release")
+			problems = append(problems, f+" does not pin the newest stable release at or below the published one")
 		}
 	}
 	if len(problems) > 0 {
-		return "", fmt.Errorf("%s: run task docs:changelog and merge it before tagging", strings.Join(problems, "; "))
+		return "", fmt.Errorf("%s (website/released-version): run task docs:changelog on main and merge the result", strings.Join(problems, "; "))
 	}
 	body, err := Section(changelog, tag)
 	if err != nil {
@@ -224,7 +232,38 @@ func Section(changelog, version string) (string, error) {
 	if text == "" {
 		return "", fmt.Errorf("CHANGELOG.md's section for %s is empty: write what changed before tagging", version)
 	}
-	return text, nil
+	return text + usedRefs(changelog, text), nil
+}
+
+// usedRefs returns the file's link reference definitions that a section's
+// text uses ("[label]" or "[text][label]") without defining, so its notes
+// stand alone: a release body on GitHub has no file around it to resolve
+// them. Matching is case-insensitive, as Markdown's is.
+func usedRefs(changelog, text string) string {
+	defined := map[string]bool{}
+	for _, l := range scan(text) {
+		if m := linkRef.FindStringSubmatch(l.text); m != nil {
+			defined[strings.ToLower(m[1])] = true
+		}
+	}
+	lower := strings.ToLower(text)
+	var out []string
+	for _, l := range scan(changelog) {
+		m := linkRef.FindStringSubmatch(l.text)
+		if m == nil || l.fenced {
+			continue
+		}
+		label := strings.ToLower(m[1])
+		if defined[label] || !strings.Contains(lower, "["+label+"]") {
+			continue
+		}
+		defined[label] = true
+		out = append(out, l.text)
+	}
+	if len(out) == 0 {
+		return ""
+	}
+	return "\n\n" + strings.Join(out, "\n")
 }
 
 // covers reports whether a heading for from (and, for a range, up to
@@ -287,15 +326,18 @@ func comparePrerelease(a, b string) int {
 }
 
 func isNumber(s string) bool {
-	if s == "" {
-		return false
+	_, ok := number(s)
+	return ok
+}
+
+// number reads a version part as a non-negative number: digits only, no
+// sign, and small enough for an int.
+func number(s string) (int, bool) {
+	if s == "" || s[0] == '+' || s[0] == '-' {
+		return 0, false
 	}
-	for _, r := range s {
-		if r < '0' || r > '9' {
-			return false
-		}
-	}
-	return true
+	n, err := strconv.Atoi(s)
+	return n, err == nil
 }
 
 func compareParts(a, b string) int {
@@ -321,14 +363,10 @@ func compareParts(a, b string) int {
 // numeric is a version part as a number, with anything that is not one
 // (a word such as Unreleased) ranking above every number.
 func numeric(part string) int {
-	n := 0
-	for _, r := range part {
-		if r < '0' || r > '9' {
-			return 1 << 30
-		}
-		n = n*10 + int(r-'0')
+	if n, ok := number(part); ok {
+		return n
 	}
-	return n
+	return 1 << 30
 }
 
 // Check reports what is wrong with a changelog's shape: the first section

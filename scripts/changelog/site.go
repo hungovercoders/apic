@@ -204,7 +204,7 @@ func changes(read reader, changelog string) ([]change, error) {
 	if err != nil {
 		return nil, err
 	}
-	stable, err := newest(changelog, func(v string) bool { return !strings.Contains(v, "-") && compareVersions(v, pub) <= 0 })
+	stable, err := Stable(changelog, pub)
 	if err != nil {
 		return nil, err
 	}
@@ -256,13 +256,28 @@ func Publish(root, changelog, version string) error {
 	if _, err := Section(changelog, version); err != nil {
 		return err
 	}
-	if current, err := published(fromDisk(root), changelog); err == nil && compareVersions(version, current) < 0 {
+	disk := fromDisk(root)
+	if current, err := published(disk, changelog); err == nil && compareVersions(version, current) < 0 {
 		return fmt.Errorf("%s records %s already; %s is older", Released, current, version)
 	}
-	if err := os.WriteFile(filepath.Join(root, filepath.FromSlash(Released)), []byte(version+"\n"), 0o644); err != nil { //nolint:gosec // a public file in the repository
+	// Regenerate against the new record first and write nothing unless
+	// that succeeds, so a pin that no longer matches leaves the files as
+	// they were rather than half moved.
+	next := func(path string) (string, error) {
+		if path == Released {
+			return version + "\n", nil
+		}
+		return disk(path)
+	}
+	all, err := changes(next, changelog)
+	if err != nil {
 		return err
 	}
-	return Write(root, changelog)
+	current, err := disk(Released)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return writeChanges(root, append(all, change{Released, current, version + "\n"}))
 }
 
 // Write brings the site's changelog page and every pin in line with the
@@ -273,6 +288,11 @@ func Write(root, changelog string) error {
 	if err != nil {
 		return err
 	}
+	return writeChanges(root, all)
+}
+
+// writeChanges writes each change whose file does not already hold it.
+func writeChanges(root string, all []change) error {
 	for _, c := range all {
 		if c.current == c.want {
 			continue

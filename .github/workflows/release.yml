@@ -10,11 +10,17 @@ name: release
 on:
   push:
     branches: [main]
-    # CHANGELOG.md dates a release; the docs its pins govern are where a
-    # release whose docs lagged is caught up, so a push of either may be
-    # the one that makes the release check pass. (GitHub ignores paths for
-    # tag pushes.)
-    paths: [CHANGELOG.md, website/src/content/docs/**, setup-apic/README.md]
+    # CHANGELOG.md dates a release. The rest is what the release check
+    # reads besides it: a push that mends the docs, the published-release
+    # record or the generator itself (a pin reworded in Pins, say) may be
+    # the one that lets a dated, untagged release through. (GitHub ignores
+    # paths for tag pushes.)
+    paths:
+      - CHANGELOG.md
+      - website/released-version
+      - website/src/content/docs/**
+      - setup-apic/README.md
+      - scripts/changelog/**
     # v0.2.0 and v0.3.0-rc.1, not vscode-v0.4.0 (the extension's own
     # release) and not the moving major tag v0, which has no dot (see the
     # goreleaser job's guard).
@@ -87,7 +93,7 @@ jobs:
           # push's run may have pushed the tag a moment ago and be about to
           # dispatch, and two dispatches would release the tag twice.
           released() {
-            code="$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $GH_TOKEN" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/releases/tags/$tag")"
+            code="$(gh api -i "repos/$GITHUB_REPOSITORY/releases/tags/$tag" 2>/dev/null | head -n 1 | cut -d ' ' -f 2)"
             case "$code" in
               200) return 0 ;;
               404) return 1 ;;

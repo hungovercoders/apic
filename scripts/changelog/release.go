@@ -34,23 +34,35 @@ func git(dir string, args ...string) (string, error) {
 
 // fromGit reads files as they were at commit. Paths are relative to dir,
 // the directory holding the changelog, as they are on disk, whichever
-// directory of the repository that is: both git commands are given the
-// path from the repository's top. A path the commit does not have is
-// fs.ErrNotExist, found by listing the tree rather than by reading git's
-// message; anything else that fails is a gitError.
+// directory of the repository that is.
 func fromGit(dir, commit string) reader {
-	prefix, prefixErr := git(dir, "rev-parse", "--show-prefix")
-	prefix = strings.TrimSpace(prefix)
+	prefix, err := git(dir, "rev-parse", "--show-prefix")
+	if err != nil {
+		return func(string) (string, error) { return "", err }
+	}
+	return treeReader(dir, strings.TrimSpace(prefix), commit)
+}
+
+// treeReader reads files at commit, prefix being dir's path from the
+// repository's top. The commit's tree is listed once, on the first read,
+// so a path it does not have is fs.ErrNotExist without asking git about
+// each one or reading its message; each file present costs one git show.
+// Anything git fails at is a gitError.
+func treeReader(dir, prefix, commit string) reader {
+	var files map[string]bool
 	return func(path string) (string, error) {
-		if prefixErr != nil {
-			return "", prefixErr
+		if files == nil {
+			listed, err := git(dir, "ls-tree", "-r", "--full-tree", "--name-only", commit)
+			if err != nil {
+				return "", err
+			}
+			files = map[string]bool{}
+			for _, f := range strings.Split(listed, "\n") {
+				files[f] = true
+			}
 		}
 		full := prefix + path
-		listed, err := git(dir, "ls-tree", "--full-tree", "--name-only", commit, "--", full)
-		if err != nil {
-			return "", err
-		}
-		if strings.TrimSpace(listed) == "" {
+		if !files[full] {
 			return "", &fs.PathError{Op: "read", Path: commit + ":" + full, Err: fs.ErrNotExist}
 		}
 		return git(dir, "show", commit+":"+full)
@@ -75,10 +87,19 @@ func ReleaseCommit(dir, name, head, tag string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	type candidate struct{ commit, changelog string }
+	prefix, err := git(dir, "rev-parse", "--show-prefix")
+	if err != nil {
+		return "", err
+	}
+	prefix = strings.TrimSpace(prefix)
+	type candidate struct {
+		commit, changelog string
+		read              reader
+	}
 	var candidates []candidate // newest first
 	for _, c := range strings.Fields(out) {
-		changelog, err := fromGit(dir, c)(name)
+		read := treeReader(dir, prefix, c)
+		changelog, err := read(name)
 		if errors.Is(err, fs.ErrNotExist) {
 			break // before the changelog existed
 		}
@@ -92,7 +113,7 @@ func ReleaseCommit(dir, name, head, tag string) (string, error) {
 		if latest != tag {
 			break // before this version was dated
 		}
-		candidates = append(candidates, candidate{c, changelog})
+		candidates = append(candidates, candidate{c, changelog, read})
 	}
 	if len(candidates) == 0 {
 		return "", fmt.Errorf("%s is not the newest dated section of CHANGELOG.md at %s", tag, head)
@@ -100,7 +121,7 @@ func ReleaseCommit(dir, name, head, tag string) (string, error) {
 	var last error
 	for i := len(candidates) - 1; i >= 0; i-- {
 		c := candidates[i]
-		_, err := Release(fromGit(dir, c.commit), c.changelog, tag)
+		_, err := Release(c.read, c.changelog, tag)
 		var ge *gitError
 		if errors.As(err, &ge) {
 			return "", err

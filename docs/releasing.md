@@ -25,9 +25,10 @@
   ever forbids it, the job fails and says to run `-publish` on `main` by
   hand.
 - Merging the release pull request is the release. `release.yml` runs on
-  every push to `main` that changes `CHANGELOG.md` or the docs its pins
-  govern (where a release whose docs lagged gets caught up), and on a
-  manual run on `main`. Its `tag` job takes
+  every push to `main` that changes `CHANGELOG.md` or anything else the
+  release check reads (the docs its pins govern, `website/released-version`,
+  `scripts/changelog`), so the push that mends whatever held a dated
+  release back also tags it, and on a manual run on `main`. Its `tag` job takes
   the newest dated section (`scripts/changelog -latest`) and stops when
   that version is tagged already, which is every push that only added
   lines under Unreleased. Otherwise it tags the commit the release pull

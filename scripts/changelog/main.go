@@ -83,7 +83,7 @@ const unreleased = "Unreleased"
 
 // semver matches a release's version: three numbers, and a prerelease
 // suffix for a release candidate (0.3.0-rc.1).
-var semver = regexp.MustCompile(`^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$`)
+var semver = regexp.MustCompile(`^` + ver + `$`)
 
 // Latest is the newest release: the version of the newest dated section,
 // the upper end of a range heading. It is what release.yml checks the tag
@@ -151,7 +151,7 @@ func Release(root, changelog, tag string) (string, error) {
 
 // linkRef matches a Markdown link reference definition, "[0.2.0]: url",
 // which the file's compare links at the end are.
-var linkRef = regexp.MustCompile(`^\[[^\]]+\]: `)
+var linkRef = regexp.MustCompile(`^\[([^\]]+)\]: `)
 
 // heading matches a release heading: "## [0.2.0] - 2026-10-27", the
 // "## [Unreleased]" section, or a range such as "## [0.1.1] to [0.1.3] -
@@ -223,7 +223,46 @@ func compareVersions(a, b string) int {
 	case preB == "":
 		return -1
 	}
-	return compareParts(preA, preB)
+	return comparePrerelease(preA, preB)
+}
+
+// comparePrerelease orders two prerelease suffixes as semver does: dot by
+// dot, numbers numerically, words by their bytes, a number below a word,
+// and a suffix that runs out first below a longer one with the same start.
+// So alpha.1 < alpha.2 < beta.1 < rc.1.
+func comparePrerelease(a, b string) int {
+	as, bs := strings.Split(a, "."), strings.Split(b, ".")
+	for i := 0; i < len(as) && i < len(bs); i++ {
+		x, y := as[i], bs[i]
+		xn, yn := isNumber(x), isNumber(y)
+		switch {
+		case xn && yn:
+			if c := compareParts(x, y); c != 0 {
+				return c
+			}
+		case xn:
+			return -1
+		case yn:
+			return 1
+		default:
+			if c := strings.Compare(x, y); c != 0 {
+				return c
+			}
+		}
+	}
+	return compareParts(fmt.Sprint(len(as)), fmt.Sprint(len(bs)))
+}
+
+func isNumber(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 func compareParts(a, b string) int {
@@ -267,10 +306,8 @@ func Check(changelog string) []string {
 	var problems []string
 	refs := map[string]bool{}
 	for _, line := range strings.Split(changelog, "\n") {
-		if strings.HasPrefix(line, "[") {
-			if name, _, ok := strings.Cut(line[1:], "]: "); ok {
-				refs[name] = true
-			}
+		if m := linkRef.FindStringSubmatch(line); m != nil {
+			refs[m[1]] = true
 		}
 	}
 	prev := ""

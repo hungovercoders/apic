@@ -32,8 +32,9 @@ quality suite fits beside them. `task check` is the local equivalent of
   `github-actions` weekly.
 - Workflows declare `permissions: contents: read` at the top and widen only
   where a job needs it (`docs.yml` for Pages, `codeql.yml` for
-  security-events, `release.yml` for the release upload and the tag it
-  pushes when a release pull request merges, and, in its `mcp-registry`
+  security-events, `release.yml` for the release upload, the tag it
+  pushes when a release pull request merges and the `actions: write` to
+  dispatch the release on it, and, in its `mcp-registry`
   job, `id-token: write` to publish the MCP registry listing; see
   `releasing.md`).
 

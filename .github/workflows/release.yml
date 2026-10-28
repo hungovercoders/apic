@@ -1,62 +1,85 @@
 name: release
-# Merging the release pull request is the release: it dates a section of
-# CHANGELOG.md, and the push to main that carries it lands here, tags the
-# commit and releases it in one run (see docs/releasing.md). A version tag
-# pushed by hand still releases too, for a release cut from elsewhere.
+# Merging the release pull request is the release. It dates a section of
+# CHANGELOG.md; the push to main that carries it lands in the tag job, which
+# tags that commit and starts this workflow again on the tag, where the
+# goreleaser job releases it. Releasing from a tag ref, never from main,
+# keeps the signing certificate's identity release.yml@refs/tags/<tag>,
+# which the site's verifying page checks. A version tag pushed by hand
+# releases the same way. See docs/releasing.md.
 on:
   push:
     branches: [main]
     paths: [CHANGELOG.md]
-    tags: ["v*"]
+    # v0.2.0 and v0.3.0-rc.1, not vscode-v0.4.0 (the extension's own
+    # release) and not the moving major tag v0, which has no dot (see the
+    # goreleaser job's guard).
+    tags: ["v[0-9]*"]
+  # Run on a version tag to release it again or for the first time; the tag
+  # job dispatches this itself. A branch is refused: main releases by merge.
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# One release at a time: a hand-pushed tag racing the merge that carries the
-# same version waits, then finds the release done and does nothing.
+# Release runs for the same tag queue rather than overlap. Pushes to main
+# are keyed by commit instead: GitHub keeps one pending run per group, so a
+# shared group would let a later push replace an earlier one's queued run.
+# Two of them racing to tag the same version is settled at the push below.
 concurrency:
-  group: release
+  group: release-${{ github.ref_type == 'tag' && github.ref || github.sha }}
   cancel-in-progress: false
 
 jobs:
-  # What, if anything, this run releases. From a push to main or a manual
-  # run: the newest dated section of CHANGELOG.md, unless it already has a
-  # GitHub release (a push that only added lines under Unreleased, or a
-  # re-run after a release went out). From a tag: that tag, unless it is the
-  # moving major tag (v0) the last step maintains, which has no dot.
-  plan:
+  # From main: tag the newest dated section of CHANGELOG.md, if no tag has
+  # it yet, at the commit this push carries, then dispatch the release on
+  # that tag. A push that only added lines under Unreleased finds the tag
+  # there and stops. Pushed with GITHUB_TOKEN, the tag starts no run of its
+  # own; workflow_dispatch is the one event that token may start.
+  tag:
+    if: github.ref_type == 'branch'
     runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.plan.outputs.tag }}
-      release: ${{ steps.plan.outputs.release }}
+    permissions:
+      contents: write # push the tag
+      actions: write # dispatch the release run on it
     steps:
+      - name: Only main releases by merge
+        if: github.ref != 'refs/heads/main' || github.event_name != 'push'
+        run: |
+          echo "::error::release.yml releases a version tag, or the push to main that dates one; run it on the tag (gh workflow run release.yml --ref v1.2.3)"
+          exit 1
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - id: plan
+      - name: Tag the release and start it
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ "$GITHUB_REF_TYPE" = tag ]; then
-            tag="$GITHUB_REF_NAME"
-          else
-            tag="v$(go run ./scripts/changelog -latest)"
+          tag="v$(go run ./scripts/changelog -latest)"
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+            echo "$tag is tagged already; nothing to release. To retry its release, re-run that tag's release run or: gh workflow run release.yml --ref $tag"
+            exit 0
           fi
-          release=true
-          case "$tag" in *.*) ;; *) release=false ;; esac
-          if [ "$release" = true ] && gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "$tag is already released; nothing to do"
-            release=false
+          # The checks the release makes, before a tag that is hard to take
+          # back: the docs must already name it.
+          go run ./scripts/changelog -release "$tag" > /dev/null
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$tag" -m "apic ${tag#v}" "$GITHUB_SHA"
+          if ! git push origin "refs/tags/$tag"; then
+            if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+              echo "another run tagged $tag first and started its release"
+              exit 0
+            fi
+            exit 1
           fi
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "release=$release" >> "$GITHUB_OUTPUT"
-          echo "release $tag: $release"
+          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$tag"
+          echo "tagged $GITHUB_SHA as $tag and started its release"
 
   goreleaser:
-    needs: plan
-    if: needs.plan.outputs.release == 'true'
+    # Only version tags (v0.1.2) release. The moving major tag (v0) that the
+    # last step maintains also matches the tag filter and has no dot.
+    if: github.ref_type == 'tag' && contains(github.ref_name, '.')
     runs-on: ubuntu-latest
     permissions:
       contents: write # create the release and upload its assets
@@ -67,7 +90,7 @@ jobs:
     # a fine-grained PAT with contents read and write on the tap, nothing
     # else (see AGENTS.md, Releasing).
     env:
-      TAG: ${{ needs.plan.outputs.tag }}
+      TAG: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -91,34 +114,8 @@ jobs:
       # the site's changelog page and version pins must already name it
       # (task docs:changelog): fail here, with nothing built, rather than
       # publish a release that says nothing or docs that name the last one.
-      # From main, release the commit that brought the dated section onto
-      # main, not whatever main holds by the time this runs: a manual run or
-      # a re-run must not ship work merged since. An existing tag (a re-run
-      # after a failed release, or one pushed by hand) is used as it is.
-      - name: Check out the release commit
-        if: github.ref_type != 'tag'
-        run: |
-          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
-            git checkout -q "$TAG"
-          else
-            commit="$(git log -1 --first-parent --diff-merges=first-parent --no-patch --format=%H -S "## [${TAG#v}] - " -- CHANGELOG.md)"
-            test -n "$commit" || { echo "::error::no commit on main dates ${TAG#v} in CHANGELOG.md"; exit 1; }
-            git checkout -q "$commit"
-          fi
-          git log -1 --oneline
       - name: The changelog and the docs name this version
         run: go run ./scripts/changelog -release "$TAG" > "$RUNNER_TEMP/release-notes.md"
-      # Tag it once the checks pass. The tag is pushed with GITHUB_TOKEN,
-      # which starts no workflow of its own, so this run is its only release.
-      - name: Tag the release
-        if: github.ref_type != 'tag'
-        run: |
-          if ! git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git tag -a "$TAG" -m "apic ${TAG#v}"
-            git push origin "refs/tags/$TAG"
-          fi
       # cosign signs checksums.txt; syft builds the per-archive SBOMs. Neither
       # ships with the runner or with goreleaser-action, so both are installed
       # here rather than silently skipped.
@@ -149,6 +146,9 @@ jobs:
       # release, the way actions/checkout@v4 does: move the major tag to
       # this commit once the release is out.
       - name: Move the major tag for setup-apic
+        # A release candidate is for those who ask for it by name: @v0 stays
+        # on the last stable release.
+        if: ${{ !contains(github.ref_name, '-') }}
         run: |
           major="${TAG%%.*}"
           git tag -f "$major" "$TAG"
@@ -163,7 +163,10 @@ jobs:
   # label the registry checks (see .goreleaser.yaml). A job of its own, so
   # a registry outage fails the listing and not the release.
   mcp-registry:
-    needs: [plan, goreleaser]
+    needs: goreleaser
+    # The registry lists stable releases only; a version it has seen can
+    # never be published again, so an rc would sit there as the newest.
+    if: ${{ !contains(github.ref_name, '-') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -172,11 +175,9 @@ jobs:
       # Bumped deliberately, never "latest": the archive is verified against
       # the registry's own release signature for this exact tag.
       MCP_PUBLISHER_VERSION: v1.8.1
-      TAG: ${{ needs.plan.outputs.tag }}
+      TAG: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.plan.outputs.tag }}
       - uses: sigstore/cosign-installer@v3
       - name: Download and verify mcp-publisher
         run: |

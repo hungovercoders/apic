@@ -15,28 +15,36 @@
   release. The page leaves Unreleased out, so the pull requests that add
   lines there need not run it.
 - Merging the release pull request is the release. `release.yml` runs on
-  every push to `main` that changes `CHANGELOG.md`: its `plan` job takes
-  the newest dated section (`scripts/changelog -latest`) and does nothing
-  when that version already has a GitHub release, which is every push
-  that only added lines under Unreleased. Otherwise the `goreleaser` job
-  checks out the commit that brought the dated heading onto `main` (found
-  with `git log -S`, so a manual run or a re-run never ships work merged
-  since), runs the checks below, tags it, and releases it in the same run.
-  The tag is pushed with `GITHUB_TOKEN`, which starts no workflow, so the
-  run is the only release of it. The site, which deploys from `main`,
+  every push to `main` that changes `CHANGELOG.md`. Its `tag` job takes
+  the newest dated section (`scripts/changelog -latest`) and stops when
+  that version is tagged already, which is every push that only added
+  lines under Unreleased. Otherwise it runs the release checks below on
+  the pushed commit, tags that commit, and dispatches `release.yml` on the
+  new tag, where the `goreleaser` job releases it as it would a tag pushed
+  by hand. The release always runs on a tag ref, so the keyless
+  certificate names `release.yml@refs/tags/<tag>`, the identity the site's
+  verifying page checks. The tag is pushed with `GITHUB_TOKEN`, which
+  starts no run of its own; `workflow_dispatch` is the one event it may
+  start, hence the `actions: write`. A manual run on a branch is refused,
+  so nothing unmerged is released; to release a tag again, or one whose
+  dispatch failed, run `gh workflow run release.yml --ref <tag>` or re-run
+  that tag's run. goreleaser keeps an existing release and replaces what it
+  uploads again, so a re-run after a later step failed (the cask, the smoke
+  test) completes the same release. The site, which deploys from `main`,
   names the new version for the minutes the release takes; if a release
   fails, its install commands name archives that do not exist until it is
-  fixed and re-run, so treat a red release run as urgent. Pushing a
-  version tag by hand still releases that tag, and the `release`
-  concurrency group makes a hand-pushed tag that races the merge wait and
-  then find the release done.
-- Before tagging, the job runs `scripts/changelog -release <tag>`. It fails
-  the run with nothing built or tagged unless the tag is the newest dated
+  re-run, so treat a red release run as urgent.
+- Before tagging, and again before building, the workflow runs
+  `scripts/changelog -release <tag>`. It fails the run with nothing built
+  or tagged unless the tag is the newest dated
   section and the docs already name it, then passes the section to
   goreleaser as `--release-notes`; `task notes -- 0.2.0` prints what it
   would attach.
   A prerelease tag (`v0.3.0-rc.1`) needs its own dated section like any
-  other, and leaves the docs' pins on the last stable release.
+  other. It is published as a GitHub prerelease (`prerelease: auto`), so
+  it never becomes `releases/latest`, and it leaves the docs' pins, the
+  `v0` tag, the Homebrew cask, the image's `latest` and the MCP registry
+  listing on the last stable release.
   The generator's tests also check the file's shape (Unreleased first, a
   date on every release, newest first, a link reference for each
   version). A new place in the docs that names the current release goes
@@ -110,7 +118,7 @@
   including a tampered checksum.
 - After each release, `release.yml` force-moves the major tag (`v0` today,
   `v1` later) to the released commit so `setup-apic@v0` follows the newest
-  release. The `plan` job releases only tags containing a dot, so the
+  release. The `goreleaser` job releases only tags containing a dot, so the
   moving tag never starts a release of its own.
 - The VS Code extension is released separately, on `vscode-v<version>`
   tags: `vscode-release.yml` checks the tag against
@@ -119,7 +127,8 @@
   the publish steps are skipped) and attaches the `.vsix` to a GitHub
   release with the matching `CHANGELOG.md` section as notes. A binary tag
   never touches the extension and an extension tag never touches the
-  binary; `release.yml` matches `v*`, which `vscode-v*` does not start with.
+  binary; `release.yml` only takes tags matching `v[0-9]*`, which `vscode-v*` does
+  not.
   The extension's `MIN_VERSION` in `src/apic.ts` names the oldest binary it
   drives; raise it when the extension starts to depend on a newer `--json`
   key.

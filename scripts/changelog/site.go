@@ -39,12 +39,13 @@ func SitePage(changelog string) string {
 	var kept []string
 	skipping := false
 	for _, line := range strings.Split(text, "\n") {
+		ref := linkRef.FindStringSubmatch(line)
 		if m := heading.FindStringSubmatch(line); m != nil {
 			skipping = m[1] == unreleased
-		} else if skipping && strings.HasPrefix(line, "[") {
+		} else if ref != nil {
 			skipping = false // the link references after the last section
 		}
-		if skipping || strings.HasPrefix(line, "["+unreleased+"]: ") {
+		if skipping || (ref != nil && ref[1] == unreleased) {
 			continue
 		}
 		kept = append(kept, line)
@@ -53,45 +54,61 @@ func SitePage(changelog string) string {
 	return pageHead + strings.TrimSpace(text) + "\n"
 }
 
-// A Pin is one place the docs name the current release: a pattern for the
-// whole phrase, with any version in it, and the phrase's text with {v} for
-// the version (0.2.0) and {minor} for its minor (0.2). Every pin must
-// match at least once, so a reworded line fails the test instead of
-// keeping an old version quietly.
+// A Pin is one place the docs name the current release: the phrase as it
+// reads, with {v} for the version (0.2.0) and {minor} for its minor (0.2).
+// The phrase is matched with any version in those places and the rest
+// taken literally, so a dot in a hostname is a dot. Every pin must match at
+// least once, so a reworded line fails the test instead of keeping an old
+// version quietly.
 type Pin struct {
 	File string // relative to the repository root
+	Text string // the phrase, with {v} and {minor}
 	re   *regexp.Regexp
-	Text string
 }
 
 // Patterns for a version in a pin: a full version, prerelease included so
-// a pin rewritten from one cannot keep its suffix, and a minor.
+// a pin rewritten from one cannot keep its suffix, and a minor. semver in
+// main.go is the same grammar, anchored.
 const (
 	ver   = `\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?`
 	minor = `\d+\.\d+`
 )
 
-func pin(file, pattern, text string) Pin {
-	return Pin{File: file, re: regexp.MustCompile(pattern), Text: text}
+var placeholder = regexp.MustCompile(`\{v\}|\{minor\}`)
+
+func pin(file, text string) Pin {
+	var pattern strings.Builder
+	last := 0
+	for _, loc := range placeholder.FindAllStringIndex(text, -1) {
+		pattern.WriteString(regexp.QuoteMeta(text[last:loc[0]]))
+		if text[loc[0]:loc[1]] == "{v}" {
+			pattern.WriteString(ver)
+		} else {
+			pattern.WriteString(minor)
+		}
+		last = loc[1]
+	}
+	pattern.WriteString(regexp.QuoteMeta(text[last:]))
+	return Pin{File: file, Text: text, re: regexp.MustCompile(pattern.String())}
 }
 
 // Pins are the places the docs name the current release. A new one goes
 // here, not into the page by hand.
 var Pins = []Pin{
-	pin("website/src/content/docs/getting-started.mdx", `V=`+ver+`   # the release, without the v`, `V={v}   # the release, without the v`),
-	pin("website/src/content/docs/getting-started.mdx", "with: version:\nv"+ver+"` to pin one", "with: version:\nv{v}` to pin one"),
-	pin("website/src/content/docs/cookbook.md", "`with: version: v"+ver+"`", "`with: version: v{v}`"),
-	pin("website/src/content/docs/cookbook.md", "tagged with the version \\(`"+ver+"` and `v"+ver+"`\\), the minor \\(`v"+minor+"`\\)", "tagged with the version (`{v}` and `v{v}`), the minor (`v{minor}`)"),
-	pin("website/src/content/docs/cookbook.md", `COPY --from=ghcr.io/hungovercoders/apic:v`+minor+` `, `COPY --from=ghcr.io/hungovercoders/apic:v{minor} `),
-	pin("website/src/content/docs/verifying.md", `VERSION=v`+ver+"\n", "VERSION=v{v}\n"),
-	pin("website/src/content/docs/verifying.md", `ghcr.io/hungovercoders/apic:`+ver+` `, `ghcr.io/hungovercoders/apic:{v} `),
-	pin("website/src/content/docs/learn/index.md", `written for apic v`+ver+` or newer`, `written for apic v{v} or newer`),
-	pin("website/src/content/docs/learn/01-first-request.md", `apic v`+ver+` · `, `apic v{v} · `),
-	pin("website/src/content/docs/learn/01-first-request.md", `"version": "v`+ver+`"`, `"version": "v{v}"`),
-	pin("website/src/content/docs/learn/04-assertions.md", `"version": "v`+ver+`"`, `"version": "v{v}"`),
-	pin("website/src/content/docs/learn/08-ci.md", `version: v`+ver, `version: v{v}`),
-	pin("website/src/content/docs/learn/09-import-export.md", `"version": "v`+ver+`"`, `"version": "v{v}"`),
-	pin("setup-apic/README.md", `version: v`+ver+` # or "latest"`, `version: v{v} # or "latest"`),
+	pin("website/src/content/docs/getting-started.mdx", "V={v}   # the release, without the v"),
+	pin("website/src/content/docs/getting-started.mdx", "with: version:\nv{v}` to pin one"),
+	pin("website/src/content/docs/cookbook.md", "`with: version: v{v}`"),
+	pin("website/src/content/docs/cookbook.md", "tagged with the version (`{v}` and `v{v}`), the minor (`v{minor}`)"),
+	pin("website/src/content/docs/cookbook.md", "COPY --from=ghcr.io/hungovercoders/apic:v{minor} "),
+	pin("website/src/content/docs/verifying.md", "VERSION=v{v}\n"),
+	pin("website/src/content/docs/verifying.md", "ghcr.io/hungovercoders/apic:{v} "),
+	pin("website/src/content/docs/learn/index.md", "written for apic v{v} or newer"),
+	pin("website/src/content/docs/learn/01-first-request.md", "apic v{v} · "),
+	pin("website/src/content/docs/learn/01-first-request.md", `"version": "v{v}"`),
+	pin("website/src/content/docs/learn/04-assertions.md", `"version": "v{v}"`),
+	pin("website/src/content/docs/learn/08-ci.md", "version: v{v}"),
+	pin("website/src/content/docs/learn/09-import-export.md", `"version": "v{v}"`),
+	pin("setup-apic/README.md", `version: v{v} # or "latest"`),
 }
 
 var minorPrefix = regexp.MustCompile(`^` + minor)
@@ -115,7 +132,7 @@ func pinned(root, file, version string) (before, after string, err error) {
 			continue
 		}
 		if !p.re.MatchString(after) {
-			return "", "", fmt.Errorf("%s: no match for the pin %q; reword it in Pins (scripts/changelog/site.go) rather than in the page", file, p.re)
+			return "", "", fmt.Errorf("%s: no match for the pin %q; reword it in Pins (scripts/changelog/site.go) rather than in the page", file, p.Text)
 		}
 		after = p.re.ReplaceAllLiteralString(after, text.Replace(p.Text))
 	}

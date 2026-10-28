@@ -77,6 +77,18 @@ func TestCheckNamesEveryShapeProblem(t *testing.T) {
 	if compareVersions("0.3.0-rc.1", "0.3.0") >= 0 || compareVersions("0.3.0-rc.1", "0.2.0") <= 0 || compareVersions("0.3.0-rc.2", "0.3.0-rc.1") <= 0 {
 		t.Fatal("prerelease order")
 	}
+	// Semver's order for the suffix: words by their bytes, a number below a
+	// word, a longer suffix above its own start.
+	order := []string{"0.3.0-1", "0.3.0-alpha", "0.3.0-alpha.1", "0.3.0-alpha.2", "0.3.0-alpha.10", "0.3.0-beta.1", "0.3.0-beta.2", "0.3.0-rc.1", "0.3.0"}
+	for i := 1; i < len(order); i++ {
+		if compareVersions(order[i-1], order[i]) >= 0 {
+			t.Errorf("%s should be below %s", order[i-1], order[i])
+		}
+	}
+	ordered := "## [Unreleased]\n\n## [0.3.0-rc.1] - 2026-10-29\n\nC.\n\n## [0.3.0-beta.2] - 2026-10-28\n\nB.\n\n## [0.3.0-alpha.1] - 2026-10-27\n\nA.\n\n[Unreleased]: u\n[0.3.0-rc.1]: u\n[0.3.0-beta.2]: u\n[0.3.0-alpha.1]: u\n"
+	if p := Check(ordered); len(p) != 0 {
+		t.Fatalf("validly ordered prereleases: %v", p)
+	}
 	if p := strings.Join(Check("## [Unreleased]\n\n## [1] - 2026-10-27\n\nA.\n\n[Unreleased]: u\n[1]: u\n"), "\n"); !strings.Contains(p, `"1" is not a version`) {
 		t.Fatalf("a malformed version: %s", p)
 	}
@@ -138,6 +150,8 @@ func TestLatestAndTheSitePage(t *testing.T) {
 	for _, variant := range []string{
 		strings.Replace(sample, "## [Unreleased]\n", "## [Unreleased]\n\n### Added\n\n- Coming.\n", 1),
 		strings.Replace(sample, "## [Unreleased]\n", "## [Unreleased]  \n", 1),
+		// A line that opens with a link is not a link reference.
+		strings.Replace(sample, "## [Unreleased]\n", "## [Unreleased]\n\n[apic mock](cli.md#apic-mock) answers HEAD.\n\n- More.\n", 1),
 	} {
 		if p := SitePage(variant); p != page {
 			t.Fatalf("Unreleased changed the page:\n%s", p)
@@ -164,8 +178,13 @@ func TestPinsRewriteAndRefuseAMissingPhrase(t *testing.T) {
 	saved := Pins
 	t.Cleanup(func() { Pins = saved })
 	Pins = []Pin{
-		pin("a.md", `version: v`+ver, `version: v{v}`),
-		pin("a.md", "minor \\(`v"+minor+"`\\)", "minor (`v{minor}`)"),
+		pin("a.md", "version: v{v}"),
+		pin("a.md", "minor (`v{minor}`)"),
+	}
+	// Everything but the placeholders is literal: a dot in a host is a dot.
+	host := pin("a.md", "ghcr.io/x:{v} ")
+	if !host.re.MatchString("ghcr.io/x:0.2.0 ") || host.re.MatchString("ghcrXio/x:0.2.0 ") {
+		t.Fatalf("pin pattern %s", host.re)
 	}
 	if err := os.WriteFile(filepath.Join(root, "a.md"), []byte("version: v0.1.4\nversion: v0.1.4 # x\nminor (`v0.1`)\n"), 0o600); err != nil {
 		t.Fatal(err)

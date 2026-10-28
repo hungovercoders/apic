@@ -25,7 +25,7 @@ transparency log. Verifying checks that chain.
 You need [cosign](https://github.com/sigstore/cosign#installation).
 
 ```sh
-VERSION=v0.1.0
+VERSION=v0.2.0
 BASE="https://github.com/hungovercoders/apic/releases/download/$VERSION"
 
 curl -fsSLO "$BASE/checksums.txt"
@@ -61,7 +61,7 @@ The image `ghcr.io/hungovercoders/apic` is signed by the same workflow, keyless,
 so the same two identity flags apply:
 
 ```sh
-cosign verify ghcr.io/hungovercoders/apic:0.1.0 \
+cosign verify ghcr.io/hungovercoders/apic:0.2.0 \
   --certificate-identity-regexp '^https://github\.com/hungovercoders/apic/\.github/workflows/release\.yml@refs/tags/' \
   --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'
 ```
@@ -74,7 +74,7 @@ The image also carries an SBOM attestation, which buildx attached when it
 built it:
 
 ```sh
-docker buildx imagetools inspect ghcr.io/hungovercoders/apic:0.1.0 --format '{{ json .SBOM }}'
+docker buildx imagetools inspect ghcr.io/hungovercoders/apic:0.2.0 --format '{{ json .SBOM }}'
 ```
 
 ## Read the SBOM
@@ -84,10 +84,10 @@ compiled into it, which is more reliable than reading this repository's
 `go.mod`: it describes the artifact you actually downloaded.
 
 ```sh
-curl -fsSLO "$BASE/apic_0.1.0_linux_amd64.tar.gz.sbom.json"
+curl -fsSLO "$BASE/apic_0.2.0_linux_amd64.tar.gz.sbom.json"
 
 # What is in it, and at which version?
-jq -r '.packages[] | "\(.name) \(.versionInfo)"' apic_0.1.0_linux_amd64.tar.gz.sbom.json | sort
+jq -r '.packages[] | "\(.name) \(.versionInfo)"' apic_0.2.0_linux_amd64.tar.gz.sbom.json | sort
 ```
 
 The module set differs by platform — cobra pulls in `mousetrap` on Windows only
@@ -96,7 +96,7 @@ The module set differs by platform — cobra pulls in `mousetrap` on Windows onl
 Tools that consume SPDX (Grype, Trivy, Dependency-Track) can scan it directly:
 
 ```sh
-grype sbom:apic_0.1.0_linux_amd64.tar.gz.sbom.json
+grype sbom:apic_0.2.0_linux_amd64.tar.gz.sbom.json
 ```
 
 ## Licences

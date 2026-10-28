@@ -229,6 +229,11 @@ dockers_v2:
 docker_signs:
   - args: ["sign", "${artifact}@${digest}", "--yes"]
 
+# The release notes are the tag's section of CHANGELOG.md, hand-written:
+# release.yml extracts it (scripts/changelog) and passes it as
+# --release-notes, which replaces the commit list below. That list is only
+# what a release run outside the workflow would get, and it proved to be
+# every commit since the repository began, so do not rely on it.
 changelog:
   use: github
   filters:
@@ -238,3 +243,12 @@ release:
   # v0.1.0 went out as a draft so the first, unproven set of archives could be
   # inspected before going public. That pipeline is proven now.
   draft: false
+  # A tag with a suffix (v0.3.0-rc.1) is marked a prerelease, so it never
+  # becomes releases/latest, which install.sh, install.ps1 and setup-apic
+  # resolve "latest" through.
+  prerelease: auto
+  # Re-running a release whose later steps failed (the cask push, the
+  # smoke test) uploads into the release already there rather than failing
+  # on it, keeping its notes and replacing what it uploads again.
+  mode: keep-existing
+  replace_existing_artifacts: true

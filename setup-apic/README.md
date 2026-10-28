@@ -7,7 +7,7 @@ tool cache and adds it to `PATH`. Linux, macOS and Windows runners.
 ```yaml
 - uses: hungovercoders/apic/setup-apic@v0
   with:
-    version: v0.1.2 # or "latest", the default
+    version: v0.2.0 # or "latest", the default
 - run: apic validate --format github
 - run: apic run smoke.http --env ci
 ```

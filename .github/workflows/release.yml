@@ -1,17 +1,143 @@
 name: release
+# Merging the release pull request is the release. It dates a section of
+# CHANGELOG.md; the push to main that carries it lands in the tag job, which
+# tags that commit and starts this workflow again on the tag, where the
+# goreleaser job releases it, and the docs job then moves the site's
+# changelog page and version pins to it. Releasing from a tag ref, never
+# from main, keeps the signing certificate's identity
+# release.yml@refs/tags/<tag>, which the site's verifying page checks. A
+# version tag pushed by hand releases the same way. See docs/releasing.md.
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+    # CHANGELOG.md dates a release. The rest is what the release check
+    # reads besides it: a push that mends the docs, the published-release
+    # record or the generator itself (a pin reworded in Pins, say) may be
+    # the one that lets a dated, untagged release through. (GitHub ignores
+    # paths for tag pushes.)
+    paths:
+      - CHANGELOG.md
+      - website/released-version
+      - website/src/content/docs/**
+      - setup-apic/README.md
+      - scripts/changelog/**
+    # v0.2.0 and v0.3.0-rc.1, not vscode-v0.4.0 (the extension's own
+    # release) and not the moving major tag v0, which has no dot (see the
+    # goreleaser job's guard).
+    tags: ["v[0-9]*"]
+  # On a version tag: release it, or release it again (the newest only; see
+  # scripts/changelog -release). The tag job dispatches this itself. On
+  # main: the tag job, as a push would run it, to retry tagging. Any other
+  # branch is refused, so nothing unmerged is released.
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+# Release runs for the same tag queue rather than overlap. Pushes to main
+# are keyed by commit instead: GitHub keeps one pending run per group, so a
+# shared group would let a later push replace an earlier one's queued run.
+# Two of them racing to tag the same version is settled at the push below.
+concurrency:
+  group: release-${{ github.ref_type == 'tag' && github.ref || github.sha }}
+  cancel-in-progress: false
+
 jobs:
+  # From main: tag the newest dated section of CHANGELOG.md, if no tag has
+  # it yet, then dispatch the release on that tag. The commit tagged is the
+  # one the release pull request left on main (scripts/changelog
+  # -release-commit), not this push's, which may be a later merge whose
+  # changes sit under Unreleased. A push that only added lines under Unreleased finds the tag
+  # there and stops. Pushed with GITHUB_TOKEN, the tag starts no run of its
+  # own; workflow_dispatch is the one event that token may start.
+  tag:
+    if: github.ref_type == 'branch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the tag
+      actions: write # dispatch the release run on it
+    steps:
+      - name: Only main releases by merge
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::release.yml releases a version tag, or tags one from main; run it on main or on the tag (gh workflow run release.yml --ref v1.2.3)"
+          exit 1
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # main's history, to find the commit to tag
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Tag the release and start it
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="v$(go run ./scripts/changelog -latest)"
+          # 0: tagged already; 2: no such tag; anything else is a failed
+          # lookup, which must not be read as "not tagged".
+          tagged() {
+            set +e
+            git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null
+            rc=$?
+            set -e
+            case $rc in
+              0) return 0 ;;
+              2) return 1 ;;
+              *) echo "::error::could not list origin's tags (git ls-remote exit $rc)"; exit 1 ;;
+            esac
+          }
+          # On a manual run or a re-run only, a tag nothing has released yet
+          # (its dispatch failed after the push, say) is started again; one
+          # with a release or a release run already is left alone: re-run
+          # that run to retry it. An ordinary push never does this: another
+          # push's run may have pushed the tag a moment ago and be about to
+          # dispatch, and two dispatches would release the tag twice.
+          released() {
+            code="$(gh api -i "repos/$GITHUB_REPOSITORY/releases/tags/$tag" 2>/dev/null | head -n 1 | cut -d ' ' -f 2)"
+            case "$code" in
+              200) return 0 ;;
+              404) return 1 ;;
+              *) echo "::error::GitHub answered $code for the release of $tag"; exit 1 ;;
+            esac
+          }
+          if tagged; then
+            if [ "$GITHUB_EVENT_NAME" != workflow_dispatch ] && [ "$GITHUB_RUN_ATTEMPT" = 1 ]; then
+              echo "$tag is tagged already; nothing to do"
+              exit 0
+            fi
+            if released; then
+              echo "$tag is released already; nothing to do"
+              exit 0
+            fi
+            runs="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release.yml --branch "$tag" --limit 1 --json databaseId --jq length)"
+            if [ "$runs" != 0 ]; then
+              echo "$tag is tagged and its release run exists; re-run that run to retry it"
+              exit 0
+            fi
+            gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$tag"
+            echo "$tag was tagged but never released; started its release"
+            exit 0
+          fi
+          # The first commit on main since the section was dated at which
+          # the release checks pass.
+          commit="$(go run ./scripts/changelog -release-commit "$tag")"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$tag" -m "apic ${tag#v}" "$commit"
+          if ! git push origin "refs/tags/$tag"; then
+            if tagged; then
+              echo "another run tagged $tag first; it starts the release, and a re-run of either starts it if that failed"
+              exit 0
+            fi
+            exit 1
+          fi
+          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$tag"
+          echo "tagged $commit as $tag and started its release"
+
   goreleaser:
     # Only version tags (v0.1.2) release. The moving major tag (v0) that the
-    # last step maintains for the setup-apic action also matches `v*`, and
-    # must not start a release of its own.
-    if: contains(github.ref_name, '.')
+    # last step maintains also matches the tag filter and has no dot.
+    if: github.ref_type == 'tag' && contains(github.ref_name, '.')
     runs-on: ubuntu-latest
     permissions:
       contents: write # create the release and upload its assets
@@ -21,6 +147,8 @@ jobs:
     # for that repository: GITHUB_TOKEN only reaches this one. The secret is
     # a fine-grained PAT with contents read and write on the tap, nothing
     # else (see AGENTS.md, Releasing).
+    env:
+      TAG: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -38,6 +166,14 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
+      # The release notes are this version's section of CHANGELOG.md,
+      # written by hand in the pull requests that made the release (see
+      # docs/releasing.md). The tag must be the newest dated section, no
+      # higher version may be tagged, and the docs must be current for the
+      # release published before it: fail here, with nothing built, rather
+      # than publish a release that says nothing or roll the docs back.
+      - name: The changelog has this version's notes
+        run: go run ./scripts/changelog -release "$TAG" > "$RUNNER_TEMP/release-notes.md"
       # cosign signs checksums.txt; syft builds the per-archive SBOMs. Neither
       # ships with the runner or with goreleaser-action, so both are installed
       # here rather than silently skipped.
@@ -55,23 +191,71 @@ jobs:
       - uses: goreleaser/goreleaser-action@v7
         with:
           version: "~> v2"
-          args: release --clean
+          args: release --clean --release-notes ${{ runner.temp }}/release-notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
       # The published image runs, and reports the version it was tagged with.
       - name: Smoke-test the image
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          version="${TAG#v}"
           docker run --rm "ghcr.io/hungovercoders/apic:${version}" version | grep -F "apic ${version}"
       # `uses: hungovercoders/apic/setup-apic@v0` follows the newest 0.x
       # release, the way actions/checkout@v4 does: move the major tag to
       # this commit once the release is out.
       - name: Move the major tag for setup-apic
+        # A release candidate is for those who ask for it by name: @v0 stays
+        # on the last stable release.
+        if: ${{ !contains(github.ref_name, '-') }}
         run: |
-          major="${GITHUB_REF_NAME%%.*}"
-          git tag -f "$major" "$GITHUB_REF_NAME"
+          major="${TAG%%.*}"
+          git tag -f "$major" "$TAG"
           git push -f origin "refs/tags/$major"
+
+  # Once the release is out, the site names it: record it as published
+  # (website/released-version), regenerate the changelog page and the
+  # version pins (scripts/changelog -publish) and commit the result to main.
+  # The release pull request left them alone, so the site never names a
+  # version whose archives do not exist yet. Pushed with GITHUB_TOKEN, the
+  # commit starts no workflow; the site deploys from it as from any push to
+  # main. A re-run of a release already recorded changes nothing.
+  docs:
+    needs: goreleaser
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the docs commit to main
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Name the release in the docs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # main may move while this runs: regenerate on the newest main and
+          # try again if the push loses the race.
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git reset -q --hard origin/main
+            go run ./scripts/changelog -publish "$TAG"
+            if git diff --quiet; then
+              echo "the docs name $TAG already"
+              exit 0
+            fi
+            git add -A
+            git commit -q -m "docs: name $TAG, which is released" -m "Recorded by release.yml's docs job after the release published: website/released-version, the site's changelog page and the docs' version pins (scripts/changelog -publish)."
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep $((attempt * 5))
+          done
+          echo "::error::could not push the docs for $TAG to main; run go run ./scripts/changelog -publish $TAG on main and commit the result"
+          exit 1
 
   # The MCP registry (registry.modelcontextprotocol.io) lists the server the
   # image provides as io.github.hungovercoders/apic, so an MCP client that
@@ -83,7 +267,9 @@ jobs:
   # a registry outage fails the listing and not the release.
   mcp-registry:
     needs: goreleaser
-    if: contains(github.ref_name, '.')
+    # The registry lists stable releases only; a version it has seen can
+    # never be published again, so an rc would sit there as the newest.
+    if: ${{ !contains(github.ref_name, '-') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -92,10 +278,26 @@ jobs:
       # Bumped deliberately, never "latest": the archive is verified against
       # the registry's own release signature for this exact tag.
       MCP_PUBLISHER_VERSION: v1.8.1
+      TAG: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v7
+      # A version the registry holds can never be published again, so a
+      # re-run of a release that was listed already has nothing to do here.
+      - name: Is this version listed already
+        id: listed
+        run: |
+          name="$(jq -r .name server.json)"
+          url="https://registry.modelcontextprotocol.io/v0/servers/$(jq -rn --arg n "$name" '$n|@uri')/versions/${TAG#v}"
+          code="$(curl -sS -o /dev/null -w '%{http_code}' "$url")"
+          case "$code" in
+            200) echo "$name ${TAG#v} is listed already"; echo "skip=true" >> "$GITHUB_OUTPUT" ;;
+            404) echo "skip=false" >> "$GITHUB_OUTPUT" ;;
+            *) echo "::error::the registry answered $code for $url"; exit 1 ;;
+          esac
       - uses: sigstore/cosign-installer@v3
+        if: steps.listed.outputs.skip != 'true'
       - name: Download and verify mcp-publisher
+        if: steps.listed.outputs.skip != 'true'
         run: |
           set -euo pipefail
           os="$(uname -s | tr '[:upper:]' '[:lower:]')"
@@ -113,13 +315,16 @@ jobs:
           tar xzf "$archive" mcp-publisher
           rm -f "$archive" "$archive.sigstore.json"
       - name: Set the version and the image in server.json
+        if: steps.listed.outputs.skip != 'true'
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          version="${TAG#v}"
           jq --arg v "$version" \
             '.version = $v | .packages[].identifier = "ghcr.io/hungovercoders/apic:" + $v' \
             server.json > server.tmp && mv server.tmp server.json
           cat server.json
       - name: Authenticate to the MCP registry
+        if: steps.listed.outputs.skip != 'true'
         run: ./mcp-publisher login github-oidc
       - name: Publish the listing
+        if: steps.listed.outputs.skip != 'true'
         run: ./mcp-publisher publish

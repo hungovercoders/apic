@@ -239,4 +239,7 @@ documentation without parsing HTML:
 
 Inside a project, `apic skill` prints the same briefing the Agent Skill
 installs, and `apic <command> --help` is always current for the binary on
-the machine, whichever docs version the agent read.
+the machine, whichever docs version the agent read. `apic version --json`
+names that binary's release, and the [changelog](changelog.md) says what
+each release added or changed, so an agent can tell whether a command the
+docs describe is in the binary it has.

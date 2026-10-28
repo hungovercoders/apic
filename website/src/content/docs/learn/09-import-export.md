@@ -231,7 +231,7 @@ GET http://localhost:8089/health
   "service": "apic-demo",
   "status": "ok",
   "uptime_seconds": 89,
-  "version": "v0.1.4"
+  "version": "v0.2.0"
 }
 
 ✓ status == 200

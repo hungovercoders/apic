@@ -25,24 +25,55 @@ root; edit that file and run task docs:changelog. -->
 // line where a section was taken out.
 var blankRuns = regexp.MustCompile(`\n{3,}`)
 
-// SitePage renders CHANGELOG.md as the site's page: the file's own title
-// gives way to the page's front matter, and the Unreleased section is left
-// out with its link reference. The page lists releases a reader can
-// install; what main has that no release carries yet is for contributors,
-// and leaving it off means a pull request that adds a line under
-// Unreleased does not touch the page, only the one that dates a release.
-func SitePage(changelog string) string {
+// Released names the newest published release, the one the site's page
+// and pins follow. A release pull request dates its section and leaves
+// this alone, so the site does not name a version before its archives
+// exist; release.yml's docs job moves it with -publish once goreleaser has
+// published, and commits what that regenerates.
+const Released = "website/released-version"
+
+// published reads Released: a version with a dated section in changelog.
+func published(read reader, changelog string) (string, error) {
+	text, err := read(Released)
+	if err != nil {
+		return "", err
+	}
+	v := strings.TrimSpace(text)
+	if !semver.MatchString(v) {
+		return "", fmt.Errorf("%s holds %q, not a version like 0.2.0", Released, v)
+	}
+	if _, err := Section(changelog, v); err != nil {
+		return "", fmt.Errorf("%s names %s: %w", Released, v, err)
+	}
+	return v, nil
+}
+
+// SitePage renders CHANGELOG.md as the site's page for the published
+// release: the file's own title gives way to the page's front matter, and
+// Unreleased and every section above published are left out with their
+// link references. The page lists releases a reader can install, so
+// neither a line under Unreleased nor a release pull request's newly dated
+// section changes it; publishing does.
+func SitePage(changelog, published string) string {
 	text := changelog
 	if strings.HasPrefix(text, "# ") {
 		_, text, _ = strings.Cut(text, "\n")
 	}
+	lines := scan(text)
+	hidden := map[string]bool{}
+	for _, l := range lines {
+		if l.heading != nil && (l.heading[1] == unreleased || compareVersions(version(l.heading), published) > 0) {
+			hidden[l.heading[1]] = true
+			hidden[l.heading[2]] = true
+		}
+	}
 	var kept []string
 	skipping := false
-	for _, l := range scan(text) {
+	for _, l := range lines {
 		if l.h2 || l.trailing {
-			skipping = l.heading != nil && l.heading[1] == unreleased
+			skipping = l.heading != nil && hidden[l.heading[1]]
 		}
-		if skipping || (l.ref != nil && l.ref[1] == unreleased) {
+		if skipping || (l.ref != nil && hidden[l.ref[1]]) {
 			continue
 		}
 		kept = append(kept, l.text)
@@ -166,10 +197,14 @@ func files() []string {
 type change struct{ file, current, want string }
 
 // changes returns every file the changelog governs with what it should
-// hold: the site's page, and each pinned page naming the newest stable
-// release.
+// hold for the published release: the site's page, and each pinned page
+// naming the newest stable release at or below it.
 func changes(read reader, changelog string) ([]change, error) {
-	stable, err := Stable(changelog)
+	pub, err := published(read, changelog)
+	if err != nil {
+		return nil, err
+	}
+	stable, err := newest(changelog, func(v string) bool { return !strings.Contains(v, "-") && compareVersions(v, pub) <= 0 })
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +215,7 @@ func changes(read reader, changelog string) ([]change, error) {
 			if err != nil && !os.IsNotExist(err) {
 				return nil, err
 			}
-			out = append(out, change{f, current, SitePage(changelog)})
+			out = append(out, change{f, current, SitePage(changelog, pub)})
 			continue
 		}
 		before, after, err := pinned(read, f, stable)
@@ -207,8 +242,32 @@ func Stale(read reader, changelog string) ([]string, error) {
 	return stale, nil
 }
 
+// Publish records version as published and brings the docs in line: what
+// release.yml's docs job runs once a release is out. version needs a dated
+// section, and a release older than the one recorded is refused, since the
+// docs would then name an older release than the newest one out.
+func Publish(root, changelog, version string) error {
+	if version == unreleased {
+		return fmt.Errorf("the Unreleased section is not a release")
+	}
+	if _, err := Latest(changelog); err != nil {
+		return err
+	}
+	if _, err := Section(changelog, version); err != nil {
+		return err
+	}
+	if current, err := published(fromDisk(root), changelog); err == nil && compareVersions(version, current) < 0 {
+		return fmt.Errorf("%s records %s already; %s is older", Released, current, version)
+	}
+	if err := os.WriteFile(filepath.Join(root, filepath.FromSlash(Released)), []byte(version+"\n"), 0o644); err != nil { //nolint:gosec // a public file in the repository
+		return err
+	}
+	return Write(root, changelog)
+}
+
 // Write brings the site's changelog page and every pin in line with the
-// changelog, leaving a file that already matches untouched.
+// changelog and the published release, leaving a file that already matches
+// untouched.
 func Write(root, changelog string) error {
 	all, err := changes(fromDisk(root), changelog)
 	if err != nil {

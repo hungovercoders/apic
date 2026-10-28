@@ -34,7 +34,8 @@ quality suite fits beside them. `task check` is the local equivalent of
   where a job needs it (`docs.yml` for Pages, `codeql.yml` for
   security-events, `release.yml` for the release upload, the tag it
   pushes when a release pull request merges and the `actions: write` to
-  dispatch the release on it, and, in its `mcp-registry`
+  dispatch the release on it, and the docs commit its
+  `docs` job pushes to `main` after a release, and, in its `mcp-registry`
   job, `id-token: write` to publish the MCP registry listing; see
   `releasing.md`).
 

@@ -4,16 +4,26 @@
   from it. A change a user would notice gets a line under Unreleased in
   the pull request that makes it, in
   [Keep a Changelog](https://keepachangelog.com/) form. Cutting a release
-  is one pull request: turn Unreleased into `## [x.y.z] - YYYY-MM-DD`, add
-  its compare link at the end of the file, start a new empty Unreleased
-  above it, and run `task docs:changelog`, which renders the site's
-  changelog page and rewrites every place the docs pin a release (the
-  install commands, `setup-apic`'s `version:`, the image tags in the
-  cookbook and on the verifying page, the course's sample output) to the
-  newest dated section that is not a prerelease. A test fails until it
-  has run, so a dated section cannot merge with docs naming the last
-  release. The page leaves Unreleased out, so the pull requests that add
-  lines there need not run it.
+  is one pull request that touches only `CHANGELOG.md`: turn Unreleased
+  into `## [x.y.z] - YYYY-MM-DD`, add its compare link at the end of the
+  file, and start a new empty Unreleased above it.
+- The site follows the newest *published* release, recorded in
+  `website/released-version`, not the newest dated section, so it never
+  names a version whose archives do not exist yet. `task docs:changelog`
+  renders the site's changelog page with the sections up to that release
+  and rewrites every place the docs pin a release (the install commands,
+  `setup-apic`'s `version:`, the image tags and SBOM file in the cookbook
+  and on the verifying page, the course's sample output) to the newest
+  stable release at or below it; a test fails while either is stale. A
+  dated section above the published release is not on the page, so the
+  release pull request changes nothing there; once the release is out,
+  `release.yml`'s `docs` job runs `scripts/changelog -publish <tag>`,
+  which records the release and regenerates, and commits the result to
+  `main` with `GITHUB_TOKEN`, retrying if `main` moved meanwhile. That
+  push starts no workflow; the site deploys from it as from any push. It
+  needs `main` to accept a push from the workflow's token: if a ruleset
+  ever forbids it, the job fails and says to run `-publish` on `main` by
+  hand.
 - Merging the release pull request is the release. `release.yml` runs on
   every push to `main` that changes `CHANGELOG.md` or the docs its pins
   govern (where a release whose docs lagged gets caught up), and on a
@@ -48,19 +58,21 @@
   existing release and replaces what it
   uploads again, so a re-run after a later step failed (the cask, the smoke
   test) completes the same release, and the `mcp-registry` job skips a
-  version the registry lists already. The site, which deploys from `main`,
-  names the new version for the minutes the release takes; if a release
-  fails, its install commands name archives that do not exist until it is
-  re-run, so treat a red release run as urgent.
+  version the registry lists already. A failed release leaves the site on
+  the previous one, since the `docs` job runs only after goreleaser has
+  published.
 - Before tagging, and again before building, the workflow runs
   `scripts/changelog -release <tag>`. It fails the run with nothing built
-  or tagged unless the tag is the newest dated
-  section and the docs already name it, then passes the section to
-  goreleaser as `--release-notes`; `task notes -- 0.2.0` prints what it
-  would attach.
+  or tagged unless the tag is the newest dated section, no higher version
+  is tagged and the docs are current for the release published before it,
+  then passes the section to goreleaser as `--release-notes`, unwrapped to
+  one line per paragraph and bullet because GitHub shows a release body's
+  single newlines as breaks; `task notes -- 0.2.0` prints what it would
+  attach.
   A prerelease tag (`v0.3.0-rc.1`) needs its own dated section like any
   other. It is published as a GitHub prerelease (`prerelease: auto`), so
-  it never becomes `releases/latest`, and it leaves the docs' pins, the
+  it never becomes `releases/latest`. Publishing it puts its notes on the
+  site's changelog page, but it leaves the docs' pins, the
   `v0` tag, the Homebrew cask, the image's `latest` and the MCP registry
   listing on the last stable release.
   The generator's tests also check the file's shape (Unreleased first, a

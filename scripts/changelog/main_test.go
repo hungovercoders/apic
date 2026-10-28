@@ -158,7 +158,7 @@ func TestLatestAndTheSitePage(t *testing.T) {
 	if v, _ := Latest(ranged); v != "0.1.3" {
 		t.Fatalf("a range's latest is its upper end, got %q", v)
 	}
-	page := SitePage(sample)
+	page := SitePage(sample, "0.2.0")
 	if !strings.HasPrefix(page, "---\ntitle: Changelog\n") || strings.Contains(page, "# Changelog") {
 		t.Fatalf("front matter in place of the H1:\n%s", page)
 	}
@@ -173,7 +173,7 @@ func TestLatestAndTheSitePage(t *testing.T) {
 		// A line that opens with a link is not a link reference.
 		strings.Replace(sample, "## [Unreleased]\n", "## [Unreleased]\n\n[apic mock](cli.md#apic-mock) answers HEAD.\n\n- More.\n", 1),
 	} {
-		if p := SitePage(variant); p != page {
+		if p := SitePage(variant, "0.2.0"); p != page {
 			t.Fatalf("Unreleased changed the page:\n%s", p)
 		}
 	}
@@ -269,7 +269,7 @@ func TestReferencesAndFencesInsideSections(t *testing.T) {
 		t.Fatalf("the whole section, reference and example included:\n%s\n%v", got, err)
 	}
 	unrel := strings.Replace(sample, "## [Unreleased]\n", "## [Unreleased]\n\n- Errors follow [RFC 9457][rfc].\n\n[rfc]: https://example.com\n\n- Still unreleased.\n", 1)
-	if page := SitePage(unrel); page != SitePage(sample) {
+	if page := SitePage(unrel, "0.2.0"); page != SitePage(sample, "0.2.0") {
 		t.Fatalf("Unreleased leaked onto the page:\n%s", page)
 	}
 }
@@ -324,16 +324,23 @@ func TestReleaseCommitIsWhereTheReleaseWasCut(t *testing.T) {
 	git("init", "-q")
 	write("CHANGELOG.md", v1)
 	write("docs.md", "version: v0.1.0\n")
+	write(Released, "0.1.0\n")
 	if err := Write(root, v1); err != nil {
 		t.Fatal(err)
 	}
 	commit("0.1.0")
+	// Dating the section needs nothing else, but this pull request also
+	// broke a pin, which the next commit mends.
 	write("CHANGELOG.md", v2)
-	dated := commit("date 0.2.0")
+	write("docs.md", "version: v0.0.9\n")
+	dated := commit("date 0.2.0, and break a pin")
 	if err := Write(root, v2); err != nil {
 		t.Fatal(err)
 	}
 	caughtUp := commit("task docs:changelog")
+	if data, _ := os.ReadFile(filepath.Join(root, "docs.md")); string(data) != "version: v0.1.0\n" {
+		t.Fatalf("before 0.2.0 is published the docs stay on 0.1.0: %q", data)
+	}
 	// A later merge breaks the file and the next mends it: the walk skips
 	// the broken commit rather than starting the release after it.
 	write("CHANGELOG.md", strings.Replace(v2, "## [Unreleased]\n", "## [Unreleased]\n\n## Notes\n", 1))
@@ -447,5 +454,68 @@ func TestNestedFences(t *testing.T) {
 	}
 	if got, err := Section(withBody, "0.2.0"); err != nil || got != body {
 		t.Fatalf("the whole section:\n%s\n%v", got, err)
+	}
+}
+
+// The site follows the published release: a dated section above it is not
+// on the page and the pins stay put, until Publish records the release and
+// regenerates; a prerelease moves the page but not the pins, and an older
+// release than the one recorded is refused.
+func TestPublishMovesTheDocs(t *testing.T) {
+	root := t.TempDir()
+	saved := Pins
+	t.Cleanup(func() { Pins = saved })
+	Pins = []Pin{pin("docs.md", "version: v{v}")}
+	write := func(name, content string) {
+		t.Helper()
+		path := filepath.Join(root, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	read := func(name string) string {
+		t.Helper()
+		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(name)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(data)
+	}
+	changelog := "# Changelog\n\n## [Unreleased]\n\n## [0.3.0-rc.1] - 2026-10-03\n\nCandidate.\n\n## [0.2.0] - 2026-10-02\n\nSecond.\n\n## [0.1.0] - 2026-10-01\n\nFirst.\n\n[Unreleased]: u\n[0.3.0-rc.1]: u\n[0.2.0]: u\n[0.1.0]: u\n"
+	write("docs.md", "version: v0.1.0\n")
+	write(Released, "0.1.0\n")
+	if err := Write(root, changelog); err != nil {
+		t.Fatal(err)
+	}
+	if page := read(Page); strings.Contains(page, "0.2.0") || strings.Contains(page, "rc.1") || !strings.Contains(page, "## [0.1.0]") {
+		t.Fatalf("only what is published is on the page:\n%s", page)
+	}
+	if err := Publish(root, changelog, "0.2.0"); err != nil {
+		t.Fatal(err)
+	}
+	if read(Released) != "0.2.0\n" || read("docs.md") != "version: v0.2.0\n" || !strings.Contains(read(Page), "## [0.2.0] - 2026-10-02") {
+		t.Fatalf("after publishing 0.2.0: %q %q\n%s", read(Released), read("docs.md"), read(Page))
+	}
+	if err := Publish(root, changelog, "0.3.0-rc.1"); err != nil {
+		t.Fatal(err)
+	}
+	if read("docs.md") != "version: v0.2.0\n" || !strings.Contains(read(Page), "## [0.3.0-rc.1]") {
+		t.Fatalf("a prerelease is on the page but not in the pins: %q", read("docs.md"))
+	}
+	if stale, err := Stale(fromDisk(root), changelog); err != nil || len(stale) != 0 {
+		t.Fatalf("after publishing: %v %v", stale, err)
+	}
+	if err := Publish(root, changelog, "0.2.0"); err == nil || !strings.Contains(err.Error(), "is older") {
+		t.Fatalf("an older release: %v", err)
+	}
+	if err := Publish(root, changelog, "0.4.0"); err == nil {
+		t.Fatal("a version with no section should be refused")
+	}
+	write(Released, "0.9.0\n")
+	if _, err := Stale(fromDisk(root), changelog); err == nil || !strings.Contains(err.Error(), Released) {
+		t.Fatalf("a recorded release with no section: %v", err)
 	}
 }

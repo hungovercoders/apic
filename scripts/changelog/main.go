@@ -1,25 +1,28 @@
 // Command changelog makes CHANGELOG.md the one place a release is written
 // down, and everything else that names a release follow from it:
 //
-//	go run ./scripts/changelog 0.2.0           # print a version's section (Unreleased with none)
+//	go run ./scripts/changelog 0.2.0           # print a version's notes (Unreleased with none)
 //	go run ./scripts/changelog -write          # the site's changelog page, and the docs' version pins
-//	go run ./scripts/changelog -release v0.2.0 # release.yml: the notes, after checking the tag
 //	go run ./scripts/changelog -latest         # release.yml: the version to release from main
 //	go run ./scripts/changelog -release-commit v0.2.0 # release.yml: the commit on main to tag
+//	go run ./scripts/changelog -release v0.2.0 # release.yml: the notes, after checking the tag
+//	go run ./scripts/changelog -publish v0.2.0 # release.yml: after a release, move the docs to it
 //
-// The newest dated section is the release to cut, and the newest one that
-// is not a prerelease is the one the docs name. -write renders the file as
-// the site's changelog page and rewrites every place the docs pin a release
-// (the install commands, setup-apic's version input, the image tags, the
-// course's sample output) to that stable version; `task docs:changelog`
-// runs it, and a test fails when either is stale, so dating a section in a
-// pull request is the one manual step of a release. -release is what
-// release.yml runs before building anything: it fails unless the tag is the
-// newest dated section, no higher version is tagged and the docs are
-// current (naming the newest stable release, which is the tag unless it is
-// a prerelease), then prints the section as the release's notes, unwrapped
-// as GitHub shows them. Without a flag the command prints a version's
-// section the same way, exiting 1 when there is none or it is empty.
+// The newest dated section is the release to cut. The site follows the
+// newest published one, recorded in website/released-version: -write
+// renders the file as the site's changelog page, its sections up to that
+// release, and rewrites every place the docs pin a release (the install
+// commands, setup-apic's version input, the image tags, the course's
+// sample output) to the newest stable release at or below it. A test fails
+// when either is stale. A release pull request only dates its section;
+// once goreleaser has published, release.yml runs -publish, which records
+// the release and regenerates, and commits the result to main, so the site
+// never names a version whose archives do not exist yet. -release is what
+// release.yml runs before building anything: it fails unless the tag is
+// the newest dated section, no higher version is tagged and the docs are
+// current, then prints the section as the release's notes, unwrapped as
+// GitHub shows them. Without a flag the command prints a version's notes
+// the same way, exiting 1 when there is none or it is empty.
 package main
 
 import (
@@ -38,15 +41,16 @@ func main() {
 	release := flag.String("release", "", "check that this tag is the newest dated section, that no higher version is tagged and that the docs are current, then print its notes as GitHub shows them")
 	latest := flag.Bool("latest", false, "print the newest dated section's version, which a merge to main releases")
 	commit := flag.String("release-commit", "", "print the commit on HEAD's first-parent history to tag for this tag: the first since it was dated that passes the release check")
+	publish := flag.String("publish", "", "record this release as published and bring the site's page and the docs' pins in line (release.yml, after a release)")
 	flag.Parse()
 	modes := 0
-	for _, set := range []bool{*write, *release != "", *latest, *commit != "", flag.NArg() > 0} {
+	for _, set := range []bool{*write, *release != "", *latest, *commit != "", *publish != "", flag.NArg() > 0} {
 		if set {
 			modes++
 		}
 	}
 	if modes > 1 || flag.NArg() > 1 {
-		fmt.Fprintln(os.Stderr, "usage: changelog [-file CHANGELOG.md] [-write | -latest | -release <tag> | -release-commit <tag> | <version>]")
+		fmt.Fprintln(os.Stderr, "usage: changelog [-file CHANGELOG.md] [-write | -latest | -release <tag> | -release-commit <tag> | -publish <tag> | <version>]")
 		os.Exit(2)
 	}
 	data, err := os.ReadFile(*file) //nolint:gosec // the changelog the caller named
@@ -64,6 +68,10 @@ func main() {
 		fmt.Println(v)
 	case *write:
 		if err := Write(root, changelog); err != nil {
+			fail(err)
+		}
+	case *publish != "":
+		if err := Publish(root, changelog, strings.TrimPrefix(*publish, "v")); err != nil {
 			fail(err)
 		}
 	case *release != "":

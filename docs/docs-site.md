@@ -94,12 +94,14 @@ declares no environment `url` on purpose: the slopstopper checks that run on
   the site's `cli.md` from the command tree (`scripts/clidocs`; a test fails
   when it is stale); `task man` writes the man pages goreleaser ships.
 - `task docs:changelog`: regenerate the site's `changelog.md` from
-  `CHANGELOG.md` at the root, and rewrite the version pins in the install
-  commands, the cookbook, the verifying page and the course to its newest
-  stable dated section, a prerelease never moving them (`scripts/changelog`;
-  a test fails when either is stale). The page carries the file's intro
-  and every released section, so editing those needs it as well as dating
-  a release; a line under Unreleased does not. See `releasing.md`.
+  `CHANGELOG.md` at the root, with the sections up to the published release
+  recorded in `website/released-version`, and rewrite the version pins in
+  the install commands, the cookbook, the verifying page and the course to
+  the newest stable release at or below it (`scripts/changelog`; a test
+  fails when either is stale). Editing the intro or a published section
+  needs it; a line under Unreleased and a release pull request's newly
+  dated section do not, and `release.yml` moves the published release
+  after each release. See `releasing.md`.
 - `task docs:errors`: regenerate the site's `errors.md` from
   `runner.Catalogue` (`scripts/errdocs`; a test fails when it is stale).
 - `task skill`: regenerate `skills/apic/references/cheatsheet.md` from the

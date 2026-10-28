@@ -2,10 +2,11 @@ name: release
 # Merging the release pull request is the release. It dates a section of
 # CHANGELOG.md; the push to main that carries it lands in the tag job, which
 # tags that commit and starts this workflow again on the tag, where the
-# goreleaser job releases it. Releasing from a tag ref, never from main,
-# keeps the signing certificate's identity release.yml@refs/tags/<tag>,
-# which the site's verifying page checks. A version tag pushed by hand
-# releases the same way. See docs/releasing.md.
+# goreleaser job releases it, and the docs job then moves the site's
+# changelog page and version pins to it. Releasing from a tag ref, never
+# from main, keeps the signing certificate's identity
+# release.yml@refs/tags/<tag>, which the site's verifying page checks. A
+# version tag pushed by hand releases the same way. See docs/releasing.md.
 on:
   push:
     branches: [main]
@@ -112,7 +113,7 @@ jobs:
             exit 0
           fi
           # The first commit on main since the section was dated at which
-          # the release checks pass: the docs already name it.
+          # the release checks pass.
           commit="$(go run ./scripts/changelog -release-commit "$tag")"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -161,11 +162,11 @@ jobs:
           go-version-file: go.mod
       # The release notes are this version's section of CHANGELOG.md,
       # written by hand in the pull requests that made the release (see
-      # docs/releasing.md). The tag must be the newest dated section, and
-      # the site's changelog page and version pins must already name it
-      # (task docs:changelog): fail here, with nothing built, rather than
-      # publish a release that says nothing or docs that name the last one.
-      - name: The changelog and the docs name this version
+      # docs/releasing.md). The tag must be the newest dated section, no
+      # higher version may be tagged, and the docs must be current for the
+      # release published before it: fail here, with nothing built, rather
+      # than publish a release that says nothing or roll the docs back.
+      - name: The changelog has this version's notes
         run: go run ./scripts/changelog -release "$TAG" > "$RUNNER_TEMP/release-notes.md"
       # cosign signs checksums.txt; syft builds the per-archive SBOMs. Neither
       # ships with the runner or with goreleaser-action, so both are installed
@@ -204,6 +205,51 @@ jobs:
           major="${TAG%%.*}"
           git tag -f "$major" "$TAG"
           git push -f origin "refs/tags/$major"
+
+  # Once the release is out, the site names it: record it as published
+  # (website/released-version), regenerate the changelog page and the
+  # version pins (scripts/changelog -publish) and commit the result to main.
+  # The release pull request left them alone, so the site never names a
+  # version whose archives do not exist yet. Pushed with GITHUB_TOKEN, the
+  # commit starts no workflow; the site deploys from it as from any push to
+  # main. A re-run of a release already recorded changes nothing.
+  docs:
+    needs: goreleaser
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the docs commit to main
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Name the release in the docs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # main may move while this runs: regenerate on the newest main and
+          # try again if the push loses the race.
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git reset -q --hard origin/main
+            go run ./scripts/changelog -publish "$TAG"
+            if git diff --quiet; then
+              echo "the docs name $TAG already"
+              exit 0
+            fi
+            git add -A
+            git commit -q -m "docs: name $TAG, which is released" -m "Recorded by release.yml's docs job after the release published: website/released-version, the site's changelog page and the docs' version pins (scripts/changelog -publish)."
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep $((attempt * 5))
+          done
+          echo "::error::could not push the docs for $TAG to main; run go run ./scripts/changelog -publish $TAG on main and commit the result"
+          exit 1
 
   # The MCP registry (registry.modelcontextprotocol.io) lists the server the
   # image provides as io.github.hungovercoders/apic, so an MCP client that

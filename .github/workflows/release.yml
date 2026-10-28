@@ -79,9 +79,12 @@ jobs:
               *) echo "::error::could not list origin's tags (git ls-remote exit $rc)"; exit 1 ;;
             esac
           }
-          # A tag nothing has released yet (its dispatch failed after the
-          # push, say) is started again; one with a release or a release
-          # run already is left alone: re-run that run to retry it.
+          # On a manual run or a re-run only, a tag nothing has released yet
+          # (its dispatch failed after the push, say) is started again; one
+          # with a release or a release run already is left alone: re-run
+          # that run to retry it. An ordinary push never does this: another
+          # push's run may have pushed the tag a moment ago and be about to
+          # dispatch, and two dispatches would release the tag twice.
           released() {
             code="$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $GH_TOKEN" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/releases/tags/$tag")"
             case "$code" in
@@ -91,6 +94,10 @@ jobs:
             esac
           }
           if tagged; then
+            if [ "$GITHUB_EVENT_NAME" != workflow_dispatch ] && [ "$GITHUB_RUN_ATTEMPT" = 1 ]; then
+              echo "$tag is tagged already; nothing to do"
+              exit 0
+            fi
             if released; then
               echo "$tag is released already; nothing to do"
               exit 0

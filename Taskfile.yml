@@ -186,7 +186,7 @@ tasks:
       - go run ./scripts/changelog {{.CLI_ARGS}}
 
   docs:changelog:
-    desc: Regenerate the site's changelog page and every version pin in the docs from CHANGELOG.md's newest dated section (a test fails when they are stale)
+    desc: Regenerate the site's changelog page from CHANGELOG.md, and every version pin in the docs to its newest stable dated section (a test fails when they are stale)
     cmds:
       - go run ./scripts/changelog -write
 

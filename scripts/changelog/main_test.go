@@ -334,17 +334,23 @@ func TestReleaseCommitIsWhereTheReleaseWasCut(t *testing.T) {
 		t.Fatal(err)
 	}
 	caughtUp := commit("task docs:changelog")
+	// A later merge breaks the file and the next mends it: the walk skips
+	// the broken commit rather than starting the release after it.
+	write("CHANGELOG.md", strings.Replace(v2, "## [Unreleased]\n", "## [Unreleased]\n\n## Notes\n", 1))
+	commit("a malformed heading")
+	write("CHANGELOG.md", v2)
+	commit("mend it")
 	write("CHANGELOG.md", strings.Replace(v2, "## [Unreleased]\n", "## [Unreleased]\n\n- Later.\n", 1))
 	later := commit("a line under Unreleased")
 
-	got, err := ReleaseCommit(root, later, "0.2.0")
+	got, err := ReleaseCommit(root, "CHANGELOG.md", later, "0.2.0")
 	if err != nil || got != caughtUp {
 		t.Fatalf("got %s %v; want %s (dated %s, later %s)", got, err, caughtUp, dated, later)
 	}
-	if _, err := ReleaseCommit(root, dated, "0.2.0"); err == nil || !strings.Contains(err.Error(), "passes the release check") {
+	if _, err := ReleaseCommit(root, "CHANGELOG.md", dated, "0.2.0"); err == nil || !strings.Contains(err.Error(), "passes the release check") {
 		t.Fatalf("docs never caught up: %v", err)
 	}
-	if _, err := ReleaseCommit(root, later, "0.3.0"); err == nil || !strings.Contains(err.Error(), "not the newest dated section") {
+	if _, err := ReleaseCommit(root, "CHANGELOG.md", later, "0.3.0"); err == nil || !strings.Contains(err.Error(), "not the newest dated section") {
 		t.Fatalf("an undated version: %v", err)
 	}
 }
@@ -367,11 +373,21 @@ func TestGitReaderAndNewerTags(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "a.md"), []byte("a\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.MkdirAll(filepath.Join(root, "sub"), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "sub", "a.md"), []byte("sub\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	run("add", "-A")
 	run("commit", "-q", "-m", "a")
 	read := fromGit(root, "HEAD")
 	if got, err := read("a.md"); err != nil || got != "a\n" {
 		t.Fatalf("a.md: %q %v", got, err)
+	}
+	// From a subdirectory, paths are relative to it, as on disk.
+	if got, err := fromGit(filepath.Join(root, "sub"), "HEAD")("a.md"); err != nil || got != "sub\n" {
+		t.Fatalf("sub/a.md: %q %v", got, err)
 	}
 	if _, err := read("missing.md"); !errors.Is(err, fs.ErrNotExist) {
 		t.Fatalf("a missing file is fs.ErrNotExist: %v", err)
@@ -380,7 +396,7 @@ func TestGitReaderAndNewerTags(t *testing.T) {
 	if _, err := fromGit(root, "no-such-commit")("a.md"); !errors.As(err, &ge) {
 		t.Fatalf("a bad commit is a gitError: %v", err)
 	}
-	if _, err := ReleaseCommit(root, "no-such-commit", "0.1.0"); !errors.As(err, &ge) {
+	if _, err := ReleaseCommit(root, "CHANGELOG.md", "no-such-commit", "0.1.0"); !errors.As(err, &ge) {
 		t.Fatalf("ReleaseCommit passes a git failure on: %v", err)
 	}
 	for _, tag := range []string{"v0", "v0.1.0", "v0.2.0-rc.1", "v0.2.0", "vscode-v0.9.0"} {
@@ -391,5 +407,45 @@ func TestGitReaderAndNewerTags(t *testing.T) {
 		if err != nil || strings.Join(newer, " ") != want {
 			t.Errorf("above %s: %v %v, want %q", tag, newer, err, want)
 		}
+	}
+}
+
+// The notes GitHub shows are unwrapped: one line per paragraph and list
+// item, while headings, tables, references and fenced code keep theirs.
+func TestUnwrapJoinsWrappedLines(t *testing.T) {
+	in := "### Added\n\n- `apic mcp install` registers the server in the\n  project's `.mcp.json`, with `--to\n  .cursor/mcp.json` for Cursor.\n  - nested item that wraps\n    onto a second line\n- second item\n\nA paragraph that\nwraps.\n\n| a | b |\n|---|---|\n\n```sh\napic mcp install\n  --to x\n```\n\n[ref]: https://example.com"
+	want := "### Added\n\n- `apic mcp install` registers the server in the project's `.mcp.json`, with `--to .cursor/mcp.json` for Cursor.\n  - nested item that wraps onto a second line\n- second item\n\nA paragraph that wraps.\n\n| a | b |\n|---|---|\n\n```sh\napic mcp install\n  --to x\n```\n\n[ref]: https://example.com"
+	if got := Unwrap(in); got != want {
+		t.Fatalf("got:\n%s\nwant:\n%s", got, want)
+	}
+	// The notes release.yml attaches are unwrapped.
+	root := filepath.Join("..", "..")
+	data, err := os.ReadFile(filepath.Join(root, "CHANGELOG.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	latest, _ := Latest(string(data))
+	notes, err := Release(fromDisk(root), string(data), latest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, line := range strings.Split(notes, "\n") {
+		if strings.HasPrefix(line, "  ") && !listItem.MatchString(line) {
+			t.Fatalf("a wrapped continuation line in the notes: %q", line)
+		}
+	}
+}
+
+// A fence closes only on a bare fence line of the same kind, at least as
+// long: an inner "```http" in a ```` example is text, and so is the "## "
+// line after it.
+func TestNestedFences(t *testing.T) {
+	body := "- Example:\n\n````markdown\n```http\nGET /\n```\n## Usage\n````\n\n- After."
+	withBody := strings.Replace(sample, "### Added\n\n- A thing.", body, 1)
+	if p := Check(withBody); len(p) != 0 {
+		t.Fatalf("well formed: %v", p)
+	}
+	if got, err := Section(withBody, "0.2.0"); err != nil || got != body {
+		t.Fatalf("the whole section:\n%s\n%v", got, err)
 	}
 }

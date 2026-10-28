@@ -7,16 +7,19 @@
 //	go run ./scripts/changelog -latest         # release.yml: the version to release from main
 //	go run ./scripts/changelog -release-commit v0.2.0 # release.yml: the commit on main to tag
 //
-// The newest dated section is the current release. -write renders the file
-// as the site's changelog page and rewrites every place the docs pin a
-// release (the install commands, setup-apic's version input, the course's
-// sample output) to that version; `task docs:changelog` runs it, and a test
-// fails when either is stale, so dating a section in a pull request is the
-// one manual step of a release. -release is what release.yml runs before
-// building anything: it fails unless the tag is the newest dated section
-// and the docs already name it, then prints the section as the release's
-// notes. Without a flag the command prints a version's section, exiting 1
-// when there is none or it is empty.
+// The newest dated section is the release to cut, and the newest one that
+// is not a prerelease is the one the docs name. -write renders the file as
+// the site's changelog page and rewrites every place the docs pin a release
+// (the install commands, setup-apic's version input, the image tags, the
+// course's sample output) to that stable version; `task docs:changelog`
+// runs it, and a test fails when either is stale, so dating a section in a
+// pull request is the one manual step of a release. -release is what
+// release.yml runs before building anything: it fails unless the tag is the
+// newest dated section, no higher version is tagged and the docs are
+// current (naming the newest stable release, which is the tag unless it is
+// a prerelease), then prints the section as the release's notes, unwrapped
+// as GitHub shows them. Without a flag the command prints a version's
+// section the same way, exiting 1 when there is none or it is empty.
 package main
 
 import (
@@ -32,7 +35,7 @@ import (
 func main() {
 	file := flag.String("file", "CHANGELOG.md", "the changelog to read")
 	write := flag.Bool("write", false, "write the site's changelog page and the docs' version pins")
-	release := flag.String("release", "", "check that this tag is the newest dated section and the docs name it, then print its notes")
+	release := flag.String("release", "", "check that this tag is the newest dated section, that no higher version is tagged and that the docs are current, then print its notes as GitHub shows them")
 	latest := flag.Bool("latest", false, "print the newest dated section's version, which a merge to main releases")
 	commit := flag.String("release-commit", "", "print the commit on HEAD's first-parent history to tag for this tag: the first since it was dated that passes the release check")
 	flag.Parse()
@@ -78,7 +81,7 @@ func main() {
 		if err := noNewerTags(root, tag); err != nil {
 			fail(err)
 		}
-		c, err := ReleaseCommit(root, "HEAD", tag)
+		c, err := ReleaseCommit(root, filepath.Base(*file), "HEAD", tag)
 		if err != nil {
 			fail(err)
 		}
@@ -92,7 +95,7 @@ func main() {
 		if err != nil {
 			fail(err)
 		}
-		fmt.Println(body)
+		fmt.Println(Unwrap(body))
 	}
 }
 
@@ -179,7 +182,11 @@ func Release(read reader, changelog, tag string) (string, error) {
 	if len(problems) > 0 {
 		return "", fmt.Errorf("%s: run task docs:changelog and merge it before tagging", strings.Join(problems, "; "))
 	}
-	return Section(changelog, tag)
+	body, err := Section(changelog, tag)
+	if err != nil {
+		return "", err
+	}
+	return Unwrap(body), nil
 }
 
 // Section returns the body under version's heading: the lines up to the

@@ -32,20 +32,28 @@ func git(dir string, args ...string) (string, error) {
 	return out.String(), nil
 }
 
-// fromGit reads files as they were at commit, in the repository at dir. A
-// path the commit does not have is fs.ErrNotExist, found by listing the
-// tree rather than by reading git's message; anything else that fails is a
-// gitError.
+// fromGit reads files as they were at commit. Paths are relative to dir,
+// the directory holding the changelog, as they are on disk, whichever
+// directory of the repository that is: both git commands are given the
+// path from the repository's top. A path the commit does not have is
+// fs.ErrNotExist, found by listing the tree rather than by reading git's
+// message; anything else that fails is a gitError.
 func fromGit(dir, commit string) reader {
+	prefix, prefixErr := git(dir, "rev-parse", "--show-prefix")
+	prefix = strings.TrimSpace(prefix)
 	return func(path string) (string, error) {
-		listed, err := git(dir, "ls-tree", "--name-only", commit, "--", path)
+		if prefixErr != nil {
+			return "", prefixErr
+		}
+		full := prefix + path
+		listed, err := git(dir, "ls-tree", "--full-tree", "--name-only", commit, "--", full)
 		if err != nil {
 			return "", err
 		}
 		if strings.TrimSpace(listed) == "" {
-			return "", &fs.PathError{Op: "read", Path: commit + ":" + path, Err: fs.ErrNotExist}
+			return "", &fs.PathError{Op: "read", Path: commit + ":" + full, Err: fs.ErrNotExist}
 		}
-		return git(dir, "show", commit+":"+path)
+		return git(dir, "show", commit+":"+full)
 	}
 }
 
@@ -57,9 +65,12 @@ func fromGit(dir, commit string) reader {
 // workflow, so changes merged since, still under Unreleased, are not
 // shipped under this version's notes. When a pull request dated the
 // section in one commit and caught the docs up in the next, and both
-// landed on main as they were, the second is the one that passes. A git
+// landed on main as they were, the second is the one that passes. A
+// commit whose changelog is malformed is skipped, not taken for the start
+// of the release: the walk goes on to the commit that dated it. A git
 // failure anywhere ends the walk with an error rather than narrowing it.
-func ReleaseCommit(dir, head, tag string) (string, error) {
+// name is the changelog's file name in dir.
+func ReleaseCommit(dir, name, head, tag string) (string, error) {
 	out, err := git(dir, "rev-list", "--first-parent", head)
 	if err != nil {
 		return "", err
@@ -67,15 +78,19 @@ func ReleaseCommit(dir, head, tag string) (string, error) {
 	type candidate struct{ commit, changelog string }
 	var candidates []candidate // newest first
 	for _, c := range strings.Fields(out) {
-		changelog, err := fromGit(dir, c)("CHANGELOG.md")
+		changelog, err := fromGit(dir, c)(name)
 		if errors.Is(err, fs.ErrNotExist) {
 			break // before the changelog existed
 		}
 		if err != nil {
 			return "", err
 		}
-		if latest, err := Latest(changelog); err != nil || latest != tag {
-			break // before this version was dated, or before the file had its shape
+		latest, err := Latest(changelog)
+		if err != nil {
+			continue // malformed here: not a candidate, and not the start either
+		}
+		if latest != tag {
+			break // before this version was dated
 		}
 		candidates = append(candidates, candidate{c, changelog})
 	}

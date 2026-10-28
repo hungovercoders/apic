@@ -29,6 +29,8 @@ type line struct {
 	// A reference written inside a section's body is part of that body.
 	trailing bool
 	ref      []string
+	// fenced is a line of a fenced code block, its fences included.
+	fenced bool
 }
 
 // scan splits a changelog into lines. A fenced code block (``` or ~~~) is
@@ -37,21 +39,22 @@ type line struct {
 func scan(changelog string) []line {
 	texts := strings.Split(changelog, "\n")
 	lines := make([]line, len(texts))
-	fence := ""
+	fence := "" // the open fence's run of backticks or tildes
 	for i, text := range texts {
 		lines[i] = line{n: i + 1, text: text}
 		trimmed := strings.TrimLeft(text, " ")
-		switch {
-		case fence != "":
-			if strings.HasPrefix(trimmed, fence) {
+		if fence != "" {
+			lines[i].fenced = true
+			// Closed only by a line of the same character, at least as
+			// long, and nothing else: "```go" inside a ```` block is text.
+			if run := fenceRun(trimmed); len(run) >= len(fence) && run[0] == fence[0] && strings.TrimSpace(trimmed[len(run):]) == "" {
 				fence = ""
 			}
 			continue
-		case strings.HasPrefix(trimmed, "```"):
-			fence = "```"
-			continue
-		case strings.HasPrefix(trimmed, "~~~"):
-			fence = "~~~"
+		}
+		if run := fenceRun(trimmed); run != "" {
+			fence = run
+			lines[i].fenced = true
 			continue
 		}
 		if strings.HasPrefix(text, "## ") {
@@ -84,4 +87,19 @@ func version(h []string) string {
 		return h[2]
 	}
 	return h[1]
+}
+
+// fenceRun is the run of three or more backticks or tildes a line opens
+// with, or "" when it opens with no fence.
+func fenceRun(trimmed string) string {
+	for _, c := range []byte{'`', '~'} {
+		n := 0
+		for n < len(trimmed) && trimmed[n] == c {
+			n++
+		}
+		if n >= 3 {
+			return trimmed[:n]
+		}
+	}
+	return ""
 }

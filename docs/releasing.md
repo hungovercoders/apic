@@ -36,11 +36,15 @@
   `main` is refused, so nothing unmerged is released. Re-running the tag
   job, or a manual run on `main`, starts the release of a version that is
   tagged but has neither a release nor a release run (its dispatch failed
-  after the push); one that has either is left to that run. To release a
-  tag again, re-run its run or `gh workflow run release.yml --ref <tag>`:
-  only the newest version tag may be, since releasing an older one would
-  move `latest`, the cask and `v0` back to it, so the release check
-  refuses a tag with a higher version above it. goreleaser keeps an
+  after the push); one that has either is left to that run. An ordinary
+  push never does that, so two pushes racing cannot release a tag twice.
+  To release a tag again, re-run its run or `gh workflow run release.yml
+  --ref <tag>`. GitHub reads the workflow at the tag's commit, so dispatch
+  works only for tags cut after this workflow gained `workflow_dispatch`;
+  for v0.2.0 and earlier, re-run the tag's own run from the Actions page.
+  Only the newest version tag may be released again: releasing an older
+  one would move `latest`, the cask and `v0` back to it, so the release
+  check refuses a tag with a higher version above it. goreleaser keeps an
   existing release and replaces what it
   uploads again, so a re-run after a later step failed (the cask, the smoke
   test) completes the same release, and the `mcp-registry` job skips a

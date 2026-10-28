@@ -15,7 +15,9 @@
   release. The page leaves Unreleased out, so the pull requests that add
   lines there need not run it.
 - Merging the release pull request is the release. `release.yml` runs on
-  every push to `main` that changes `CHANGELOG.md`. Its `tag` job takes
+  every push to `main` that changes `CHANGELOG.md` or the docs its pins
+  govern (where a release whose docs lagged gets caught up), and on a
+  manual run on `main`. Its `tag` job takes
   the newest dated section (`scripts/changelog -latest`) and stops when
   that version is tagged already, which is every push that only added
   lines under Unreleased. Otherwise it tags the commit the release pull
@@ -30,10 +32,16 @@
   certificate names `release.yml@refs/tags/<tag>`, the identity the site's
   verifying page checks. The tag is pushed with `GITHUB_TOKEN`, which
   starts no run of its own; `workflow_dispatch` is the one event it may
-  start, hence the `actions: write`. A manual run on a branch is refused,
-  so nothing unmerged is released; to release a tag again, or one whose
-  dispatch failed, run `gh workflow run release.yml --ref <tag>` or re-run
-  that tag's run. goreleaser keeps an existing release and replaces what it
+  start, hence the `actions: write`. A manual run on any branch but
+  `main` is refused, so nothing unmerged is released. Re-running the tag
+  job, or a manual run on `main`, starts the release of a version that is
+  tagged but has neither a release nor a release run (its dispatch failed
+  after the push); one that has either is left to that run. To release a
+  tag again, re-run its run or `gh workflow run release.yml --ref <tag>`:
+  only the newest version tag may be, since releasing an older one would
+  move `latest`, the cask and `v0` back to it, so the release check
+  refuses a tag with a higher version above it. goreleaser keeps an
+  existing release and replaces what it
   uploads again, so a re-run after a later step failed (the cask, the smoke
   test) completes the same release, and the `mcp-registry` job skips a
   version the registry lists already. The site, which deploys from `main`,

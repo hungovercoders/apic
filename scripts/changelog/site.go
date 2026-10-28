@@ -99,6 +99,7 @@ var Pins = []Pin{
 	pin("website/src/content/docs/cookbook.md", "COPY --from=ghcr.io/hungovercoders/apic:v{minor} "),
 	pin("website/src/content/docs/verifying.md", "VERSION=v{v}\n"),
 	pin("website/src/content/docs/verifying.md", "ghcr.io/hungovercoders/apic:{v} "),
+	pin("website/src/content/docs/verifying.md", "apic_{v}_linux_amd64.tar.gz.sbom.json"),
 	pin("website/src/content/docs/learn/index.md", "written for apic v{v} or newer"),
 	pin("website/src/content/docs/learn/01-first-request.md", "apic v{v} · "),
 	pin("website/src/content/docs/learn/01-first-request.md", `"version": "v{v}"`),

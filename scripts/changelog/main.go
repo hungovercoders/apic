@@ -64,13 +64,21 @@ func main() {
 			fail(err)
 		}
 	case *release != "":
-		body, err := Release(fromDisk(root), changelog, strings.TrimPrefix(*release, "v"))
+		tag := strings.TrimPrefix(*release, "v")
+		body, err := Release(fromDisk(root), changelog, tag)
 		if err != nil {
+			fail(err)
+		}
+		if err := noNewerTags(root, tag); err != nil {
 			fail(err)
 		}
 		fmt.Println(body)
 	case *commit != "":
-		c, err := ReleaseCommit(root, "HEAD", strings.TrimPrefix(*commit, "v"))
+		tag := strings.TrimPrefix(*commit, "v")
+		if err := noNewerTags(root, tag); err != nil {
+			fail(err)
+		}
+		c, err := ReleaseCommit(root, "HEAD", tag)
 		if err != nil {
 			fail(err)
 		}
@@ -86,6 +94,18 @@ func main() {
 		}
 		fmt.Println(body)
 	}
+}
+
+// noNewerTags refuses a release of tag while a higher version is tagged.
+func noNewerTags(root, tag string) error {
+	newer, err := NewerTags(root, tag)
+	if err != nil {
+		return err
+	}
+	if len(newer) > 0 {
+		return fmt.Errorf("%s is tagged above v%s: releasing it again would move latest, the cask and v0 back to it", strings.Join(newer, ", "), tag)
+	}
+	return nil
 }
 
 func fail(err error) {
@@ -121,7 +141,7 @@ func newest(changelog string, want func(string) bool) (string, error) {
 		return "", fmt.Errorf("CHANGELOG.md:\n  %s", strings.Join(problems, "\n  "))
 	}
 	for _, l := range scan(changelog) {
-		if l.heading == nil || l.heading[3] == "" {
+		if l.heading == nil || l.heading[3] == "" || l.heading[1] == unreleased {
 			continue
 		}
 		if v := version(l.heading); want(v) {
@@ -331,6 +351,14 @@ func Check(changelog string) []string {
 			if from != unreleased {
 				problems = append(problems, fmt.Sprintf("line %d: the first section must be Unreleased", l.n))
 			}
+		} else if from == unreleased || to == unreleased {
+			problems = append(problems, fmt.Sprintf("line %d: only the first section is Unreleased", l.n))
+		}
+		if from == unreleased && date != "" {
+			problems = append(problems, fmt.Sprintf("line %d: Unreleased has a date; a release's section is ## [x.y.z] - YYYY-MM-DD", l.n))
+		}
+		if to != "" && semver.MatchString(from) && semver.MatchString(to) && compareVersions(from, to) >= 0 {
+			problems = append(problems, fmt.Sprintf("line %d: the range %s to %s runs backwards; the lower version comes first", l.n, from, to))
 		}
 		for _, v := range []string{from, to} {
 			if v == "" {

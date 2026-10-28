@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -92,6 +94,23 @@ func TestCheckNamesEveryShapeProblem(t *testing.T) {
 	}
 	if p := strings.Join(Check("## [Unreleased]\n\n## [1] - 2026-10-27\n\nA.\n\n[Unreleased]: u\n[1]: u\n"), "\n"); !strings.Contains(p, `"1" is not a version`) {
 		t.Fatalf("a malformed version: %s", p)
+	}
+	// A release pull request that dates Unreleased instead of renaming it,
+	// a second Unreleased, and a range written backwards are all refused,
+	// so Latest never answers "Unreleased" and Section finds every version
+	// a range covers.
+	for heading, want := range map[string]string{
+		"## [Unreleased] - 2026-10-28":                          "Unreleased has a date",
+		"## [Unreleased]\n\n- x\n\n## [Unreleased]":             "only the first section is Unreleased",
+		"## [Unreleased]\n\n## [0.1.3] to [0.1.1] - 2026-10-10": "runs backwards",
+	} {
+		changelog := heading + "\n\nA.\n\n[Unreleased]: u\n[0.1.1]: u\n[0.1.3]: u\n"
+		if p := strings.Join(Check(changelog), "\n"); !strings.Contains(p, want) {
+			t.Errorf("%q: want %q in:\n%s", heading, want, p)
+		}
+		if v, err := Latest(changelog); err == nil {
+			t.Errorf("%q: Latest = %q, want an error", heading, v)
+		}
 	}
 }
 
@@ -327,5 +346,50 @@ func TestReleaseCommitIsWhereTheReleaseWasCut(t *testing.T) {
 	}
 	if _, err := ReleaseCommit(root, later, "0.3.0"); err == nil || !strings.Contains(err.Error(), "not the newest dated section") {
 		t.Fatalf("an undated version: %v", err)
+	}
+}
+
+// Reading through git tells a file a commit does not have from git
+// failing, and NewerTags finds the version tags above a release.
+func TestGitReaderAndNewerTags(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git is not installed")
+	}
+	root := t.TempDir()
+	run := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", root, "-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	run("init", "-q")
+	if err := os.WriteFile(filepath.Join(root, "a.md"), []byte("a\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	run("add", "-A")
+	run("commit", "-q", "-m", "a")
+	read := fromGit(root, "HEAD")
+	if got, err := read("a.md"); err != nil || got != "a\n" {
+		t.Fatalf("a.md: %q %v", got, err)
+	}
+	if _, err := read("missing.md"); !errors.Is(err, fs.ErrNotExist) {
+		t.Fatalf("a missing file is fs.ErrNotExist: %v", err)
+	}
+	var ge *gitError
+	if _, err := fromGit(root, "no-such-commit")("a.md"); !errors.As(err, &ge) {
+		t.Fatalf("a bad commit is a gitError: %v", err)
+	}
+	if _, err := ReleaseCommit(root, "no-such-commit", "0.1.0"); !errors.As(err, &ge) {
+		t.Fatalf("ReleaseCommit passes a git failure on: %v", err)
+	}
+	for _, tag := range []string{"v0", "v0.1.0", "v0.2.0-rc.1", "v0.2.0", "vscode-v0.9.0"} {
+		run("tag", tag)
+	}
+	for tag, want := range map[string]string{"0.1.0": "v0.2.0-rc.1 v0.2.0", "0.2.0-rc.1": "v0.2.0", "0.2.0": ""} {
+		newer, err := NewerTags(root, tag)
+		if err != nil || strings.Join(newer, " ") != want {
+			t.Errorf("above %s: %v %v, want %q", tag, newer, err, want)
+		}
 	}
 }

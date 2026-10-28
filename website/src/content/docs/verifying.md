@@ -84,10 +84,10 @@ compiled into it, which is more reliable than reading this repository's
 `go.mod`: it describes the artifact you actually downloaded.
 
 ```sh
-curl -fsSLO "$BASE/apic_0.1.0_linux_amd64.tar.gz.sbom.json"
+curl -fsSLO "$BASE/apic_0.2.0_linux_amd64.tar.gz.sbom.json"
 
 # What is in it, and at which version?
-jq -r '.packages[] | "\(.name) \(.versionInfo)"' apic_0.1.0_linux_amd64.tar.gz.sbom.json | sort
+jq -r '.packages[] | "\(.name) \(.versionInfo)"' apic_0.2.0_linux_amd64.tar.gz.sbom.json | sort
 ```
 
 The module set differs by platform — cobra pulls in `mousetrap` on Windows only
@@ -96,7 +96,7 @@ The module set differs by platform — cobra pulls in `mousetrap` on Windows onl
 Tools that consume SPDX (Grype, Trivy, Dependency-Track) can scan it directly:
 
 ```sh
-grype sbom:apic_0.1.0_linux_amd64.tar.gz.sbom.json
+grype sbom:apic_0.2.0_linux_amd64.tar.gz.sbom.json
 ```
 
 ## Licences

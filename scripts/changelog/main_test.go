@@ -419,32 +419,6 @@ func TestGitReaderAndNewerTags(t *testing.T) {
 	}
 }
 
-// The notes GitHub shows are unwrapped: one line per paragraph and list
-// item, while headings, tables, references and fenced code keep theirs.
-func TestUnwrapJoinsWrappedLines(t *testing.T) {
-	in := "### Added\n\n- `apic mcp install` registers the server in the\n  project's `.mcp.json`, with `--to\n  .cursor/mcp.json` for Cursor.\n  - nested item that wraps\n    onto a second line\n- second item\n\nA paragraph that\nwraps.\n\n| a | b |\n|---|---|\n\n```sh\napic mcp install\n  --to x\n```\n\n[ref]: https://example.com"
-	want := "### Added\n\n- `apic mcp install` registers the server in the project's `.mcp.json`, with `--to .cursor/mcp.json` for Cursor.\n  - nested item that wraps onto a second line\n- second item\n\nA paragraph that wraps.\n\n| a | b |\n|---|---|\n\n```sh\napic mcp install\n  --to x\n```\n\n[ref]: https://example.com"
-	if got := Unwrap(in); got != want {
-		t.Fatalf("got:\n%s\nwant:\n%s", got, want)
-	}
-	// The notes release.yml attaches are unwrapped.
-	root := filepath.Join("..", "..")
-	data, err := os.ReadFile(filepath.Join(root, "CHANGELOG.md"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	latest, _ := Latest(string(data))
-	notes, err := Release(fromDisk(root), string(data), latest)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, line := range strings.Split(notes, "\n") {
-		if strings.HasPrefix(line, "  ") && !listItem.MatchString(line) {
-			t.Fatalf("a wrapped continuation line in the notes: %q", line)
-		}
-	}
-}
-
 // A fence closes only on a bare fence line of the same kind, at least as
 // long: an inner "```http" in a ```` example is text, and so is the "## "
 // line after it.
@@ -522,33 +496,6 @@ func TestPublishMovesTheDocs(t *testing.T) {
 	}
 }
 
-// The review's cases for Unwrap: what Markdown reads as a continuation is
-// joined even when it looks like a block, and what is a block of its own
-// is not joined into the line above.
-func TestUnwrapFollowsMarkdown(t *testing.T) {
-	for in, want := range map[string]string{
-		// "#157" is not a heading, and "2." cannot interrupt a paragraph.
-		"- Fixes the crash reported in\n  #157 when the file is empty.": "- Fixes the crash reported in #157 when the file is empty.",
-		"- Exit code\n  2. now means usage.":                            "- Exit code 2. now means usage.",
-		// Sibling items stay apart, whatever their numbers; 1. interrupts.
-		"1. one\n2. two\n3. three":      "1. one\n2. two\n3. three",
-		"- a\n  1. nested\n  2. nested": "- a\n  1. nested\n  2. nested",
-		"Text that\n# Heading\nafter":   "Text that\n# Heading\nafter",
-		// A quote's lines join without their markers.
-		"> **Note**: this is a\n> wrapped quote.": "> **Note**: this is a wrapped quote.",
-		"Text\n> quote": "Text\n> quote",
-		// Indented code keeps its lines.
-		"Example:\n\n    apic run login\n    apic run whoami": "Example:\n\n    apic run login\n    apic run whoami",
-		// A table needs its delimiter row; a wrapped "|" is prose.
-		"| a | b |\n|---|---|\n| 1 | 2 |": "| a | b |\n|---|---|\n| 1 | 2 |",
-		"- splits on\n  | when quoted":    "- splits on | when quoted",
-	} {
-		if got := Unwrap(in); got != want {
-			t.Errorf("Unwrap(%q)\n got %q\nwant %q", in, got, want)
-		}
-	}
-}
-
 // A section's notes carry the link definitions they use, whether written
 // at the end of the section or in the file's closing block, so they read
 // the same on GitHub as in the file.
@@ -597,5 +544,28 @@ func TestPublishIsAllOrNothing(t *testing.T) {
 	}
 	if data, _ := os.ReadFile(filepath.Join(root, filepath.FromSlash(Released))); string(data) != "0.1.0\n" {
 		t.Fatalf("the record moved anyway: %q", data)
+	}
+}
+
+// A hard-wrapped paragraph or bullet is refused: GitHub shows a release
+// body's single newlines as breaks, so each is one line in the file.
+// Items, headings, tables, references, quotes and fenced code may follow
+// a line directly.
+func TestCheckRefusesWrappedLines(t *testing.T) {
+	for body, want := range map[string]bool{
+		"- A bullet that\n  wraps.":                        true,
+		"A paragraph that\nwraps.":                         true,
+		"- one\n- two\n  - nested\n1. three":               false,
+		"### Added\nText right under a heading.":           false,
+		"| a | b |\n|---|---|\n| 1 | 2 |":                  false,
+		"Text, then a quote:\n> quoted":                    false,
+		"- see [docs]\n[docs]: https://x":                  false,
+		"Example:\n```sh\napic run login\napic run x\n```": false,
+	} {
+		changelog := strings.Replace(sample, "- A thing.", body, 1)
+		got := strings.Contains(strings.Join(Check(changelog), "\n"), "continues the line above")
+		if got != want {
+			t.Errorf("%q: wrapped=%v, want %v", body, got, want)
+		}
 	}
 }

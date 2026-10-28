@@ -66,10 +66,12 @@
   `scripts/changelog -release <tag>`. It fails the run with nothing built
   or tagged unless the tag is the newest dated section, no higher version
   is tagged and the docs are current for the release published before it,
-  then passes the section to goreleaser as `--release-notes`, unwrapped to
-  one line per paragraph and bullet because GitHub shows a release body's
-  single newlines as breaks; `task notes -- 0.2.0` prints what it would
-  attach.
+  then passes the section to goreleaser as `--release-notes` as it is
+  written; `task notes -- 0.2.0` prints what it would attach. Each
+  paragraph and bullet in `CHANGELOG.md` is one line (let the editor wrap
+  it): GitHub shows a release body's single newlines as breaks, so a
+  hard-wrapped bullet would break mid-sentence there, and the changelog's
+  check refuses one.
   A prerelease tag (`v0.3.0-rc.1`) needs its own dated section like any
   other. It is published as a GitHub prerelease (`prerelease: auto`), so
   it never becomes `releases/latest`. Publishing it puts its notes on the

@@ -20,9 +20,11 @@
 // never names a version whose archives do not exist yet. -release is what
 // release.yml runs before building anything: it fails unless the tag is
 // the newest dated section, no higher version is tagged and the docs are
-// current, then prints the section as the release's notes, unwrapped as
-// GitHub shows them. Without a flag the command prints a version's notes
-// the same way, exiting 1 when there is none or it is empty.
+// current, then prints the section as the release's notes. Without a flag
+// the command prints a version's notes, exiting 1 when there is none or it
+// is empty. Each paragraph and bullet is one line in the file, which Check
+// enforces: GitHub shows a release body's single newlines as line breaks,
+// so a hard-wrapped bullet would break mid-sentence there.
 package main
 
 import (
@@ -39,7 +41,7 @@ import (
 func main() {
 	file := flag.String("file", "CHANGELOG.md", "the changelog to read")
 	write := flag.Bool("write", false, "write the site's changelog page and the docs' version pins")
-	release := flag.String("release", "", "check that this tag is the newest dated section, that no higher version is tagged and that the docs are current, then print its notes as GitHub shows them")
+	release := flag.String("release", "", "check that this tag is the newest dated section, that no higher version is tagged and that the docs are current, then print its notes")
 	latest := flag.Bool("latest", false, "print the newest dated section's version, which a merge to main releases")
 	commit := flag.String("release-commit", "", "print the commit on HEAD's first-parent history to tag for this tag: the first since it was dated that passes the release check")
 	publish := flag.String("publish", "", "record this release as published and bring the site's page and the docs' pins in line (release.yml, after a release)")
@@ -104,7 +106,7 @@ func main() {
 		if err != nil {
 			fail(err)
 		}
-		fmt.Println(Unwrap(body))
+		fmt.Println(body)
 	}
 }
 
@@ -198,11 +200,7 @@ func Release(read reader, changelog, tag string) (string, error) {
 	if len(problems) > 0 {
 		return "", fmt.Errorf("%s (website/released-version): run task docs:changelog on main and merge the result", strings.Join(problems, "; "))
 	}
-	body, err := Section(changelog, tag)
-	if err != nil {
-		return "", err
-	}
-	return Unwrap(body), nil
+	return Section(changelog, tag)
 }
 
 // Section returns the body under version's heading: the lines up to the
@@ -369,6 +367,25 @@ func numeric(part string) int {
 	return 1 << 30
 }
 
+// wrapped reports whether cur is prose carried on from the line above it,
+// a hard wrap of a paragraph or bullet: both lines hold text, outside a
+// fence and the closing references, the one above is not a heading, and
+// cur does not start a block of its own (an item, a heading, a table row,
+// a quote or a link reference).
+func wrapped(above, cur line) bool {
+	if cur.fenced || above.fenced || cur.trailing || above.trailing {
+		return false
+	}
+	a, c := strings.TrimSpace(above.text), strings.TrimSpace(cur.text)
+	if a == "" || c == "" || strings.HasPrefix(a, "#") {
+		return false
+	}
+	if listItem.MatchString(cur.text) || linkRef.MatchString(c) {
+		return false
+	}
+	return !strings.HasPrefix(c, "#") && !strings.HasPrefix(c, "|") && !strings.HasPrefix(c, ">")
+}
+
 // Check reports what is wrong with a changelog's shape: the first section
 // must be Unreleased, every other heading must carry a date and name a
 // version below the one before it, and each version named must have a
@@ -380,6 +397,11 @@ func Check(changelog string) []string {
 	for _, l := range lines {
 		if l.ref != nil {
 			refs[l.ref[1]] = true
+		}
+	}
+	for i := 1; i < len(lines); i++ {
+		if wrapped(lines[i-1], lines[i]) {
+			problems = append(problems, fmt.Sprintf("line %d continues the line above: write each paragraph and bullet on one line, since GitHub shows a release's single newlines as breaks", lines[i].n))
 		}
 	}
 	prev := ""

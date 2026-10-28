@@ -8,6 +8,9 @@ import (
 // linkRef matches a Markdown link reference definition, "[0.2.0]: url".
 var linkRef = regexp.MustCompile(`^\[([^\]]+)\]: `)
 
+// listItem matches the start of a list item, nested or not.
+var listItem = regexp.MustCompile(`^\s*(?:[-*+]|\d{1,9}[.)])\s`)
+
 // heading matches a release heading: "## [0.2.0] - 2026-10-27", the
 // "## [Unreleased]" section, or a range such as "## [0.1.1] to [0.1.3] -
 // 2026-10-10" for releases that changed nothing in the binary.

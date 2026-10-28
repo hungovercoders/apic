@@ -31,8 +31,10 @@ concurrency:
 
 jobs:
   # From main: tag the newest dated section of CHANGELOG.md, if no tag has
-  # it yet, at the commit this push carries, then dispatch the release on
-  # that tag. A push that only added lines under Unreleased finds the tag
+  # it yet, then dispatch the release on that tag. The commit tagged is the
+  # one the release pull request left on main (scripts/changelog
+  # -release-commit), not this push's, which may be a later merge whose
+  # changes sit under Unreleased. A push that only added lines under Unreleased finds the tag
   # there and stops. Pushed with GITHUB_TOKEN, the tag starts no run of its
   # own; workflow_dispatch is the one event that token may start.
   tag:
@@ -48,6 +50,8 @@ jobs:
           echo "::error::release.yml releases a version tag, or the push to main that dates one; run it on the tag (gh workflow run release.yml --ref v1.2.3)"
           exit 1
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # main's history, to find the commit to tag
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
@@ -56,25 +60,38 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           tag="v$(go run ./scripts/changelog -latest)"
-          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
-            echo "$tag is tagged already; nothing to release. To retry its release, re-run that tag's release run or: gh workflow run release.yml --ref $tag"
+          # 0: tagged already; 2: no such tag; anything else is a failed
+          # lookup, which must not be read as "not tagged".
+          tagged() {
+            set +e
+            git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null
+            rc=$?
+            set -e
+            case $rc in
+              0) return 0 ;;
+              2) return 1 ;;
+              *) echo "::error::could not list origin's tags (git ls-remote exit $rc)"; exit 1 ;;
+            esac
+          }
+          if tagged; then
+            echo "$tag is tagged already; nothing to release. To retry its release, re-run that tag's run or: gh workflow run release.yml --ref $tag"
             exit 0
           fi
-          # The checks the release makes, before a tag that is hard to take
-          # back: the docs must already name it.
-          go run ./scripts/changelog -release "$tag" > /dev/null
+          # The first commit on main since the section was dated at which
+          # the release checks pass: the docs already name it.
+          commit="$(go run ./scripts/changelog -release-commit "$tag")"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$tag" -m "apic ${tag#v}" "$GITHUB_SHA"
+          git tag -a "$tag" -m "apic ${tag#v}" "$commit"
           if ! git push origin "refs/tags/$tag"; then
-            if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+            if tagged; then
               echo "another run tagged $tag first and started its release"
               exit 0
             fi
             exit 1
           fi
           gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$tag"
-          echo "tagged $GITHUB_SHA as $tag and started its release"
+          echo "tagged $commit as $tag and started its release"
 
   goreleaser:
     # Only version tags (v0.1.2) release. The moving major tag (v0) that the
@@ -178,8 +195,23 @@ jobs:
       TAG: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v7
+      # A version the registry holds can never be published again, so a
+      # re-run of a release that was listed already has nothing to do here.
+      - name: Is this version listed already
+        id: listed
+        run: |
+          name="$(jq -r .name server.json)"
+          url="https://registry.modelcontextprotocol.io/v0/servers/$(jq -rn --arg n "$name" '$n|@uri')/versions/${TAG#v}"
+          code="$(curl -sS -o /dev/null -w '%{http_code}' "$url")"
+          case "$code" in
+            200) echo "$name ${TAG#v} is listed already"; echo "skip=true" >> "$GITHUB_OUTPUT" ;;
+            404) echo "skip=false" >> "$GITHUB_OUTPUT" ;;
+            *) echo "::error::the registry answered $code for $url"; exit 1 ;;
+          esac
       - uses: sigstore/cosign-installer@v3
+        if: steps.listed.outputs.skip != 'true'
       - name: Download and verify mcp-publisher
+        if: steps.listed.outputs.skip != 'true'
         run: |
           set -euo pipefail
           os="$(uname -s | tr '[:upper:]' '[:lower:]')"
@@ -197,6 +229,7 @@ jobs:
           tar xzf "$archive" mcp-publisher
           rm -f "$archive" "$archive.sigstore.json"
       - name: Set the version and the image in server.json
+        if: steps.listed.outputs.skip != 'true'
         run: |
           version="${TAG#v}"
           jq --arg v "$version" \
@@ -204,6 +237,8 @@ jobs:
             server.json > server.tmp && mv server.tmp server.json
           cat server.json
       - name: Authenticate to the MCP registry
+        if: steps.listed.outputs.skip != 'true'
         run: ./mcp-publisher login github-oidc
       - name: Publish the listing
+        if: steps.listed.outputs.skip != 'true'
         run: ./mcp-publisher publish

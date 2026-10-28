@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -121,7 +122,7 @@ func TestTheDocsNameTheCurrentRelease(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	stale, err := Stale(root, string(data))
+	stale, err := Stale(fromDisk(root), string(data))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +160,7 @@ func TestLatestAndTheSitePage(t *testing.T) {
 	}
 	// Latest is any release, the docs pin the newest stable one, and a
 	// heading that is not a version is an error, not a panic.
-	rc := strings.Replace(sample, "## [0.2.0] - 2026-10-27", "## [0.3.0-rc.1] - 2026-10-28\n\n- Candidate.\n\n## [0.2.0] - 2026-10-27", 1)
+	rc := strings.Replace(sample, "## [0.2.0] - 2026-10-27", "## [0.3.0-rc.1] - 2026-10-28\n\n- Candidate.\n\n## [0.2.0] - 2026-10-27", 1) + "[0.3.0-rc.1]: u\n"
 	if v, _ := Latest(rc); v != "0.3.0-rc.1" {
 		t.Fatalf("latest = %q", v)
 	}
@@ -189,7 +190,7 @@ func TestPinsRewriteAndRefuseAMissingPhrase(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "a.md"), []byte("version: v0.1.4\nversion: v0.1.4 # x\nminor (`v0.1`)\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	_, after, err := pinned(root, "a.md", "0.2.0")
+	_, after, err := pinned(fromDisk(root), "a.md", "0.2.0")
 	if err != nil || after != "version: v0.2.0\nversion: v0.2.0 # x\nminor (`v0.2`)\n" {
 		t.Fatalf("%q %v", after, err)
 	}
@@ -199,7 +200,7 @@ func TestPinsRewriteAndRefuseAMissingPhrase(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i := 0; i < 2; i++ {
-		_, after, err = pinned(root, "a.md", "0.3.0-rc.1")
+		_, after, err = pinned(fromDisk(root), "a.md", "0.3.0-rc.1")
 		if err != nil || after != "version: v0.3.0-rc.1\nversion: v0.3.0-rc.1 # x\nminor (`v0.3`)\n" {
 			t.Fatalf("run %d: %q %v", i+1, after, err)
 		}
@@ -210,7 +211,7 @@ func TestPinsRewriteAndRefuseAMissingPhrase(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "a.md"), []byte("reworded\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := pinned(root, "a.md", "0.2.0"); err == nil || !strings.Contains(err.Error(), "no match for the pin") {
+	if _, _, err := pinned(fromDisk(root), "a.md", "0.2.0"); err == nil || !strings.Contains(err.Error(), "no match for the pin") {
 		t.Fatalf("a missing phrase: %v", err)
 	}
 }
@@ -227,10 +228,104 @@ func TestReleaseChecksTheTagAndTheDocs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if notes, err := Release(root, string(data), latest); err != nil || notes == "" {
+	if notes, err := Release(fromDisk(root), string(data), latest); err != nil || notes == "" {
 		t.Fatalf("the current release: %v", err)
 	}
-	if _, err := Release(root, string(data), "0.1.0"); err == nil || !strings.Contains(err.Error(), "newest dated section is "+latest) {
+	if _, err := Release(fromDisk(root), string(data), "0.1.0"); err == nil || !strings.Contains(err.Error(), "newest dated section is "+latest) {
 		t.Fatalf("an older tag: %v", err)
+	}
+}
+
+// A link reference inside a section is part of its body, and a fenced
+// example may hold lines that look like headings: neither ends a section,
+// leaks Unreleased onto the page, or fails Check. Only the block of
+// references that ends the file is the file's link references.
+func TestReferencesAndFencesInsideSections(t *testing.T) {
+	body := "### Added\n\n- Errors follow [RFC 9457][rfc].\n\n[rfc]: https://example.com/rfc9457\n\n```markdown\n## Notes\n[x]: y\n```\n\n- After the example."
+	withBody := strings.Replace(sample, "### Added\n\n- A thing.", body, 1)
+	if p := Check(withBody); len(p) != 0 {
+		t.Fatalf("well formed: %v", p)
+	}
+	if got, err := Section(withBody, "0.2.0"); err != nil || got != body {
+		t.Fatalf("the whole section, reference and example included:\n%s\n%v", got, err)
+	}
+	unrel := strings.Replace(sample, "## [Unreleased]\n", "## [Unreleased]\n\n- Errors follow [RFC 9457][rfc].\n\n[rfc]: https://example.com\n\n- Still unreleased.\n", 1)
+	if page := SitePage(unrel); page != SitePage(sample) {
+		t.Fatalf("Unreleased leaked onto the page:\n%s", page)
+	}
+}
+
+// A changelog that fails Check has no newest release to trust: a section
+// dated below an older one would hide it and the tag job would skip it.
+func TestLatestRefusesAMisorderedChangelog(t *testing.T) {
+	misordered := strings.Replace(sample, "## [0.1.1] to [0.1.3] - 2026-10-10\n\nPipeline only.\n\n", "", 1)
+	misordered = strings.Replace(misordered, "## [0.1.0] - 2026-10-10\n\nThe first release.\n", "## [0.1.0] - 2026-10-10\n\nThe first release.\n\n## [0.3.0] - 2026-10-28\n\nNew.\n", 1) + "[0.3.0]: u\n"
+	if _, err := Latest(misordered); err == nil || !strings.Contains(err.Error(), "newest first") {
+		t.Fatalf("a misordered changelog: %v", err)
+	}
+}
+
+// The commit to tag is the first on main, after the section was dated,
+// at which the release check passes: not the dating commit while the docs
+// still lag, and not a later push that only added a line under Unreleased.
+func TestReleaseCommitIsWhereTheReleaseWasCut(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git is not installed")
+	}
+	root := t.TempDir()
+	saved := Pins
+	t.Cleanup(func() { Pins = saved })
+	Pins = []Pin{pin("docs.md", "version: v{v}")}
+	git := func(args ...string) string {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", root, "-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false"}, args...)...)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+		return strings.TrimSpace(string(out))
+	}
+	write := func(name, content string) {
+		t.Helper()
+		path := filepath.Join(root, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	commit := func(msg string) string {
+		git("add", "-A")
+		git("commit", "-q", "-m", msg)
+		return git("rev-parse", "HEAD")
+	}
+	v1 := "# Changelog\n\n## [Unreleased]\n\n## [0.1.0] - 2026-10-01\n\nFirst.\n\n[Unreleased]: u\n[0.1.0]: u\n"
+	v2 := "# Changelog\n\n## [Unreleased]\n\n## [0.2.0] - 2026-10-02\n\nSecond.\n\n## [0.1.0] - 2026-10-01\n\nFirst.\n\n[Unreleased]: u\n[0.2.0]: u\n[0.1.0]: u\n"
+	git("init", "-q")
+	write("CHANGELOG.md", v1)
+	write("docs.md", "version: v0.1.0\n")
+	if err := Write(root, v1); err != nil {
+		t.Fatal(err)
+	}
+	commit("0.1.0")
+	write("CHANGELOG.md", v2)
+	dated := commit("date 0.2.0")
+	if err := Write(root, v2); err != nil {
+		t.Fatal(err)
+	}
+	caughtUp := commit("task docs:changelog")
+	write("CHANGELOG.md", strings.Replace(v2, "## [Unreleased]\n", "## [Unreleased]\n\n- Later.\n", 1))
+	later := commit("a line under Unreleased")
+
+	got, err := ReleaseCommit(root, later, "0.2.0")
+	if err != nil || got != caughtUp {
+		t.Fatalf("got %s %v; want %s (dated %s, later %s)", got, err, caughtUp, dated, later)
+	}
+	if _, err := ReleaseCommit(root, dated, "0.2.0"); err == nil || !strings.Contains(err.Error(), "passes the release check") {
+		t.Fatalf("docs never caught up: %v", err)
+	}
+	if _, err := ReleaseCommit(root, later, "0.3.0"); err == nil || !strings.Contains(err.Error(), "not the newest dated section") {
+		t.Fatalf("an undated version: %v", err)
 	}
 }

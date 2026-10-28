@@ -18,8 +18,13 @@
   every push to `main` that changes `CHANGELOG.md`. Its `tag` job takes
   the newest dated section (`scripts/changelog -latest`) and stops when
   that version is tagged already, which is every push that only added
-  lines under Unreleased. Otherwise it runs the release checks below on
-  the pushed commit, tags that commit, and dispatches `release.yml` on the
+  lines under Unreleased. Otherwise it tags the commit the release pull
+  request left on `main` (`scripts/changelog -release-commit`): walking
+  `main`'s first-parent history back to where the version was dated, the
+  first commit at which the release checks below pass. A later push that
+  runs the job first, or a retry on a later push, still tags that commit,
+  so changes merged since stay under Unreleased and out of this release.
+  It then dispatches `release.yml` on the
   new tag, where the `goreleaser` job releases it as it would a tag pushed
   by hand. The release always runs on a tag ref, so the keyless
   certificate names `release.yml@refs/tags/<tag>`, the identity the site's
@@ -30,7 +35,8 @@
   dispatch failed, run `gh workflow run release.yml --ref <tag>` or re-run
   that tag's run. goreleaser keeps an existing release and replaces what it
   uploads again, so a re-run after a later step failed (the cask, the smoke
-  test) completes the same release. The site, which deploys from `main`,
+  test) completes the same release, and the `mcp-registry` job skips a
+  version the registry lists already. The site, which deploys from `main`,
   names the new version for the minutes the release takes; if a release
   fails, its install commands name archives that do not exist until it is
   re-run, so treat a red release run as urgent.

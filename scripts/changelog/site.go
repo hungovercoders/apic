@@ -38,17 +38,14 @@ func SitePage(changelog string) string {
 	}
 	var kept []string
 	skipping := false
-	for _, line := range strings.Split(text, "\n") {
-		ref := linkRef.FindStringSubmatch(line)
-		if m := heading.FindStringSubmatch(line); m != nil {
-			skipping = m[1] == unreleased
-		} else if ref != nil {
-			skipping = false // the link references after the last section
+	for _, l := range scan(text) {
+		if l.h2 || l.trailing {
+			skipping = l.heading != nil && l.heading[1] == unreleased
 		}
-		if skipping || (ref != nil && ref[1] == unreleased) {
+		if skipping || (l.ref != nil && l.ref[1] == unreleased) {
 			continue
 		}
-		kept = append(kept, line)
+		kept = append(kept, l.text)
 	}
 	text = blankRuns.ReplaceAllString(strings.Join(kept, "\n"), "\n\n")
 	return pageHead + strings.TrimSpace(text) + "\n"
@@ -118,13 +115,25 @@ func minorOf(version string) string {
 	return minorPrefix.FindString(version)
 }
 
+// A reader returns a file of the repository by its path from the root: as
+// it is on disk, or as it was at a commit (fromGit, in release.go), so the
+// release check can be run against history as well as the working tree.
+// A file that does not exist is an error satisfying os.IsNotExist.
+type reader func(path string) (string, error)
+
+func fromDisk(root string) reader {
+	return func(path string) (string, error) {
+		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(path))) //nolint:gosec // a docs page in the repository
+		return string(data), err
+	}
+}
+
 // pinned returns a file's text with every pin in it naming version.
-func pinned(root, file, version string) (before, after string, err error) {
-	data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(file))) //nolint:gosec // a docs page in the repository
+func pinned(read reader, file, version string) (before, after string, err error) {
+	before, err = read(file)
 	if err != nil {
 		return "", "", err
 	}
-	before = string(data)
 	after = before
 	text := strings.NewReplacer("{v}", version, "{minor}", minorOf(version))
 	for _, p := range Pins {
@@ -159,7 +168,7 @@ type change struct{ file, current, want string }
 // changes returns every file the changelog governs with what it should
 // hold: the site's page, and each pinned page naming the newest stable
 // release.
-func changes(root, changelog string) ([]change, error) {
+func changes(read reader, changelog string) ([]change, error) {
 	stable, err := Stable(changelog)
 	if err != nil {
 		return nil, err
@@ -167,14 +176,14 @@ func changes(root, changelog string) ([]change, error) {
 	var out []change
 	for _, f := range files() {
 		if f == Page {
-			current, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(Page))) //nolint:gosec // a docs page in the repository
+			current, err := read(Page)
 			if err != nil && !os.IsNotExist(err) {
 				return nil, err
 			}
-			out = append(out, change{f, string(current), SitePage(changelog)})
+			out = append(out, change{f, current, SitePage(changelog)})
 			continue
 		}
-		before, after, err := pinned(root, f, stable)
+		before, after, err := pinned(read, f, stable)
 		if err != nil {
 			return nil, err
 		}
@@ -184,8 +193,8 @@ func changes(root, changelog string) ([]change, error) {
 }
 
 // Stale lists the files that do not match the changelog yet.
-func Stale(root, changelog string) ([]string, error) {
-	all, err := changes(root, changelog)
+func Stale(read reader, changelog string) ([]string, error) {
+	all, err := changes(read, changelog)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +210,7 @@ func Stale(root, changelog string) ([]string, error) {
 // Write brings the site's changelog page and every pin in line with the
 // changelog, leaving a file that already matches untouched.
 func Write(root, changelog string) error {
-	all, err := changes(root, changelog)
+	all, err := changes(fromDisk(root), changelog)
 	if err != nil {
 		return err
 	}
@@ -209,7 +218,11 @@ func Write(root, changelog string) error {
 		if c.current == c.want {
 			continue
 		}
-		if err := os.WriteFile(filepath.Join(root, filepath.FromSlash(c.file)), []byte(c.want), 0o644); err != nil { //nolint:gosec // a docs page in the repository, meant to be world-readable
+		path := filepath.Join(root, filepath.FromSlash(c.file))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil { //nolint:gosec // the site's docs directory, meant to be world-readable
+			return err
+		}
+		if err := os.WriteFile(path, []byte(c.want), 0o644); err != nil { //nolint:gosec // a docs page in the repository, meant to be world-readable
 			return err
 		}
 		fmt.Println("wrote", c.file)

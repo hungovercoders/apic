@@ -5,6 +5,7 @@
 //	go run ./scripts/changelog -write          # the site's changelog page, and the docs' version pins
 //	go run ./scripts/changelog -release v0.2.0 # release.yml: the notes, after checking the tag
 //	go run ./scripts/changelog -latest         # release.yml: the version to release from main
+//	go run ./scripts/changelog -release-commit v0.2.0 # release.yml: the commit on main to tag
 //
 // The newest dated section is the current release. -write renders the file
 // as the site's changelog page and rewrites every place the docs pin a
@@ -19,6 +20,7 @@
 package main
 
 import (
+	"cmp"
 	"flag"
 	"fmt"
 	"os"
@@ -31,8 +33,19 @@ func main() {
 	file := flag.String("file", "CHANGELOG.md", "the changelog to read")
 	write := flag.Bool("write", false, "write the site's changelog page and the docs' version pins")
 	release := flag.String("release", "", "check that this tag is the newest dated section and the docs name it, then print its notes")
-	latest := flag.Bool("latest", false, "print the newest dated section's version, which a push to main releases")
+	latest := flag.Bool("latest", false, "print the newest dated section's version, which a merge to main releases")
+	commit := flag.String("release-commit", "", "print the commit on HEAD's first-parent history to tag for this tag: the first since it was dated that passes the release check")
 	flag.Parse()
+	modes := 0
+	for _, set := range []bool{*write, *release != "", *latest, *commit != "", flag.NArg() > 0} {
+		if set {
+			modes++
+		}
+	}
+	if modes > 1 || flag.NArg() > 1 {
+		fmt.Fprintln(os.Stderr, "usage: changelog [-file CHANGELOG.md] [-write | -latest | -release <tag> | -release-commit <tag> | <version>]")
+		os.Exit(2)
+	}
 	data, err := os.ReadFile(*file) //nolint:gosec // the changelog the caller named
 	if err != nil {
 		fail(err)
@@ -51,18 +64,21 @@ func main() {
 			fail(err)
 		}
 	case *release != "":
-		body, err := Release(root, changelog, strings.TrimPrefix(*release, "v"))
+		body, err := Release(fromDisk(root), changelog, strings.TrimPrefix(*release, "v"))
 		if err != nil {
 			fail(err)
 		}
 		fmt.Println(body)
+	case *commit != "":
+		c, err := ReleaseCommit(root, "HEAD", strings.TrimPrefix(*commit, "v"))
+		if err != nil {
+			fail(err)
+		}
+		fmt.Println(c)
 	default:
 		version := unreleased
 		if flag.NArg() == 1 {
 			version = strings.TrimPrefix(flag.Arg(0), "v")
-		} else if flag.NArg() > 1 {
-			fmt.Fprintln(os.Stderr, "usage: changelog [-file CHANGELOG.md] [-write | -release <tag> | <version>]")
-			os.Exit(2)
 		}
 		body, err := Section(changelog, version)
 		if err != nil {
@@ -87,7 +103,9 @@ var semver = regexp.MustCompile(`^` + ver + `$`)
 
 // Latest is the newest release: the version of the newest dated section,
 // the upper end of a range heading. It is what release.yml checks the tag
-// against.
+// against. The changelog must pass Check first: a section dated below an
+// older one would otherwise hide it, and the release would be skipped
+// with a green run.
 func Latest(changelog string) (string, error) {
 	return newest(changelog, func(string) bool { return true })
 }
@@ -99,19 +117,14 @@ func Stable(changelog string) (string, error) {
 }
 
 func newest(changelog string, want func(string) bool) (string, error) {
-	for _, line := range strings.Split(changelog, "\n") {
-		m := heading.FindStringSubmatch(line)
-		if m == nil || m[3] == "" {
+	if problems := Check(changelog); len(problems) > 0 {
+		return "", fmt.Errorf("CHANGELOG.md:\n  %s", strings.Join(problems, "\n  "))
+	}
+	for _, l := range scan(changelog) {
+		if l.heading == nil || l.heading[3] == "" {
 			continue
 		}
-		v := m[1]
-		if m[2] != "" {
-			v = m[2]
-		}
-		if !semver.MatchString(v) {
-			return "", fmt.Errorf("CHANGELOG.md: %q is not a version like 0.2.0 or 0.3.0-rc.1", v)
-		}
-		if want(v) {
+		if v := version(l.heading); want(v) {
 			return v, nil
 		}
 	}
@@ -123,7 +136,7 @@ func newest(changelog string, want func(string) bool) (string, error) {
 // version the site's page and pins already carry. A tag cut before the
 // release pull request merged, or one that skipped `task docs:changelog`,
 // fails here with nothing built.
-func Release(root, changelog, tag string) (string, error) {
+func Release(read reader, changelog, tag string) (string, error) {
 	latest, err := Latest(changelog)
 	if err != nil {
 		return "", err
@@ -131,7 +144,7 @@ func Release(root, changelog, tag string) (string, error) {
 	if tag != latest {
 		return "", fmt.Errorf("the tag is %s but CHANGELOG.md's newest dated section is %s: date this release's section (## [%s] - YYYY-MM-DD) and run task docs:changelog before tagging", tag, latest, tag)
 	}
-	stale, err := Stale(root, changelog)
+	stale, err := Stale(read, changelog)
 	if err != nil {
 		return "", err
 	}
@@ -149,39 +162,24 @@ func Release(root, changelog, tag string) (string, error) {
 	return Section(changelog, tag)
 }
 
-// linkRef matches a Markdown link reference definition, "[0.2.0]: url",
-// which the file's compare links at the end are.
-var linkRef = regexp.MustCompile(`^\[([^\]]+)\]: `)
-
-// heading matches a release heading: "## [0.2.0] - 2026-10-27", the
-// "## [Unreleased]" section, or a range such as "## [0.1.1] to [0.1.3] -
-// 2026-10-10" for releases that changed nothing in the binary.
-var heading = regexp.MustCompile(`^## \[([^\]]+)\](?: to \[([^\]]+)\])?(?: - (\d{4}-\d{2}-\d{2}))?\s*$`)
-
-// Section returns the body under version's heading, the lines up to the
-// next "## " heading or the link references that end the file, with the
-// blank lines around them removed. A range
-// heading serves every version it names and the ones between. The body
-// must not be empty: a release with nothing to say has nothing to attach.
+// Section returns the body under version's heading: the lines up to the
+// next section or the link references that end the file, with the blank
+// lines around them removed. A range heading serves every version it names
+// and the ones between. The body must not be empty: a release with nothing
+// to say has nothing to attach.
 func Section(changelog, version string) (string, error) {
 	var body []string
 	found := false
-	for _, line := range strings.Split(changelog, "\n") {
-		if found && linkRef.MatchString(line) {
-			break
-		}
-		if strings.HasPrefix(line, "## ") {
-			if found {
+	for _, l := range scan(changelog) {
+		if found {
+			if l.h2 || l.trailing {
 				break
 			}
-			m := heading.FindStringSubmatch(line)
-			if m != nil && covers(m[1], m[2], version) {
-				found = true
-			}
+			body = append(body, l.text)
 			continue
 		}
-		if found {
-			body = append(body, line)
+		if l.heading != nil && covers(l.heading[1], l.heading[2], version) {
+			found = true
 		}
 	}
 	if !found {
@@ -250,7 +248,7 @@ func comparePrerelease(a, b string) int {
 			}
 		}
 	}
-	return compareParts(fmt.Sprint(len(as)), fmt.Sprint(len(bs)))
+	return cmp.Compare(len(as), len(bs))
 }
 
 func isNumber(s string) bool {
@@ -304,33 +302,34 @@ func numeric(part string) int {
 // link reference at the end of the file.
 func Check(changelog string) []string {
 	var problems []string
+	lines := scan(changelog)
 	refs := map[string]bool{}
-	for _, line := range strings.Split(changelog, "\n") {
-		if m := linkRef.FindStringSubmatch(line); m != nil {
-			refs[m[1]] = true
+	for _, l := range lines {
+		if l.ref != nil {
+			refs[l.ref[1]] = true
 		}
 	}
 	prev := ""
 	first := true
-	for n, line := range strings.Split(changelog, "\n") {
-		if !strings.HasPrefix(line, "## ") {
+	for _, l := range lines {
+		if !l.h2 {
 			continue
 		}
-		m := heading.FindStringSubmatch(line)
+		m := l.heading
 		if m == nil {
-			problems = append(problems, fmt.Sprintf("line %d: %q is not a release heading (## [version] - YYYY-MM-DD)", n+1, line))
+			problems = append(problems, fmt.Sprintf("line %d: %q is not a release heading (## [version] - YYYY-MM-DD)", l.n, l.text))
 			continue
 		}
 		from, to, date := m[1], m[2], m[3]
 		for _, v := range []string{from, to} {
 			if v != "" && v != unreleased && !semver.MatchString(v) {
-				problems = append(problems, fmt.Sprintf("line %d: %q is not a version like 0.2.0 or 0.3.0-rc.1", n+1, v))
+				problems = append(problems, fmt.Sprintf("line %d: %q is not a version like 0.2.0 or 0.3.0-rc.1", l.n, v))
 			}
 		}
 		if first {
 			first = false
 			if from != unreleased {
-				problems = append(problems, fmt.Sprintf("line %d: the first section must be Unreleased", n+1))
+				problems = append(problems, fmt.Sprintf("line %d: the first section must be Unreleased", l.n))
 			}
 		}
 		for _, v := range []string{from, to} {
@@ -338,18 +337,15 @@ func Check(changelog string) []string {
 				continue
 			}
 			if v != unreleased && date == "" {
-				problems = append(problems, fmt.Sprintf("line %d: %s has no release date", n+1, v))
+				problems = append(problems, fmt.Sprintf("line %d: %s has no release date", l.n, v))
 			}
 			if !refs[v] {
-				problems = append(problems, fmt.Sprintf("line %d: no link reference for [%s] at the end of the file", n+1, v))
+				problems = append(problems, fmt.Sprintf("line %d: no link reference for [%s] at the end of the file", l.n, v))
 			}
 		}
-		top := from
-		if to != "" {
-			top = to
-		}
+		top := version(m)
 		if prev != "" && compareVersions(top, prev) >= 0 {
-			problems = append(problems, fmt.Sprintf("line %d: %s is not below %s; newest first", n+1, top, prev))
+			problems = append(problems, fmt.Sprintf("line %d: %s is not below %s; newest first", l.n, top, prev))
 		}
 		prev = from
 	}

@@ -75,19 +75,24 @@ skills find it on their own.`,
 
 func (a *App) skillInstallCmd() *cobra.Command {
 	var into, only []string
+	var user bool
 	cmd := &cobra.Command{
 		Use:   "install [dir]",
-		Short: "Write the skill pack into a project for the agents that load skills",
+		Short: "Write the skill pack into a project, or your home directory, for the agents that load skills",
 		Long: `install writes each skill of the pack into <dir>/.claude/skills/<name>
 (Claude Code) and <dir>/.agents/skills/<name> (Codex, Cursor and the other
 agents that share that directory), dir being the project (-C) unless
 given; it must exist (apic init creates a project, and installs the pack
-as it does). --skill picks some of the pack instead of all of it. Files
-that already hold the same text are left alone; others are overwritten,
-since the skills are apic's text rather than the project's. Commit the
-result so every clone briefs its agents.`,
+as it does). --user writes the same directories under your home directory
+instead, where those agents read skills for every project, so one install
+briefs them everywhere; it takes no dir and no --to. --skill picks some of
+the pack instead of all of it. Files that already hold the same text are
+left alone; others are overwritten, since the skills are apic's text
+rather than the project's. Commit a project install so every clone briefs
+its agents.`,
 		Example: `  apic skill install
   apic skill install ./api
+  apic skill install --user                   # once, for every project on this machine
   apic skill install --to .claude/skills      # Claude Code only
   apic skill install --skill apic             # only the apic skill`,
 		Args: cobra.MaximumNArgs(1),
@@ -99,6 +104,16 @@ result so every clone briefs its agents.`,
 			dirs := SkillDirs
 			if len(into) > 0 {
 				dirs = into
+			}
+			if user {
+				if len(args) == 1 || len(into) > 0 {
+					return runner.Usage(runner.CodeFlag, "--user installs under your home directory, so it takes no dir and no --to")
+				}
+				home, err := os.UserHomeDir()
+				if err != nil {
+					return runner.Usage(runner.CodeFile, fmt.Sprintf("--user: cannot find your home directory: %v", err))
+				}
+				dir = home
 			}
 			names := skills.Names()
 			if len(only) > 0 {
@@ -130,6 +145,7 @@ result so every clone briefs its agents.`,
 	}
 	cmd.Flags().StringArrayVar(&into, "to", nil, "directory under the project to install into, instead of .claude/skills and .agents/skills (repeatable)")
 	cmd.Flags().StringArrayVar(&only, "skill", nil, "a skill of the pack to install, instead of all of them: apic, api-design or api-security (repeatable)")
+	cmd.Flags().BoolVar(&user, "user", false, "install into .claude/skills and .agents/skills of your home directory, for every project, instead of the project's")
 	_ = cmd.RegisterFlagCompletionFunc("skill", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 		return skills.Names(), cobra.ShellCompDirectiveNoFileComp
 	})

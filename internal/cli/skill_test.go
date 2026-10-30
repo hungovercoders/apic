@@ -133,6 +133,40 @@ func TestSkillInstallWritesOnceAndReportsUnchanged(t *testing.T) {
 	}
 }
 
+// --user writes the same directories under the home directory, for every
+// project, and takes neither a dir nor --to, which would contradict it.
+func TestSkillInstallUserWritesUnderHome(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	project := t.TempDir()
+	code, out, errb := execute(t, "-C", project, "--json", "skill", "install", "--user", "--skill", "apic")
+	if code != 0 {
+		t.Fatalf("code=%d err=%s", code, errb)
+	}
+	var got struct{ Written, Unchanged []string }
+	if err := json.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Written) != 2*len(SkillDirs) || got.Written[0] != filepath.Join(home, ".claude", "skills", "apic", "SKILL.md") {
+		t.Errorf("written: %v", got.Written)
+	}
+	if _, err := os.Stat(filepath.Join(home, ".agents", "skills", "apic", "references", "cheatsheet.md")); err != nil {
+		t.Error(err)
+	}
+	if entries, _ := os.ReadDir(project); len(entries) != 0 {
+		t.Error("--user should write nothing into the project")
+	}
+	if code, _, _ = execute(t, "--json", "skill", "install", "--user", "--skill", "apic"); code != 0 {
+		t.Errorf("second --user install: code=%d", code)
+	}
+	for _, args := range [][]string{{"skill", "install", project, "--user"}, {"skill", "install", "--user", "--to", "x"}} {
+		if code, _, errb = execute(t, args...); code != 2 || !strings.Contains(errb, "E203") {
+			t.Errorf("%v: code=%d err=%s", args, code, errb)
+		}
+	}
+}
+
 // packFiles is how many files the whole pack holds: apic's SKILL.md and
 // cheat sheet, and a SKILL.md with two references for each of the other
 // two skills. An install writes them into each of SkillDirs.

@@ -158,6 +158,7 @@ and the binary carries a copy:
 
 ```sh
 apic skill install                          # the pack, into .claude/skills and .agents/skills of the project
+apic skill install --user                   # the same under your home directory, once, for every project
 apic skill install --skill apic             # one skill of it
 apic skill                                  # print the apic skill, for an agent that can run commands
 apic skill api-security                     # print another

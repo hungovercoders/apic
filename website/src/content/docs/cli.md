@@ -1055,6 +1055,7 @@ appended to and the rest of `.mcp.json` kept.
 ```
 apic skill [name]
 apic skill install [dir] [--to <dir>]... [--skill <name>]...
+apic skill install --user [--skill <name>]...
 ```
 
 `skill` prints a skill's `SKILL.md`, the briefing an AI agent reads before
@@ -1084,10 +1085,18 @@ apic's rather than the project's. Commit the result so every clone briefs
 its agents. `apic init` writes the same files, keeping existing ones
 unless `--force`.
 
+`skill install --user` writes the same two directories under your home
+directory (`~/.claude/skills/<name>` and `~/.agents/skills/<name>`),
+where Claude Code and the other agents read skills for every project, so
+one install after installing apic briefs them everywhere. It takes no
+`dir` and no `--to` (E203), since those name a project; `--skill` still
+picks part of the pack, and a second run reports every file `unchanged`.
+
 | Flag | Meaning |
 |---|---|
 | `--to <dir>` | Install into this directory under the project instead of the two defaults; repeatable. `--to .claude/skills` is Claude Code only. |
 | `--skill <name>` | Install this skill of the pack instead of all three; repeatable. `--skill apic` is the briefing on apic alone. |
+| `--user` | Install under your home directory, for every project, instead of the project. |
 
 `--json` prints `{"written": [...], "unchanged": [...]}`.
 
@@ -1525,7 +1534,7 @@ No flags of its own.
 
 ### apic skill install
 
-Write the skill pack into a project for the agents that load skills.
+Write the skill pack into a project, or your home directory, for the agents that load skills.
 
 ```
 apic skill install [dir] [flags]
@@ -1535,6 +1544,7 @@ apic skill install [dir] [flags]
 |---|---|
 | `--skill <string>` | a skill of the pack to install, instead of all of them: apic, api-design or api-security (repeatable) |
 | `--to <string>` | directory under the project to install into, instead of .claude/skills and .agents/skills (repeatable) |
+| `--user` | install into .claude/skills and .agents/skills of your home directory, for every project, instead of the project's |
 
 ### apic snippet
 

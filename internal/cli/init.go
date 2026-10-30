@@ -22,11 +22,12 @@ func (a *App) initCmd() *cobra.Command {
 		Long: `init writes a small, working project into dir (default: the current
 directory): apic.yaml, http-client.env.json, a gitignored
 http-client.private.env.json, api.http with one annotated request, a
-features/smoke.feature to run with apic test, the Agent Skills under
+features/smoke.feature to run with apic test, the apic Agent Skill under
 .claude/skills and .agents/skills so an AI agent working in the project
-knows how to use apic and how to design and secure the API (see apic
-skill; --no-skill leaves them out, apic skill install refreshes them),
-and a .mcp.json registering apic mcp for the agents that read it
+knows how to use apic (see apic skill; --no-skill leaves it out, apic
+skill install refreshes it, and apic skill install --all adds the
+api-design and api-security skills), and a .mcp.json registering apic
+mcp for the agents that read it
 (--no-mcp leaves it out; apic mcp install writes it elsewhere). Existing
 files are left alone unless --force is given, an apic entry already in
 .mcp.json included; the .gitignore is appended to and the rest of
@@ -50,7 +51,7 @@ files are left alone unless --force is given, an apic entry already in
 			if !noSkill {
 				// Kept unless --force, like every other file: a team may
 				// have tailored it. `apic skill install` is the refresh.
-				wrote, _, kept, err := writeSkill(dir, SkillDirs, skills.Names(), skillWrite{create: true, overwrite: force})
+				wrote, _, kept, err := writeSkill(dir, SkillDirs, []string{skills.Name}, skillWrite{create: true, overwrite: force})
 				if err != nil {
 					return err
 				}
@@ -94,7 +95,7 @@ files are left alone unless --force is given, an apic entry already in
 	cmd.Flags().StringVar(&baseURL, "base-url", "https://api.example.com", "baseUrl for the environment")
 	cmd.Flags().StringVar(&envName, "env", "dev", "name of the first environment")
 	cmd.Flags().BoolVar(&force, "force", false, "overwrite existing files")
-	cmd.Flags().BoolVar(&noSkill, "no-skill", false, "do not write the Agent Skills into .claude/skills and .agents/skills")
+	cmd.Flags().BoolVar(&noSkill, "no-skill", false, "do not write the Agent Skill into .claude/skills and .agents/skills")
 	cmd.Flags().BoolVar(&noMCP, "no-mcp", false, "do not register apic mcp in .mcp.json")
 	return cmd
 }

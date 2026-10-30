@@ -305,20 +305,8 @@ wrote my-api/features/smoke.feature
 wrote my-api/.gitignore
 wrote my-api/.claude/skills/apic/SKILL.md
 wrote my-api/.claude/skills/apic/references/cheatsheet.md
-wrote my-api/.claude/skills/api-design/SKILL.md
-wrote my-api/.claude/skills/api-design/references/http-semantics.md
-wrote my-api/.claude/skills/api-design/references/openapi.md
-wrote my-api/.claude/skills/api-security/SKILL.md
-wrote my-api/.claude/skills/api-security/references/checks.md
-wrote my-api/.claude/skills/api-security/references/owasp-api-top-10.md
 wrote my-api/.agents/skills/apic/SKILL.md
 wrote my-api/.agents/skills/apic/references/cheatsheet.md
-wrote my-api/.agents/skills/api-design/SKILL.md
-wrote my-api/.agents/skills/api-design/references/http-semantics.md
-wrote my-api/.agents/skills/api-design/references/openapi.md
-wrote my-api/.agents/skills/api-security/SKILL.md
-wrote my-api/.agents/skills/api-security/references/checks.md
-wrote my-api/.agents/skills/api-security/references/owasp-api-top-10.md
 
 next:
   cd my-api

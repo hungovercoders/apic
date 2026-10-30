@@ -42,12 +42,12 @@ repository compiled into the binary:
                 scenario apic runs
 
 An agent that can run commands can read one with "apic skill <name>";
-"apic skill install" writes the pack into the project so agents that load
-skills find it on their own.`,
+"apic skill install" writes the apic skill into the project so agents that
+load skills find it on their own, and "apic skill install --all" the pack.`,
 		Example: `  apic skill                  # print SKILL.md of the apic skill
   apic skill api-design       # another skill of the pack
   apic skill --json           # every file of the skill, and the pack's names
-  apic skill install          # the pack, into .claude/skills and .agents/skills of the project`,
+  apic skill install --all    # the pack, into .claude/skills and .agents/skills of the project`,
 		Args:      cobra.MaximumNArgs(1),
 		ValidArgs: skills.Names(),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -80,26 +80,29 @@ skills find it on their own.`,
 
 func (a *App) skillInstallCmd() *cobra.Command {
 	var into, only []string
-	var user bool
+	var user, all bool
 	cmd := &cobra.Command{
 		Use:   "install [dir]",
-		Short: "Write the skill pack into a project, or your home directory, for the agents that load skills",
-		Long: `install writes each skill of the pack into <dir>/.claude/skills/<name>
-(Claude Code) and <dir>/.agents/skills/<name> (Codex, Cursor and the other
-agents that share that directory), dir being the project (-C) unless
-given; it must exist (apic init creates a project, and installs the pack
-as it does). --user writes the same directories under your home directory
-instead, where those agents read skills for every project, so one install
-briefs them everywhere; it takes no dir and no --to. --skill picks some of
-the pack instead of all of it. Files that already hold the same text are
-left alone; others are overwritten, since the skills are apic's text
-rather than the project's. Commit a project install so every clone briefs
-its agents.`,
+		Short: "Write the apic skill, or the whole pack, into a project or your home directory",
+		Long: `install writes the apic skill into <dir>/.claude/skills/apic (Claude
+Code) and <dir>/.agents/skills/apic (Codex, Cursor and the other agents
+that share that directory), dir being the project (-C) unless given; it
+must exist (apic init creates a project, and installs the skill as it
+does). The apic skill is about using apic, so it is the default; --all
+adds api-design and api-security, which are opinions about the API itself
+(status codes, error shapes, pagination, the OWASP checks), and --skill
+picks exactly the skills named. --user writes the same directories under
+your home directory instead, where those agents read skills for every
+project, so one install briefs them everywhere; it takes no dir and no
+--to. Files that already hold the same text are left alone; others are
+overwritten, since the skills are apic's text rather than the project's.
+Commit a project install so every clone briefs its agents.`,
 		Example: `  apic skill install
   apic skill install ./api
-  apic skill install --user                   # once, for every project on this machine
+  apic skill install --all                    # the apic, api-design and api-security skills
+  apic skill install --user --all             # once, for every project on this machine
   apic skill install --to .claude/skills      # Claude Code only
-  apic skill install --skill apic             # only the apic skill`,
+  apic skill install --skill api-security     # exactly this skill`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dir := a.g.dir
@@ -120,7 +123,13 @@ its agents.`,
 				}
 				dir = home
 			}
-			names := skills.Names()
+			names := []string{skills.Name}
+			if all {
+				if len(only) > 0 {
+					return runner.Usage(runner.CodeFlag, "--all installs the whole pack, so it takes no --skill")
+				}
+				names = skills.Names()
+			}
 			if len(only) > 0 {
 				// A name given twice is installed once, so no file is
 				// reported both written and unchanged.
@@ -154,7 +163,8 @@ its agents.`,
 		},
 	}
 	cmd.Flags().StringArrayVar(&into, "to", nil, "directory under the project to install into, instead of .claude/skills and .agents/skills (repeatable)")
-	cmd.Flags().StringArrayVar(&only, "skill", nil, "a skill of the pack to install, instead of all of them: "+strings.Join(skills.Names(), ", ")+" (repeatable)")
+	cmd.Flags().StringArrayVar(&only, "skill", nil, "a skill of the pack to install, instead of the apic skill alone: "+strings.Join(skills.Names(), ", ")+" (repeatable)")
+	cmd.Flags().BoolVar(&all, "all", false, "install the whole pack: "+strings.Join(skills.Names(), ", "))
 	cmd.Flags().BoolVar(&user, "user", false, "install into .claude/skills and .agents/skills of your home directory, for every project, instead of the project's")
 	_ = cmd.RegisterFlagCompletionFunc("skill", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 		return skills.Names(), cobra.ShellCompDirectiveNoFileComp

@@ -78,7 +78,7 @@ func TestSkillPrintsTheNamedSkill(t *testing.T) {
 
 func TestSkillInstallWritesOnceAndReportsUnchanged(t *testing.T) {
 	dir := t.TempDir()
-	code, out, errb := execute(t, "skill", "install", dir, "--no-color")
+	code, out, errb := execute(t, "skill", "install", dir, "--all", "--no-color")
 	if code != 0 {
 		t.Fatalf("code=%d err=%s", code, errb)
 	}
@@ -95,7 +95,7 @@ func TestSkillInstallWritesOnceAndReportsUnchanged(t *testing.T) {
 	// A second install finds the same text and changes nothing; an edited
 	// copy is put back, since the text is apic's.
 	mustWrite(t, filepath.Join(dir, ".agents", "skills", "apic", "SKILL.md"), "edited")
-	code, out, _ = execute(t, "--json", "skill", "install", dir)
+	code, out, _ = execute(t, "--json", "skill", "install", dir, "--all")
 	var got struct {
 		Written   []string `json:"written"`
 		Unchanged []string `json:"unchanged"`
@@ -116,6 +116,22 @@ func TestSkillInstallWritesOnceAndReportsUnchanged(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(only, ".claude")); !os.IsNotExist(err) {
 		t.Error("--to should replace the default directories, not add to them")
+	}
+	// Without --all the apic skill alone is installed: the other two are
+	// opinions about the reader's API, which a project opts into.
+	plain := t.TempDir()
+	code, out, errb = execute(t, "--json", "skill", "install", plain)
+	if code != 0 {
+		t.Fatalf("default install: code=%d err=%s", code, errb)
+	}
+	if err := json.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Written) != len(skills.Paths("apic"))*len(SkillDirs) || slices.ContainsFunc(got.Written, func(p string) bool { return strings.Contains(p, "api-") }) {
+		t.Errorf("default install wrote %v", got.Written)
+	}
+	if code, _, errb = execute(t, "skill", "install", plain, "--all", "--skill", "apic"); code != 2 || !strings.Contains(errb, "E203") {
+		t.Errorf("--all --skill: code=%d err=%s", code, errb)
 	}
 	// --skill picks part of the pack, a name given twice counts once, and
 	// an unknown name is refused before anything is written.
@@ -229,10 +245,12 @@ func TestInitWritesTheSkillUnlessAskedNotTo(t *testing.T) {
 	if code, out, errb := execute(t, "init", dir, "--no-color"); code != 0 || !strings.Contains(out, filepath.Join(dir, ".claude", "skills", "apic", "SKILL.md")) {
 		t.Fatalf("code=%d out=%s err=%s", code, out, errb)
 	}
-	for _, rel := range []string{"apic/references/cheatsheet.md", "api-design/SKILL.md", "api-security/references/checks.md"} {
-		if _, err := os.Stat(filepath.Join(dir, ".agents", "skills", filepath.FromSlash(rel))); err != nil {
-			t.Error(err)
-		}
+	if _, err := os.Stat(filepath.Join(dir, ".agents", "skills", "apic", "references", "cheatsheet.md")); err != nil {
+		t.Error(err)
+	}
+	// init writes the apic skill alone; the pack is `apic skill install --all`.
+	if _, err := os.Stat(filepath.Join(dir, ".agents", "skills", "api-design")); !os.IsNotExist(err) {
+		t.Error("init should not write api-design")
 	}
 	// An edited copy is kept on a second init, like every other file, and
 	// reported as skipped; --force replaces it, as `apic skill install`
@@ -335,7 +353,7 @@ func TestSkillInstallReportsPathsAsNamed(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &got); err != nil {
 		t.Fatal(err)
 	}
-	if len(got.Written) != packFiles()*len(SkillDirs) || got.Written[0] != filepath.Join("link", ".claude", "skills", "apic", "SKILL.md") {
+	if len(got.Written) != len(skills.Paths("apic"))*len(SkillDirs) || got.Written[0] != filepath.Join("link", ".claude", "skills", "apic", "SKILL.md") {
 		t.Errorf("written: %v", got.Written)
 	}
 	if _, err := os.Stat(filepath.Join("real", ".agents", "skills", "apic", "SKILL.md")); err != nil {

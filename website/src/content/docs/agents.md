@@ -157,19 +157,25 @@ and the binary carries a copy:
 | `api-security` | The user asks whether their API is secure, adds authentication, or hardens an endpoint before release: the OWASP API Security Top 10 as checks, authentication, authorisation, input and resource limits, headers, secrets and logging, each written as an `.http` request or Gherkin scenario that fails while the control is missing, with a bank of ready checks and a release checklist in its references. |
 
 ```sh
-apic skill install                          # the pack, into .claude/skills and .agents/skills of the project
-apic skill install --user                   # the same under your home directory, once, for every project
-apic skill install --skill apic             # one skill of it
+apic skill install                          # the apic skill, into .claude/skills and .agents/skills of the project
+apic skill install --all                    # the whole pack
+apic skill install --user --all             # the same under your home directory, once, for every project
+apic skill install --skill api-security     # exactly this skill
 apic skill                                  # print the apic skill, for an agent that can run commands
 apic skill api-security                     # print another
 npx skills add hungovercoders/apic          # the same files from the repository, for the agents the CLI finds
 ```
 
-`apic init` installs the pack too, so a new project briefs its agents from
-the start; commit the directories. `--to <dir>` picks another location, and
-copying a directory by hand works wherever your agent reads skills from.
-Use them with the MCP server or without: the `apic` skill tells the agent
-to prefer the tools when they exist, and the other two tell it to prove
+The `apic` skill is apic's own text about using apic, so `apic init` and
+`apic skill install` write it by default. `api-design` and `api-security`
+are opinions about the reader's API (which status codes, which error
+shape, which checks), so a project opts into them with `--all` or
+`--skill`, and the tests in each skill's `evals/` (run by `task
+agent:eval`) measure whether they change what an agent does. Commit the
+directories. `--to <dir>` picks another location, and copying a
+directory by hand works wherever your agent reads skills from. Use them
+with the MCP server or without: the `apic` skill tells the agent to
+prefer the tools when they exist, and the other two tell it to prove
 every design and security decision with a request the project keeps.
 `apic skill --json` gained a `skills` array naming the pack; `name` and
 `files` are unchanged.

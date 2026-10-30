@@ -288,11 +288,8 @@ The paragraph in step 1 costs a few hundred tokens on every turn, whether
 or not the task touches the API. A skill is the same briefing loaded on
 demand: the agent sees one line saying when it applies, and reads the
 rest only when a task involves `.http` files or an API call. The binary
-carries a pack of three, in the [Agent Skills](https://agentskills.io)
-format that Claude Code, Codex, Cursor and the others read: `apic` (how to
-use apic), `api-design` (how to design the API the requests call) and
-`api-security` (how to keep it safe and prove it, with the OWASP API
-Security Top 10 as checks). `apic skill install` writes them into the
+carries one, in the [Agent Skills](https://agentskills.io) format that
+Claude Code, Codex, Cursor and the others read, and installs it into the
 project:
 
 <!-- learn -->
@@ -304,26 +301,23 @@ grep '^## ' apic-demo/.claude/skills/apic/SKILL.md
 ```
 wrote apic-demo/.claude/skills/apic/SKILL.md
 wrote apic-demo/.claude/skills/apic/references/cheatsheet.md
-wrote apic-demo/.claude/skills/api-design/SKILL.md
-wrote apic-demo/.claude/skills/api-design/references/http-semantics.md
-wrote apic-demo/.claude/skills/api-design/references/openapi.md
-wrote apic-demo/.claude/skills/api-security/SKILL.md
-wrote apic-demo/.claude/skills/api-security/references/checks.md
-wrote apic-demo/.claude/skills/api-security/references/owasp-api-top-10.md
 wrote apic-demo/.agents/skills/apic/SKILL.md
 wrote apic-demo/.agents/skills/apic/references/cheatsheet.md
-wrote apic-demo/.agents/skills/api-design/SKILL.md
-wrote apic-demo/.agents/skills/api-design/references/http-semantics.md
-wrote apic-demo/.agents/skills/api-design/references/openapi.md
-wrote apic-demo/.agents/skills/api-security/SKILL.md
-wrote apic-demo/.agents/skills/api-security/references/checks.md
-wrote apic-demo/.agents/skills/api-security/references/owasp-api-top-10.md
 ## Running requests
 ## When a command fails
 ## Writing or changing requests
 ## Testing an API
 ## Over MCP instead of the shell
+## Designing or securing the API itself
 ```
+
+That last section points at two more skills the binary carries,
+`api-design` (how to design the API the requests call, each rule proved
+by a request or an `apic mock`) and `api-security` (how to keep it safe,
+with the OWASP API Security Top 10 as checks). They are opinions about
+your API rather than about apic, so they are an opt-in: `apic skill
+install --all` adds them to the project, or `apic skill install --user
+--all` to your home directory for every project.
 
 Two copies, one per convention, and the same five things this lesson
 walked through: the validate, list, describe, run order; the error codes

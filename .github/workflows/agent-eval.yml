@@ -1,5 +1,5 @@
 name: agent-eval
-# Runs the skill's evals (skills/apic/evals/evals.json) through the Claude
+# Runs the skills' evals (skills/<skill>/evals/evals.json) through the Claude
 # Code CLI against fresh `apic demo` projects, with and without the skill,
 # and scores what the agent did: task outcome, files changed, secret files
 # read, requests sent, selector errors hit. It makes real model calls (a

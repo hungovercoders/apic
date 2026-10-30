@@ -73,8 +73,8 @@ Try it with nothing set up:  apic ui --demo
 
 For AI agents: apic skill prints the briefing an agent should read before
 working with a project (apic skill api-design and api-security brief it on
-the API itself), apic skill install writes the pack into the project, and
-apic mcp serves the project as tools.
+the API itself), apic skill install writes it into the project (--all the
+three), and apic mcp serves the project as tools.
 
 Exit codes: 0 ok · 1 assertion or capture failed · 2 usage/parse/missing variable · 3 network error`,
 		Example: `  apic ui --demo                     # a fake API and a UI to poke it with, nothing to set up

@@ -13,6 +13,7 @@ package skills
 import (
 	"embed"
 	"io/fs"
+	"slices"
 	"sort"
 )
 
@@ -23,9 +24,9 @@ var files embed.FS
 // without an argument. Every skill is installed under its own name.
 const Name = "apic"
 
-// Names lists the skills in the pack, Name first and the rest sorted,
-// each being a directory under skills/.
-func Names() []string {
+// names is the pack, listed once from the embedded tree: Name first and
+// the rest sorted.
+var names = func() []string {
 	entries, err := fs.ReadDir(files, ".")
 	if err != nil {
 		return []string{Name}
@@ -38,16 +39,17 @@ func Names() []string {
 	}
 	sort.Strings(rest)
 	return append([]string{Name}, rest...)
+}()
+
+// Names lists the skills in the pack, Name first and the rest sorted,
+// each being a directory under skills/.
+func Names() []string {
+	return slices.Clone(names)
 }
 
 // Has reports whether name is a skill in the pack.
 func Has(name string) bool {
-	for _, n := range Names() {
-		if n == name {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(names, name)
 }
 
 // Files returns the named skill's files by path relative to its
@@ -74,7 +76,12 @@ func Files(name string) map[string]string {
 // Paths lists the named skill's file paths, SKILL.md first and the rest
 // sorted; empty for a name not in the pack.
 func Paths(name string) []string {
-	all := Files(name)
+	return PathsOf(Files(name))
+}
+
+// PathsOf orders a skill's files as Files returns them: SKILL.md first,
+// the rest sorted; nil for nil.
+func PathsOf(all map[string]string) []string {
 	if all == nil {
 		return nil
 	}

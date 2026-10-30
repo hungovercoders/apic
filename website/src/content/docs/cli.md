@@ -1089,8 +1089,10 @@ unless `--force`.
 directory (`~/.claude/skills/<name>` and `~/.agents/skills/<name>`),
 where Claude Code and the other agents read skills for every project, so
 one install after installing apic briefs them everywhere. It takes no
-`dir` and no `--to` (E203), since those name a project; `--skill` still
-picks part of the pack, and a second run reports every file `unchanged`.
+`dir`, `-C` or `--to` (E203), since those name a project; a `~/.claude`
+or `~/.agents` that a dotfile manager links elsewhere is followed.
+`--skill` still picks part of the pack (a name given twice counts once),
+and a second run reports every file `unchanged`.
 
 | Flag | Meaning |
 |---|---|
@@ -1542,7 +1544,7 @@ apic skill install [dir] [flags]
 
 | Flag | Meaning |
 |---|---|
-| `--skill <string>` | a skill of the pack to install, instead of all of them: apic, api-design or api-security (repeatable) |
+| `--skill <string>` | a skill of the pack to install, instead of all of them: apic, api-design, api-security (repeatable) |
 | `--to <string>` | directory under the project to install into, instead of .claude/skills and .agents/skills (repeatable) |
 | `--user` | install into .claude/skills and .agents/skills of your home directory, for every project, instead of the project's |
 

@@ -25,11 +25,12 @@ http-client.private.env.json, api.http with one annotated request, a
 features/smoke.feature to run with apic test, the Agent Skills under
 .claude/skills and .agents/skills so an AI agent working in the project
 knows how to use apic and how to design and secure the API (see apic
-skill; --no-skill leaves them out, apic skill install refreshes them), and a .mcp.json registering apic mcp for the
-agents that read it (--no-mcp leaves it out; apic mcp install writes it
-elsewhere). Existing files are left alone unless --force is given, an
-apic entry already in .mcp.json included; the .gitignore is appended to
-and the rest of .mcp.json kept.`,
+skill; --no-skill leaves them out, apic skill install refreshes them),
+and a .mcp.json registering apic mcp for the agents that read it
+(--no-mcp leaves it out; apic mcp install writes it elsewhere). Existing
+files are left alone unless --force is given, an apic entry already in
+.mcp.json included; the .gitignore is appended to and the rest of
+.mcp.json kept.`,
 		Example: `  apic init
   apic init api --base-url https://dev.example.com --env dev
   apic init --json`,
@@ -49,7 +50,7 @@ and the rest of .mcp.json kept.`,
 			if !noSkill {
 				// Kept unless --force, like every other file: a team may
 				// have tailored it. `apic skill install` is the refresh.
-				wrote, _, kept, err := writeSkill(dir, SkillDirs, skills.Names(), true, force)
+				wrote, _, kept, err := writeSkill(dir, SkillDirs, skills.Names(), skillWrite{create: true, overwrite: force})
 				if err != nil {
 					return err
 				}

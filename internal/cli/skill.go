@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -55,7 +56,11 @@ skills find it on their own.`,
 				name = args[0]
 			}
 			if !skills.Has(name) {
-				return runner.Usage(runner.CodeFlag, fmt.Sprintf("unknown skill %q; the pack has %s", name, strings.Join(skills.Names(), ", ")))
+				msg := fmt.Sprintf("unknown skill %q; the pack has %s", name, strings.Join(skills.Names(), ", "))
+				if sub := cmd.SuggestionsFor(name); len(sub) > 0 {
+					msg += fmt.Sprintf("; did you mean apic skill %s?", strings.Join(sub, " or "))
+				}
+				return runner.Usage(runner.CodeFlag, msg)
 			}
 			files := skills.Files(name)
 			if a.g.json {
@@ -106,8 +111,8 @@ its agents.`,
 				dirs = into
 			}
 			if user {
-				if len(args) == 1 || len(into) > 0 {
-					return runner.Usage(runner.CodeFlag, "--user installs under your home directory, so it takes no dir and no --to")
+				if len(args) == 1 || len(into) > 0 || cmd.Flags().Changed("dir") {
+					return runner.Usage(runner.CodeFlag, "--user installs under your home directory, so it takes no dir, no -C and no --to")
 				}
 				home, err := os.UserHomeDir()
 				if err != nil {
@@ -117,14 +122,19 @@ its agents.`,
 			}
 			names := skills.Names()
 			if len(only) > 0 {
-				names = only
-			}
-			for _, name := range names {
-				if !skills.Has(name) {
-					return runner.Usage(runner.CodeFlag, fmt.Sprintf("--skill %q: unknown skill; the pack has %s", name, strings.Join(skills.Names(), ", ")))
+				// A name given twice is installed once, so no file is
+				// reported both written and unchanged.
+				names = names[:0]
+				for _, name := range only {
+					if !skills.Has(name) {
+						return runner.Usage(runner.CodeFlag, fmt.Sprintf("--skill %q: unknown skill; the pack has %s", name, strings.Join(skills.Names(), ", ")))
+					}
+					if !slices.Contains(names, name) {
+						names = append(names, name)
+					}
 				}
 			}
-			written, unchanged, _, err := writeSkill(dir, dirs, names, false, true)
+			written, unchanged, _, err := writeSkill(dir, dirs, names, skillWrite{overwrite: true, user: user})
 			if err != nil {
 				return err
 			}
@@ -144,7 +154,7 @@ its agents.`,
 		},
 	}
 	cmd.Flags().StringArrayVar(&into, "to", nil, "directory under the project to install into, instead of .claude/skills and .agents/skills (repeatable)")
-	cmd.Flags().StringArrayVar(&only, "skill", nil, "a skill of the pack to install, instead of all of them: apic, api-design or api-security (repeatable)")
+	cmd.Flags().StringArrayVar(&only, "skill", nil, "a skill of the pack to install, instead of all of them: "+strings.Join(skills.Names(), ", ")+" (repeatable)")
 	cmd.Flags().BoolVar(&user, "user", false, "install into .claude/skills and .agents/skills of your home directory, for every project, instead of the project's")
 	_ = cmd.RegisterFlagCompletionFunc("skill", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 		return skills.Names(), cobra.ShellCompDirectiveNoFileComp
@@ -152,35 +162,56 @@ its agents.`,
 	return cmd
 }
 
+// skillWrite says how writeSkill treats what it finds: create makes a
+// missing root (apic init) where install requires one; overwrite replaces
+// a file holding other text (install) where init keeps it and reports it
+// skipped; user means the root is the home directory (--user), whose
+// errors say so, and whose .claude and .agents may be links a dotfile
+// manager keeps elsewhere, so they are followed rather than confined.
+type skillWrite struct {
+	create, overwrite, user bool
+}
+
 // writeSkill writes the named skills into each of dirs under root, as
 // <dir>/<skill>/<file>. A file already holding the same text is reported
 // as unchanged rather than rewritten, so a second install is a no-op; one
-// holding other text is overwritten, or with overwrite false kept and
-// reported as skipped, which is what `apic init` does to every existing
-// file. create says whether a missing root is made (init) or an error
-// (install, where it is a mistyped project). Every path is confined to
-// root, symlinks followed, so neither `--to ../x` nor a link under
-// .claude/skills can put the files outside the project.
-func writeSkill(root string, dirs, names []string, create, overwrite bool) (written, unchanged, skipped []string, err error) {
-	absRoot, err := writeRoot(root, create, "the skill")
-	if err != nil {
+// holding other text is overwritten or kept as how says. In a project
+// every path is confined to root, symlinks followed, so neither `--to
+// ../x` nor a link under .claude/skills can put the files outside it;
+// --user rejects those flags, and its paths are the home directory's.
+func writeSkill(root string, dirs, names []string, how skillWrite) (written, unchanged, skipped []string, err error) {
+	var absRoot string
+	if how.user {
+		info, statErr := os.Stat(root)
+		if statErr != nil || !info.IsDir() {
+			return nil, nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s is not a directory; --user writes the skill pack under your home directory", root))
+		}
+		if absRoot, err = filepath.Abs(root); err != nil {
+			return nil, nil, nil, runner.Usage(runner.CodeFile, err.Error())
+		}
+	} else if absRoot, err = writeRoot(root, how.create, "the skill pack"); err != nil {
 		return nil, nil, nil, err
 	}
-	for _, dir := range dirs {
-		for _, skill := range names {
-			files := skills.Files(skill)
-			for _, name := range skills.Paths(skill) {
-				shown, target, err := confinedPath(root, absRoot, filepath.Join(dir, skill, filepath.FromSlash(name)), "the skill")
-				if err != nil {
+	for _, skill := range names {
+		files := skills.Files(skill)
+		paths := skills.PathsOf(files)
+		for _, dir := range dirs {
+			for _, name := range paths {
+				rel := filepath.Join(dir, skill, filepath.FromSlash(name))
+				var shown, target string
+				if how.user {
+					shown = filepath.Join(absRoot, rel)
+					target = shown
+				} else if shown, target, err = confinedPath(root, absRoot, rel, "the skill pack"); err != nil {
 					return nil, nil, nil, err
 				}
 				content := []byte(files[name])
-				if existing, err := os.ReadFile(target); err == nil { //nolint:gosec // the skill file this command wrote before, confined to the project above
+				if existing, err := os.ReadFile(target); err == nil { //nolint:gosec // the skill file this command wrote before, under the project or the home directory
 					if bytes.Equal(existing, content) {
 						unchanged = append(unchanged, shown)
 						continue
 					}
-					if !overwrite {
+					if !how.overwrite {
 						skipped = append(skipped, shown)
 						continue
 					}
@@ -188,7 +219,7 @@ func writeSkill(root string, dirs, names []string, create, overwrite bool) (writ
 				if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil { //nolint:gosec // a skill directory the user's agents read and the user commits
 					return nil, nil, nil, runner.Usage(runner.CodeFile, err.Error())
 				}
-				if err := os.WriteFile(target, content, 0o644); err != nil { //nolint:gosec // public text the user commits, confined to the project above
+				if err := os.WriteFile(target, content, 0o644); err != nil { //nolint:gosec // public text the user commits, under the project or the home directory
 					return nil, nil, nil, runner.Usage(runner.CodeFile, err.Error())
 				}
 				written = append(written, shown)

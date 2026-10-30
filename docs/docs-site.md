@@ -106,9 +106,16 @@ declares no environment `url` on purpose: the slopstopper checks that run on
   `runner.Catalogue` (`scripts/errdocs`; a test fails when it is stale).
 - `task skill`: regenerate `skills/apic/references/cheatsheet.md` from the
   site's `cheatsheet.md` with absolute links (`scripts/skilldocs`; a test
-  fails when it is stale). `SKILL.md` is the briefing an agent reads on
-  demand: keep it under 200 lines, point at the reference for detail, and
-  know that its test fails on an `apic <word>` that is not a command.
+  fails when it is stale). Each `SKILL.md` under `skills/` (`apic`,
+  `api-design`, `api-security`) is a briefing an agent reads on demand:
+  keep it under 200 lines, point at its `references/` for detail, and
+  know that the same test fails on an `apic <word>` that is not a command,
+  a `references/` link that is not in the skill, or a `name:` that is not
+  the directory. Every link in the other two skills' references is
+  external (lychee checks them), since the files are copied into other
+  projects alone; the `.http` and Gherkin blocks they show should pass
+  `apic validate` and match the step vocabulary, so try a new one before
+  writing it.
 - `task agent:eval` (`scripts/agenteval`) runs the tasks in
   `skills/apic/evals/evals.json` through the Claude Code CLI against fresh
   `apic demo` projects, with and without the skill, scoring the transcript

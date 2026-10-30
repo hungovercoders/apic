@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -25,14 +26,51 @@ func TestSkillPrintsTheEmbeddedSkill(t *testing.T) {
 	}
 	code, out, _ = execute(t, "--json", "skill")
 	var got struct {
-		Name  string            `json:"name"`
-		Files map[string]string `json:"files"`
+		Name   string            `json:"name"`
+		Files  map[string]string `json:"files"`
+		Skills []string          `json:"skills"`
 	}
 	if err := json.Unmarshal([]byte(out), &got); err != nil || code != 0 {
 		t.Fatalf("code=%d %v: %s", code, err, out)
 	}
 	if got.Name != "apic" || !strings.HasPrefix(got.Files["SKILL.md"], "---") || !strings.Contains(got.Files["references/cheatsheet.md"], "# apic cheat sheet") {
 		t.Fatalf("json: %+v", got)
+	}
+	if !slices.Equal(got.Skills, []string{"apic", "api-design", "api-security"}) {
+		t.Fatalf("skills: %v", got.Skills)
+	}
+}
+
+// The pack's other skills are printed by name, and a name that is not in
+// the pack is a usage error that lists what is.
+func TestSkillPrintsTheNamedSkill(t *testing.T) {
+	for _, name := range []string{"api-design", "api-security"} {
+		code, out, errb := execute(t, "skill", name)
+		if code != 0 || !strings.HasPrefix(out, "---\nname: "+name+"\n") {
+			t.Fatalf("%s: code=%d err=%s out=%.80q", name, code, errb, out)
+		}
+		repo, err := os.ReadFile(filepath.Join("..", "..", "skills", name, "SKILL.md"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if out != strings.ReplaceAll(string(repo), "\r\n", "\n") {
+			t.Fatalf("apic skill %s differs from skills/%s/SKILL.md", name, name)
+		}
+	}
+	code, out, errb := execute(t, "--json", "skill", "api-security")
+	var got struct {
+		Name  string            `json:"name"`
+		Files map[string]string `json:"files"`
+	}
+	if err := json.Unmarshal([]byte(out), &got); err != nil || code != 0 {
+		t.Fatalf("code=%d %v err=%s: %s", code, err, errb, out)
+	}
+	if got.Name != "api-security" || !strings.Contains(got.Files["references/checks.md"], "## Release checklist") {
+		t.Fatalf("json: name=%s files=%v", got.Name, slices.Sorted(maps.Keys(got.Files)))
+	}
+	code, _, errb = execute(t, "--json", "skill", "api-desing")
+	if code != 2 || !strings.Contains(errb, `"code":"E203"`) || !strings.Contains(errb, "api-design") {
+		t.Fatalf("unknown skill: code=%d err=%s", code, errb)
 	}
 }
 
@@ -42,7 +80,8 @@ func TestSkillInstallWritesOnceAndReportsUnchanged(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("code=%d err=%s", code, errb)
 	}
-	for _, rel := range []string{".claude/skills/apic/SKILL.md", ".claude/skills/apic/references/cheatsheet.md", ".agents/skills/apic/SKILL.md", ".agents/skills/apic/references/cheatsheet.md"} {
+	for _, rel := range []string{".claude/skills/apic/SKILL.md", ".claude/skills/apic/references/cheatsheet.md", ".agents/skills/apic/SKILL.md", ".agents/skills/apic/references/cheatsheet.md",
+		".claude/skills/api-design/SKILL.md", ".claude/skills/api-design/references/openapi.md", ".agents/skills/api-security/SKILL.md", ".agents/skills/api-security/references/owasp-api-top-10.md"} {
 		path := filepath.Join(dir, filepath.FromSlash(rel))
 		if _, err := os.Stat(path); err != nil {
 			t.Errorf("%s not written: %v", rel, err)
@@ -62,7 +101,7 @@ func TestSkillInstallWritesOnceAndReportsUnchanged(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &got); err != nil || code != 0 {
 		t.Fatalf("code=%d %v: %s", code, err, out)
 	}
-	if len(got.Written) != 1 || !strings.HasSuffix(got.Written[0], filepath.FromSlash(".agents/skills/apic/SKILL.md")) || len(got.Unchanged) != 3 {
+	if len(got.Written) != 1 || !strings.HasSuffix(got.Written[0], filepath.FromSlash(".agents/skills/apic/SKILL.md")) || len(got.Unchanged) != packFiles*len(SkillDirs)-1 {
 		t.Fatalf("second install: %+v", got)
 	}
 	// --to picks the directories; -C is the default project.
@@ -76,7 +115,28 @@ func TestSkillInstallWritesOnceAndReportsUnchanged(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(only, ".claude")); !os.IsNotExist(err) {
 		t.Error("--to should replace the default directories, not add to them")
 	}
+	// --skill picks part of the pack; an unknown name is refused before
+	// anything is written.
+	some := t.TempDir()
+	code, out, errb = execute(t, "--json", "skill", "install", some, "--skill", "apic", "--skill", "api-security")
+	if code != 0 {
+		t.Fatalf("--skill: code=%d err=%s", code, errb)
+	}
+	if err := json.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Written) != (2+3)*len(SkillDirs) || slices.ContainsFunc(got.Written, func(p string) bool { return strings.Contains(p, "api-design") }) {
+		t.Errorf("--skill apic --skill api-security wrote %v", got.Written)
+	}
+	if code, _, errb = execute(t, "skill", "install", some, "--skill", "nope"); code != 2 || !strings.Contains(errb, "E203") || !strings.Contains(errb, "api-design") {
+		t.Errorf("--skill nope: code=%d err=%s", code, errb)
+	}
 }
+
+// packFiles is how many files the whole pack holds: apic's SKILL.md and
+// cheat sheet, and a SKILL.md with two references for each of the other
+// two skills. An install writes them into each of SkillDirs.
+const packFiles = 2 + 3 + 3
 
 // apic init briefs the project's agents by default, so a scaffolded
 // project is agent-ready without a second command.
@@ -85,8 +145,10 @@ func TestInitWritesTheSkillUnlessAskedNotTo(t *testing.T) {
 	if code, out, errb := execute(t, "init", dir, "--no-color"); code != 0 || !strings.Contains(out, filepath.Join(dir, ".claude", "skills", "apic", "SKILL.md")) {
 		t.Fatalf("code=%d out=%s err=%s", code, out, errb)
 	}
-	if _, err := os.Stat(filepath.Join(dir, ".agents", "skills", "apic", "references", "cheatsheet.md")); err != nil {
-		t.Error(err)
+	for _, rel := range []string{"apic/references/cheatsheet.md", "api-design/SKILL.md", "api-security/references/checks.md"} {
+		if _, err := os.Stat(filepath.Join(dir, ".agents", "skills", filepath.FromSlash(rel))); err != nil {
+			t.Error(err)
+		}
 	}
 	// An edited copy is kept on a second init, like every other file, and
 	// reported as skipped; --force replaces it, as `apic skill install`
@@ -189,7 +251,7 @@ func TestSkillInstallReportsPathsAsNamed(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &got); err != nil {
 		t.Fatal(err)
 	}
-	if len(got.Written) != 4 || got.Written[0] != filepath.Join("link", ".claude", "skills", "apic", "SKILL.md") {
+	if len(got.Written) != packFiles*len(SkillDirs) || got.Written[0] != filepath.Join("link", ".claude", "skills", "apic", "SKILL.md") {
 		t.Errorf("written: %v", got.Written)
 	}
 	if _, err := os.Stat(filepath.Join("real", ".agents", "skills", "apic", "SKILL.md")); err != nil {

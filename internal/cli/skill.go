@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -14,35 +15,55 @@ import (
 	"github.com/hungovercoders/apic/skills"
 )
 
-// SkillDirs are where `apic skill install` and `apic init` put the skill,
+// SkillDirs are where `apic skill install` and `apic init` put the skills,
 // relative to the project: the directory Claude Code reads, and the one
 // the Agent Skills ecosystem (Codex, Cursor and the `skills` CLI) shares.
 var SkillDirs = []string{filepath.Join(".claude", "skills"), filepath.Join(".agents", "skills")}
 
 func (a *App) skillCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "skill",
-		Short: "Print the Agent Skill that briefs an AI agent on apic",
-		Long: `skill prints SKILL.md, the briefing an AI agent reads before working with
-a project's .http files: the validate, list, describe, run workflow, the
---json shape and exit codes, the error codes to branch on, how to write a
-request and where secrets belong. It is the same skill as skills/apic in
-the apic repository, compiled into the binary.
+		Use:   "skill [name]",
+		Short: "Print an Agent Skill from the pack that briefs an AI agent on apic and on APIs",
+		Long: `skill prints a skill's SKILL.md, the briefing an AI agent reads before
+working on a project. The pack has three, each a directory of the apic
+repository compiled into the binary:
 
-An agent that can run commands can read it with "apic skill"; "apic skill
-install" writes it into the project so agents that load skills find it on
-their own.`,
-		Example: `  apic skill                  # print SKILL.md
-  apic skill --json           # every file of the skill
-  apic skill install          # into .claude/skills and .agents/skills of the project`,
-		Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			files := skills.Files()
+  apic          how to run, write and test requests with apic: the validate,
+                list, describe, run workflow, the --json shape and exit
+                codes, the error codes to branch on, how to write a request
+                and where secrets belong (the default)
+  api-design    how to design the HTTP API those requests call: resources,
+                methods and status codes, errors, pagination, versioning,
+                idempotency and OpenAPI, each proved with an apic request
+  api-security  how to keep that API safe and show it: the OWASP API
+                Security Top 10 as checks, authentication, authorisation,
+                input handling, headers and secrets, each a request or a
+                scenario apic runs
+
+An agent that can run commands can read one with "apic skill <name>";
+"apic skill install" writes the pack into the project so agents that load
+skills find it on their own.`,
+		Example: `  apic skill                  # print SKILL.md of the apic skill
+  apic skill api-design       # another skill of the pack
+  apic skill --json           # every file of the skill, and the pack's names
+  apic skill install          # the pack, into .claude/skills and .agents/skills of the project`,
+		Args:      cobra.MaximumNArgs(1),
+		ValidArgs: skills.Names(),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			name := skills.Name
+			if len(args) == 1 {
+				name = args[0]
+			}
+			if !skills.Has(name) {
+				return runner.Usage(runner.CodeFlag, fmt.Sprintf("unknown skill %q; the pack has %s", name, strings.Join(skills.Names(), ", ")))
+			}
+			files := skills.Files(name)
 			if a.g.json {
 				return a.writeJSON(struct {
-					Name  string            `json:"name"`
-					Files map[string]string `json:"files"`
-				}{skills.Name, files})
+					Name   string            `json:"name"`
+					Files  map[string]string `json:"files"`
+					Skills []string          `json:"skills"`
+				}{name, files, skills.Names()})
 			}
 			_, err := fmt.Fprint(a.Stdout, files["SKILL.md"])
 			return err
@@ -53,20 +74,22 @@ their own.`,
 }
 
 func (a *App) skillInstallCmd() *cobra.Command {
-	var into []string
+	var into, only []string
 	cmd := &cobra.Command{
 		Use:   "install [dir]",
-		Short: "Write the skill into a project for the agents that load skills",
-		Long: `install writes the skill's files into <dir>/.claude/skills/apic (Claude
-Code) and <dir>/.agents/skills/apic (Codex, Cursor and the other agents
-that share that directory), dir being the project (-C) unless given; it
-must exist (apic init creates a project, and installs the skill as it
-does). Files that already hold the same text are left alone; others are
-overwritten, since the skill is apic's text rather than the project's.
-Commit the result so every clone briefs its agents.`,
+		Short: "Write the skill pack into a project for the agents that load skills",
+		Long: `install writes each skill of the pack into <dir>/.claude/skills/<name>
+(Claude Code) and <dir>/.agents/skills/<name> (Codex, Cursor and the other
+agents that share that directory), dir being the project (-C) unless
+given; it must exist (apic init creates a project, and installs the pack
+as it does). --skill picks some of the pack instead of all of it. Files
+that already hold the same text are left alone; others are overwritten,
+since the skills are apic's text rather than the project's. Commit the
+result so every clone briefs its agents.`,
 		Example: `  apic skill install
   apic skill install ./api
-  apic skill install --to .claude/skills      # Claude Code only`,
+  apic skill install --to .claude/skills      # Claude Code only
+  apic skill install --skill apic             # only the apic skill`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dir := a.g.dir
@@ -77,7 +100,16 @@ Commit the result so every clone briefs its agents.`,
 			if len(into) > 0 {
 				dirs = into
 			}
-			written, unchanged, _, err := writeSkill(dir, dirs, false, true)
+			names := skills.Names()
+			if len(only) > 0 {
+				names = only
+			}
+			for _, name := range names {
+				if !skills.Has(name) {
+					return runner.Usage(runner.CodeFlag, fmt.Sprintf("--skill %q: unknown skill; the pack has %s", name, strings.Join(skills.Names(), ", ")))
+				}
+			}
+			written, unchanged, _, err := writeSkill(dir, dirs, names, false, true)
 			if err != nil {
 				return err
 			}
@@ -97,48 +129,54 @@ Commit the result so every clone briefs its agents.`,
 		},
 	}
 	cmd.Flags().StringArrayVar(&into, "to", nil, "directory under the project to install into, instead of .claude/skills and .agents/skills (repeatable)")
+	cmd.Flags().StringArrayVar(&only, "skill", nil, "a skill of the pack to install, instead of all of them: apic, api-design or api-security (repeatable)")
+	_ = cmd.RegisterFlagCompletionFunc("skill", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+		return skills.Names(), cobra.ShellCompDirectiveNoFileComp
+	})
 	return cmd
 }
 
-// writeSkill writes the skill into each of dirs under root, as
-// <dir>/apic/<file>. A file already holding the same text is reported as
-// unchanged rather than rewritten, so a second install is a no-op; one
+// writeSkill writes the named skills into each of dirs under root, as
+// <dir>/<skill>/<file>. A file already holding the same text is reported
+// as unchanged rather than rewritten, so a second install is a no-op; one
 // holding other text is overwritten, or with overwrite false kept and
 // reported as skipped, which is what `apic init` does to every existing
 // file. create says whether a missing root is made (init) or an error
 // (install, where it is a mistyped project). Every path is confined to
 // root, symlinks followed, so neither `--to ../x` nor a link under
 // .claude/skills can put the files outside the project.
-func writeSkill(root string, dirs []string, create, overwrite bool) (written, unchanged, skipped []string, err error) {
+func writeSkill(root string, dirs, names []string, create, overwrite bool) (written, unchanged, skipped []string, err error) {
 	absRoot, err := writeRoot(root, create, "the skill")
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	files := skills.Files()
 	for _, dir := range dirs {
-		for _, name := range skills.Paths() {
-			shown, target, err := confinedPath(root, absRoot, filepath.Join(dir, skills.Name, filepath.FromSlash(name)), "the skill")
-			if err != nil {
-				return nil, nil, nil, err
-			}
-			content := []byte(files[name])
-			if existing, err := os.ReadFile(target); err == nil { //nolint:gosec // the skill file this command wrote before, confined to the project above
-				if bytes.Equal(existing, content) {
-					unchanged = append(unchanged, shown)
-					continue
+		for _, skill := range names {
+			files := skills.Files(skill)
+			for _, name := range skills.Paths(skill) {
+				shown, target, err := confinedPath(root, absRoot, filepath.Join(dir, skill, filepath.FromSlash(name)), "the skill")
+				if err != nil {
+					return nil, nil, nil, err
 				}
-				if !overwrite {
-					skipped = append(skipped, shown)
-					continue
+				content := []byte(files[name])
+				if existing, err := os.ReadFile(target); err == nil { //nolint:gosec // the skill file this command wrote before, confined to the project above
+					if bytes.Equal(existing, content) {
+						unchanged = append(unchanged, shown)
+						continue
+					}
+					if !overwrite {
+						skipped = append(skipped, shown)
+						continue
+					}
 				}
+				if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil { //nolint:gosec // a skill directory the user's agents read and the user commits
+					return nil, nil, nil, runner.Usage(runner.CodeFile, err.Error())
+				}
+				if err := os.WriteFile(target, content, 0o644); err != nil { //nolint:gosec // public text the user commits, confined to the project above
+					return nil, nil, nil, runner.Usage(runner.CodeFile, err.Error())
+				}
+				written = append(written, shown)
 			}
-			if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil { //nolint:gosec // a skill directory the user's agents read and the user commits
-				return nil, nil, nil, runner.Usage(runner.CodeFile, err.Error())
-			}
-			if err := os.WriteFile(target, content, 0o644); err != nil { //nolint:gosec // public text the user commits, confined to the project above
-				return nil, nil, nil, runner.Usage(runner.CodeFile, err.Error())
-			}
-			written = append(written, shown)
 		}
 	}
 	return written, unchanged, skipped, nil

@@ -1030,11 +1030,12 @@ directory): `apic.yaml` (with `history: 10`, so `apic history` and `apic
 select` work from the first run), `http-client.env.json`, a `http-client.private.env.json`
 with mode 0600, `api.http` with two annotated requests, a
 `features/smoke.feature`, `.gitignore` lines for the private env file,
-`.env` and `.apic/`, the [Agent Skill](agents.md#3-a-skill-claude-code-codex-cursor-any-agent-that-loads-skills)
-under `.claude/skills/apic` and `.agents/skills/apic`, so an AI agent
-working in the project knows how to use apic from the first session, and
+`.env` and `.apic/`, the [Agent Skills](agents.md#3-a-skill-claude-code-codex-cursor-any-agent-that-loads-skills)
+under `.claude/skills/` and `.agents/skills/` (`apic`, `api-design` and
+`api-security`), so an AI agent working in the project knows how to use
+apic, and how to design and secure the API, from the first session, and
 a `.mcp.json` registering [`apic mcp`](#apic-mcp) for the agents that
-read it. Existing files are kept unless `--force` is given, the skill's
+read it. Existing files are kept unless `--force` is given, the skills'
 and an `apic mcp` entry already in `.mcp.json` included (`apic skill
 install` and `apic mcp install` refresh them); the `.gitignore` is
 appended to and the rest of `.mcp.json` kept.
@@ -1044,7 +1045,7 @@ appended to and the rest of `.mcp.json` kept.
 | `--base-url` | `https://api.example.com` | `baseUrl` for the environment. |
 | `--env` | `dev` | Name of the first environment, also written as `env:` in `apic.yaml`. |
 | `--force` | off | Overwrite files that already exist. |
-| `--no-skill` | off | Do not write the Agent Skill. |
+| `--no-skill` | off | Do not write the Agent Skills. |
 | `--no-mcp` | off | Do not register `apic mcp` in `.mcp.json`. |
 
 `--json` prints `{"out", "env", "written", "skipped"}`.
@@ -1052,22 +1053,29 @@ appended to and the rest of `.mcp.json` kept.
 ## apic skill
 
 ```
-apic skill
-apic skill install [dir] [--to <dir>]...
+apic skill [name]
+apic skill install [dir] [--to <dir>]... [--skill <name>]...
 ```
 
-`skill` prints `SKILL.md`, the briefing an AI agent reads before working
-with a project's `.http` files: the validate, list, describe, run
-workflow, the `--json` shape and exit codes, the error codes to branch
-on, how to write a request and where secrets belong. It is
-[`skills/apic`](https://github.com/hungovercoders/apic/tree/main/skills/apic)
-from the repository, compiled into the binary, so an agent that can run
-commands gets the whole briefing from `apic skill` with no repository or
-network. `--json` prints `{"name": "apic", "files": {"SKILL.md": …,
-"references/cheatsheet.md": …}}`.
+`skill` prints a skill's `SKILL.md`, the briefing an AI agent reads before
+working on a project. The binary carries a pack of three, each a directory
+under [`skills/`](https://github.com/hungovercoders/apic/tree/main/skills)
+in the repository, compiled in so an agent that can run commands gets the
+whole briefing with no repository or network:
 
-`skill install` writes the skill into `<dir>/.claude/skills/apic` (what
-Claude Code reads) and `<dir>/.agents/skills/apic` (what Codex, Cursor
+| Skill | What it briefs the agent on |
+|---|---|
+| `apic` (the default) | Using apic: the validate, list, describe, run workflow, the `--json` shape and exit codes, the error codes to branch on, how to write a request and where secrets belong; `references/cheatsheet.md` is the [cheat sheet](cheatsheet.md) |
+| `api-design` | Designing the HTTP API those requests call: resources and URLs, methods and status codes, problem-details errors, pagination, versioning, idempotency, caching, long-running work and the OpenAPI document, each decision proved by a request `apic run` sends or a mock `apic mock` serves; `references/http-semantics.md` and `references/openapi.md` hold the tables, a contract skeleton and the review checklist |
+| `api-security` | Keeping that API safe and showing it: the OWASP API Security Top 10 as checks, authentication, authorisation, input and resource limits, headers and CORS, secrets and logging, each a request or Gherkin scenario that fails while the control is missing; `references/owasp-api-top-10.md` and `references/checks.md` hold the expansions, a bank of ready checks and the release checklist |
+
+`apic skill api-design` prints that one. `--json` prints `{"name", "files":
+{"SKILL.md": …, "references/…": …}, "skills": ["apic", "api-design",
+"api-security"]}` for the skill named (or `apic`). A name that is not in
+the pack is `E203`, listing the names that are.
+
+`skill install` writes the pack into `<dir>/.claude/skills/<name>` (what
+Claude Code reads) and `<dir>/.agents/skills/<name>` (what Codex, Cursor
 and the other agents that share that directory read), `dir` being the
 project (`-C`) unless given; it must exist, so a mistyped directory is
 E210 rather than a new tree. A file already holding the same text is
@@ -1079,6 +1087,7 @@ unless `--force`.
 | Flag | Meaning |
 |---|---|
 | `--to <dir>` | Install into this directory under the project instead of the two defaults; repeatable. `--to .claude/skills` is Claude Code only. |
+| `--skill <name>` | Install this skill of the pack instead of all three; repeatable. `--skill apic` is the briefing on apic alone. |
 
 `--json` prints `{"written": [...], "unchanged": [...]}`.
 
@@ -1377,7 +1386,7 @@ apic init [dir] [flags]
 | `--env <string>` | name of the first environment (default `dev`) |
 | `--force` | overwrite existing files |
 | `--no-mcp` | do not register apic mcp in .mcp.json |
-| `--no-skill` | do not write the Agent Skill into .claude/skills and .agents/skills |
+| `--no-skill` | do not write the Agent Skills into .claude/skills and .agents/skills |
 
 ### apic list
 
@@ -1506,17 +1515,17 @@ No flags of its own.
 
 ### apic skill
 
-Print the Agent Skill that briefs an AI agent on apic.
+Print an Agent Skill from the pack that briefs an AI agent on apic and on APIs.
 
 ```
-apic skill
+apic skill [name]
 ```
 
 No flags of its own.
 
 ### apic skill install
 
-Write the skill into a project for the agents that load skills.
+Write the skill pack into a project for the agents that load skills.
 
 ```
 apic skill install [dir] [flags]
@@ -1524,6 +1533,7 @@ apic skill install [dir] [flags]
 
 | Flag | Meaning |
 |---|---|
+| `--skill <string>` | a skill of the pack to install, instead of all of them: apic, api-design or api-security (repeatable) |
 | `--to <string>` | directory under the project to install into, instead of .claude/skills and .agents/skills (repeatable) |
 
 ### apic snippet

@@ -48,8 +48,9 @@ Content-Type: application/json
 | `apic select <id> <selector>` | A value from the last recorded response, without sending again; `--entry 2` for the one before |
 | `apic curl <id>` | The equivalent curl command |
 | `apic snippet <id> --lang python` | The request as httpie, powershell, python, js or go code |
-| `apic init [dir]` | Scaffold a project, Agent Skill and `.mcp.json` included (`--no-skill`, `--no-mcp`) |
-| `apic skill [install]` | Print the briefing for an AI agent, or write it into `.claude/skills` and `.agents/skills` |
+| `apic init [dir]` | Scaffold a project, Agent Skills and `.mcp.json` included (`--no-skill`, `--no-mcp`) |
+| `apic skill [name]` | Print a briefing for an AI agent: `apic` (how to use apic, the default), `api-design` (how to design the API) or `api-security` (how to secure it and prove it) |
+| `apic skill install` | Write the three skills into `.claude/skills` and `.agents/skills` of the project (`--skill apic` for one of them) |
 | `apic import <spec>` | `.http` files from an OpenAPI 3 document or a Postman collection (`--postman-env` for its environments) |
 | `apic import --curl '<cmd>' --into f.http` | One request block from a curl command |
 | `apic validate` | Parse everything and report problems (CI); `--format github\|sarif` |

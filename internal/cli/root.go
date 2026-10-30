@@ -72,7 +72,8 @@ export, an MCP server and a terminal UI (apic ui).
 Try it with nothing set up:  apic ui --demo
 
 For AI agents: apic skill prints the briefing an agent should read before
-working with a project, apic skill install writes it into the project, and
+working with a project (apic skill api-design and api-security brief it on
+the API itself), apic skill install writes the pack into the project, and
 apic mcp serves the project as tools.
 
 Exit codes: 0 ok · 1 assertion or capture failed · 2 usage/parse/missing variable · 3 network error`,

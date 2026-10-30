@@ -141,3 +141,13 @@ apic mcp --dir ./api --env dev`), its tools `list_requests`,
 return the same JSON as the commands above, and each `.http` file is a
 resource. Prefer them to the shell when they exist. `apic ui` is the one
 interactive command; never run it from an agent.
+
+## Designing or securing the API itself
+
+This skill is about calling an API. When the task is to design one
+(routes, status codes, errors, pagination, versioning, the OpenAPI
+document) or to secure one (authentication, authorisation, input limits,
+headers, the OWASP API Security Top 10), read the `api-design` or
+`api-security` skill installed beside this one, or print it with
+`apic skill api-design`; each turns its rules into requests and scenarios
+this skill then runs.

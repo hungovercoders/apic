@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/hungovercoders/apic/internal/runner"
+	"github.com/hungovercoders/apic/skills"
 )
 
 func (a *App) initCmd() *cobra.Command {
@@ -21,14 +22,16 @@ func (a *App) initCmd() *cobra.Command {
 		Long: `init writes a small, working project into dir (default: the current
 directory): apic.yaml, http-client.env.json, a gitignored
 http-client.private.env.json, api.http with one annotated request, a
-features/smoke.feature to run with apic test, the Agent Skill under
+features/smoke.feature to run with apic test, the apic Agent Skill under
 .claude/skills and .agents/skills so an AI agent working in the project
-knows how to use apic (see apic skill; --no-skill leaves it out, apic skill
-install refreshes it), and a .mcp.json registering apic mcp for the
-agents that read it (--no-mcp leaves it out; apic mcp install writes it
-elsewhere). Existing files are left alone unless --force is given, an
-apic entry already in .mcp.json included; the .gitignore is appended to
-and the rest of .mcp.json kept.`,
+knows how to use apic (see apic skill; --no-skill leaves it out, apic
+skill install refreshes it, and apic skill install --all adds the
+api-design and api-security skills), and a .mcp.json registering apic
+mcp for the agents that read it
+(--no-mcp leaves it out; apic mcp install writes it elsewhere). Existing
+files are left alone unless --force is given, an apic entry already in
+.mcp.json included; the .gitignore is appended to and the rest of
+.mcp.json kept.`,
 		Example: `  apic init
   apic init api --base-url https://dev.example.com --env dev
   apic init --json`,
@@ -48,7 +51,7 @@ and the rest of .mcp.json kept.`,
 			if !noSkill {
 				// Kept unless --force, like every other file: a team may
 				// have tailored it. `apic skill install` is the refresh.
-				wrote, _, kept, err := writeSkill(dir, SkillDirs, true, force)
+				wrote, _, kept, err := writeSkill(dir, SkillDirs, []string{skills.Name}, skillWrite{create: true, overwrite: force})
 				if err != nil {
 					return err
 				}

@@ -106,14 +106,25 @@ declares no environment `url` on purpose: the slopstopper checks that run on
   `runner.Catalogue` (`scripts/errdocs`; a test fails when it is stale).
 - `task skill`: regenerate `skills/apic/references/cheatsheet.md` from the
   site's `cheatsheet.md` with absolute links (`scripts/skilldocs`; a test
-  fails when it is stale). `SKILL.md` is the briefing an agent reads on
-  demand: keep it under 200 lines, point at the reference for detail, and
-  know that its test fails on an `apic <word>` that is not a command.
-- `task agent:eval` (`scripts/agenteval`) runs the tasks in
-  `skills/apic/evals/evals.json` through the Claude Code CLI against fresh
-  `apic demo` projects, with and without the skill, scoring the transcript
-  (task outcome by a `verify` command, files changed, secret files read,
-  requests sent, selector errors hit). It makes real model calls (about 40
+  fails when it is stale). Each `SKILL.md` under `skills/` (`apic`,
+  `api-design`, `api-security`) is a briefing an agent reads on demand:
+  keep it under 200 lines, point at its `references/` for detail, and
+  know that the same test fails on an `apic <word>` that is not a command,
+  a `references/` link that is not in the skill, or a `name:` that is not
+  the directory. Every link in the other two skills' references is
+  external (lychee checks them), since the files are copied into other
+  projects alone; the `.http` and Gherkin blocks they show should pass
+  `apic validate` and match the step vocabulary, so try a new one before
+  writing it.
+- `task agent:eval` (`scripts/agenteval`) runs the tasks in every
+  `skills/<skill>/evals/evals.json` through the Claude Code CLI against
+  fresh `apic demo` projects, with and without the skill, scoring the
+  transcript (task outcome by a `verify` command, files changed, secret
+  files read, requests sent, selector errors hit). The baseline for the
+  `apic` skill has no skill; for `api-design` and `api-security` it has
+  the `apic` skill, so the lift measured is the knowledge. Eval ids are
+  unique across the files (they name the result directories and `-only`),
+  and a test fails when a skill has no evals file. It makes real model calls (about 40
   cents a full run), so it is a monthly workflow with a manual trigger
   (`agent-eval.yml`, needs the `ANTHROPIC_API_KEY` secret) rather than part
   of `task check`. Run it when the briefing or an agent-facing output

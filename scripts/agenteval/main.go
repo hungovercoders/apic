@@ -1,7 +1,8 @@
-// Command agenteval runs the skill's evals (skills/apic/evals/evals.json)
-// through the Claude Code CLI against fresh `apic demo` projects, once
-// with the skill installed and once without, and scores what the agent
-// did rather than only what it answered: whether the task's outcome
+// Command agenteval runs the skills' evals (skills/<skill>/evals/evals.json,
+// one file per skill of the pack) through the Claude Code CLI against
+// fresh `apic demo` projects, once with the skill installed and once
+// without, and scores what the agent did rather than only what it
+// answered: whether the task's outcome
 // holds in the API or the files, which files it changed, whether it
 // opened a secret file, how many requests it sent and how many selector
 // or directive errors it hit on the way. Token counts hide those, and
@@ -12,7 +13,10 @@
 // and a monthly workflow with a manual trigger, not part of `task check`.
 // Each project is served from a temporary directory outside the
 // repository, so the agent sees no AGENTS.md, CLAUDE.md or skills/ of
-// apic's own and the baseline is a true one; the transcript, the score
+// apic's own and the baseline is a true one. For the apic skill the
+// baseline has no skill at all; for api-design and api-security it has
+// the apic skill, so the lift measured is the knowledge skill's own
+// rather than knowing how to run apic. The transcript, the score
 // and the verify output are copied to bin/agent-eval/<eval>-<variant>-
 // <run>/ and the scores to bin/agent-eval/results.json. The exit status
 // is 1 when a with-skill run fails its checks or reads a secret file.
@@ -39,11 +43,15 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/hungovercoders/apic/skills"
 )
 
-// Eval is one task from evals.json.
+// Eval is one task from an evals.json. Skill is the file's skill_name,
+// set by loadEvals: the skill the "with" variant installs.
 type Eval struct {
 	ID             int    `json:"id"`
+	Skill          string `json:"-"`
 	Name           string `json:"name"`
 	Prompt         string `json:"prompt"`
 	ExpectedOutput string `json:"expected_output"`
@@ -63,6 +71,7 @@ type Checks struct {
 // Score is what one run came to.
 type Score struct {
 	Eval         int      `json:"eval"`
+	Skill        string   `json:"skill"`
 	Name         string   `json:"name"`
 	Variant      string   `json:"variant"` // "with" or "without" the skill
 	Run          int      `json:"run"`
@@ -81,7 +90,7 @@ type Score struct {
 }
 
 func main() {
-	evalsPath := flag.String("evals", filepath.Join("skills", "apic", "evals", "evals.json"), "the evals to run")
+	evalsPath := flag.String("evals", DefaultEvals(), "the evals files to run, comma-separated, each under skills/<skill>/evals")
 	out := flag.String("out", filepath.Join("bin", "agent-eval"), "where projects, transcripts and scores go")
 	runs := flag.Int("runs", 1, "runs per eval and variant")
 	model := flag.String("model", "", "model for the agent (the CLI's default when empty)")
@@ -91,16 +100,29 @@ func main() {
 	baseline := flag.Bool("baseline", true, "also run each eval without the skill")
 	only := flag.Int("only", 0, "run one eval by id")
 	flag.Parse()
-	if err := run(*evalsPath, *out, *runs, *model, *claude, *timeout, *maxTurns, *baseline, *only); err != nil {
+	if err := run(strings.Split(*evalsPath, ","), *out, *runs, *model, *claude, *timeout, *maxTurns, *baseline, *only); err != nil {
 		fmt.Fprintln(os.Stderr, "agenteval:", err)
 		os.Exit(1)
 	}
 }
 
-func run(evalsPath, out string, runs int, model, claude string, timeout time.Duration, maxTurns int, baseline bool, only int) error {
-	evals, err := loadEvals(evalsPath)
-	if err != nil {
-		return err
+func run(evalsPaths []string, out string, runs int, model, claude string, timeout time.Duration, maxTurns int, baseline bool, only int) error {
+	var evals []Eval
+	seen := map[int]string{}
+	for _, path := range evalsPaths {
+		loaded, err := loadEvals(path)
+		if err != nil {
+			return err
+		}
+		for _, e := range loaded {
+			// -only and the result directories name an eval by id, so
+			// the ids are unique across the files.
+			if other, dup := seen[e.ID]; dup {
+				return fmt.Errorf("eval %d is in both %s and %s", e.ID, other, path)
+			}
+			seen[e.ID] = path
+		}
+		evals = append(evals, loaded...)
 	}
 	if only != 0 {
 		found := false
@@ -108,7 +130,7 @@ func run(evalsPath, out string, runs int, model, claude string, timeout time.Dur
 			found = found || e.ID == only
 		}
 		if !found {
-			return fmt.Errorf("-only %d: no such eval in %s", only, evalsPath)
+			return fmt.Errorf("-only %d: no such eval in %s", only, strings.Join(evalsPaths, ", "))
 		}
 	}
 	if err := os.MkdirAll(out, 0o750); err != nil {
@@ -129,7 +151,7 @@ func run(evalsPath, out string, runs int, model, claude string, timeout time.Dur
 		}
 		for _, variant := range variants {
 			for i := 1; i <= runs; i++ {
-				fmt.Fprintf(os.Stderr, "eval %d %s, %s the skill, run %d\n", e.ID, e.Name, variant, i)
+				fmt.Fprintf(os.Stderr, "eval %d %s, %s the %s skill, run %d\n", e.ID, e.Name, variant, e.Skill, i)
 				s := runOne(e, variant, i, out, apic, model, claude, timeout, maxTurns)
 				scores = append(scores, s)
 				fmt.Fprintln(os.Stderr, "  "+line(s))
@@ -150,21 +172,57 @@ func run(evalsPath, out string, runs int, model, claude string, timeout time.Dur
 	return nil
 }
 
+// DefaultEvals is every skill's evals file under the working directory,
+// comma-separated, as -evals takes them: skills/<skill>/evals/evals.json
+// for each directory under skills/ that has one. Empty away from the
+// repository root, which run reports rather than opening "".
+func DefaultEvals() string {
+	matches, _ := filepath.Glob(filepath.Join("skills", "*", "evals", "evals.json"))
+	sort.Strings(matches)
+	return strings.Join(matches, ",")
+}
+
+// loadEvals reads one evals file. Its skill_name is the skill the "with"
+// variant installs, so it must be one the binary carries.
 func loadEvals(path string) ([]Eval, error) {
+	if path == "" {
+		return nil, errors.New("no skills/*/evals/evals.json under the working directory; run from the repository root or pass -evals")
+	}
 	data, err := os.ReadFile(path) //nolint:gosec // the evals file named on the command line
 	if err != nil {
 		return nil, err
 	}
 	var file struct {
+		Skill string `json:"skill_name"`
 		Evals []Eval `json:"evals"`
 	}
 	if err := json.Unmarshal(data, &file); err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
+	if !skills.Has(file.Skill) {
+		return nil, fmt.Errorf("%s: skill_name %q is not a skill the binary carries (%s)", path, file.Skill, strings.Join(skills.Names(), ", "))
+	}
 	if len(file.Evals) == 0 {
 		return nil, fmt.Errorf("%s holds no evals", path)
 	}
+	for i := range file.Evals {
+		file.Evals[i].Skill = file.Skill
+	}
 	return file.Evals, nil
+}
+
+// installArgs says what `apic skill install` puts in the project for a
+// variant: the eval's skill and the apic skill for "with"; for "without",
+// nothing when the eval is the apic skill's own, else the apic skill, so
+// the baseline knows how to run apic and the difference is the knowledge.
+func installArgs(e Eval, variant string) []string {
+	if variant == "with" {
+		return []string{"--skill", "apic", "--skill", e.Skill}
+	}
+	if e.Skill == "apic" {
+		return nil
+	}
+	return []string{"--skill", "apic"}
 }
 
 // build compiles apic into out, so the agent runs the tree under test.
@@ -181,11 +239,11 @@ func build(out string) (string, error) {
 	return bin, nil
 }
 
-// runOne serves a fresh demo project, installs the skill for the "with"
-// variant, lets the agent at it, then scores the transcript and the
-// project.
+// runOne serves a fresh demo project, installs what the variant calls
+// for (installArgs), lets the agent at it, then scores the transcript and
+// the project.
 func runOne(e Eval, variant string, n int, out, apic, model, claude string, timeout time.Duration, maxTurns int) Score {
-	s := Score{Eval: e.ID, Name: e.Name, Variant: variant, Run: n}
+	s := Score{Eval: e.ID, Skill: e.Skill, Name: e.Name, Variant: variant, Run: n}
 	keep, err := filepath.Abs(filepath.Join(out, fmt.Sprintf("%d-%s-%d", e.ID, variant, n)))
 	if err == nil {
 		err = os.RemoveAll(keep)
@@ -232,8 +290,8 @@ func runOne(e Eval, variant string, n int, out, apic, model, claude string, time
 		s.Error = err.Error()
 		return s
 	}
-	if variant == "with" {
-		if outb, err := exec.Command(apic, "skill", "install", project).CombinedOutput(); err != nil { //nolint:gosec // the binary this program just built; nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
+	if args := installArgs(e, variant); len(args) > 0 {
+		if outb, err := exec.Command(apic, append([]string{"skill", "install", project}, args...)...).CombinedOutput(); err != nil { //nolint:gosec // the binary this program just built; nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
 			s.Error = "installing the skill: " + err.Error() + ": " + string(outb)
 			return s
 		}
@@ -545,7 +603,7 @@ func Table(scores []Score) string {
 		case !s.Passed:
 			result = "fail: " + strings.Join(s.Reasons, "; ")
 		}
-		fmt.Fprintf(&b, "| %d %s | %s | %d | %s | %d | %d | %d | %d | %d | %s | $%.2f | %.0fs |\n", s.Eval, s.Name, s.Variant, s.Run, result, s.SecretReads, s.ApicRuns, s.SyntaxErrors, s.ToolCalls, s.Turns, strings.Join(s.FilesChanged, " "), s.CostUSD, s.DurationS)
+		fmt.Fprintf(&b, "| %d %s | %s %s | %d | %s | %d | %d | %d | %d | %d | %s | $%.2f | %.0fs |\n", s.Eval, s.Name, s.Variant, s.Skill, s.Run, result, s.SecretReads, s.ApicRuns, s.SyntaxErrors, s.ToolCalls, s.Turns, strings.Join(s.FilesChanged, " "), s.CostUSD, s.DurationS)
 	}
 	return b.String()
 }

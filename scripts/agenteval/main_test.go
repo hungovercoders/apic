@@ -84,20 +84,83 @@ func TestSnapshotIgnoresState(t *testing.T) {
 	}
 }
 
+// Every skill of the pack has an evals file, each eval has what the
+// grader needs, the ids are unique across the files (they name the
+// result directories and -only), and the skill is read from the path.
 func TestLoadEvalsHasChecks(t *testing.T) {
-	evals, err := loadEvals(filepath.Join("..", "..", "skills", "apic", "evals", "evals.json"))
-	if err != nil {
+	t.Chdir(filepath.Join("..", ".."))
+	paths := strings.Split(DefaultEvals(), ",")
+	skills, _ := filepath.Glob(filepath.Join("skills", "*", "SKILL.md"))
+	if len(paths) != len(skills) || len(paths) < 3 {
+		t.Fatalf("evals files %v for skills %v: every skill needs skills/<name>/evals/evals.json", paths, skills)
+	}
+	seen := map[int]string{}
+	for _, path := range paths {
+		evals, err := loadEvals(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// The file's skill_name is what installs; it lives under the
+		// directory of that skill, so the two agree.
+		want := filepath.Base(filepath.Dir(filepath.Dir(path)))
+		for _, e := range evals {
+			if e.Name == "" || !strings.Contains(e.Prompt, "<dir>") || e.Checks.Verify == "" || len(e.Checks.VerifyContains) == 0 {
+				t.Errorf("eval %d needs a name, a <dir> in the prompt and a verify command with expected output: %+v", e.ID, e)
+			}
+			if e.Skill != want {
+				t.Errorf("eval %d: skill_name %q in %s, want %q", e.ID, e.Skill, path, want)
+			}
+			if other, dup := seen[e.ID]; dup {
+				t.Errorf("eval %d is in both %s and %s", e.ID, other, path)
+			}
+			seen[e.ID] = path
+		}
+	}
+	if err := run([]string{paths[0], paths[0]}, t.TempDir(), 1, "", "claude", 0, 1, false, 0); err == nil || !strings.Contains(err.Error(), "is in both") {
+		t.Errorf("duplicate ids: err = %v", err)
+	}
+	// A copy anywhere still names its skill; an unknown one, or no file
+	// at all (the default away from the repository root), says so.
+	copied := filepath.Join(t.TempDir(), "mine.json")
+	data, _ := os.ReadFile(paths[0])
+	if err := os.WriteFile(copied, data, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	for _, e := range evals {
-		if e.Name == "" || !strings.Contains(e.Prompt, "<dir>") || e.Checks.Verify == "" || len(e.Checks.VerifyContains) == 0 {
-			t.Errorf("eval %d needs a name, a <dir> in the prompt and a verify command with expected output: %+v", e.ID, e)
-		}
+	if evals, err := loadEvals(copied); err != nil || evals[0].Skill != filepath.Base(filepath.Dir(filepath.Dir(paths[0]))) {
+		t.Errorf("copied file: %v %+v", err, evals)
+	}
+	if err := os.WriteFile(copied, []byte(`{"skill_name": "nope", "evals": [{"id": 1}]}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := loadEvals(copied); err == nil || !strings.Contains(err.Error(), `"nope"`) {
+		t.Errorf("unknown skill: err = %v", err)
+	}
+	if _, err := loadEvals(""); err == nil || !strings.Contains(err.Error(), "-evals") {
+		t.Errorf("no default: err = %v", err)
+	}
+}
+
+// The baseline for the apic skill has nothing installed; for the other
+// skills it has the apic skill, so what is measured is the knowledge.
+func TestInstallArgsIsolateTheSkill(t *testing.T) {
+	apic := Eval{Skill: "apic"}
+	design := Eval{Skill: "api-design"}
+	if got := installArgs(apic, "with"); strings.Join(got, " ") != "--skill apic --skill apic" {
+		t.Errorf("apic with: %v", got)
+	}
+	if got := installArgs(apic, "without"); got != nil {
+		t.Errorf("apic without: %v", got)
+	}
+	if got := installArgs(design, "with"); strings.Join(got, " ") != "--skill apic --skill api-design" {
+		t.Errorf("api-design with: %v", got)
+	}
+	if got := installArgs(design, "without"); strings.Join(got, " ") != "--skill apic" {
+		t.Errorf("api-design without: %v", got)
 	}
 }
 
 func TestOnlyMustNameAnEval(t *testing.T) {
-	err := run(filepath.Join("..", "..", "skills", "apic", "evals", "evals.json"), t.TempDir(), 1, "", "claude", 0, 1, false, 99)
+	err := run([]string{filepath.Join("..", "..", "skills", "apic", "evals", "evals.json")}, t.TempDir(), 1, "", "claude", 0, 1, false, 99)
 	if err == nil || !strings.Contains(err.Error(), "-only 99") {
 		t.Fatalf("err = %v", err)
 	}

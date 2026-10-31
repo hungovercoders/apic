@@ -177,7 +177,7 @@ func mcpServerArgs(configDir, projectDir, env string) ([]string, error) {
 // is not one, is an error rather than overwritten. Every path is confined
 // to dir, as the skill's are to the project.
 func writeMCPConfig(dir string, files, serverArgs []string, overwrite bool) (written, unchanged, skipped []string, err error) {
-	absDir, err := writeRoot(dir, false, "the configuration")
+	absDir, err := writeRoot(dir, false, "the configuration is written into an existing project (apic init creates one)")
 	if err != nil {
 		return nil, nil, nil, err
 	}

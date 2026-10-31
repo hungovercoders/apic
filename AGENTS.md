@@ -17,9 +17,11 @@ file per command) and `internal/ui` the terminal UI; `internal/demoapi` is
 the offline API and project behind `apic demo`; `examples/` are the static
 sample projects CI validates and format-checks; `editors/vscode/` is the
 extension, released on its own `vscode-v*` tags; `setup-apic/` the GitHub
-Action; `skills/apic/` the Agent Skill users install into their own
-projects (`SKILL.md` is hand-written, `references/cheatsheet.md`
-generated), embedded by `skills/embed.go` for `apic skill` and `apic init`;
+Action; `skills/` the pack of Agent Skills users install into their own
+projects, one directory each (`apic` on using apic, with a hand-written
+`SKILL.md` and a generated `references/cheatsheet.md`; `api-design` and
+`api-security` on building and securing the API, hand-written with their
+references), embedded by `skills/embed.go` for `apic skill` and `apic init`;
 `website/` is [apic.sh](https://apic.sh/), the user docs, with the course
 under `src/content/docs/learn/`; `docs/` is reference for working on apic
 rather than using it; and the generators are under `scripts/`.

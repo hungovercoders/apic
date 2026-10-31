@@ -1032,7 +1032,9 @@ with mode 0600, `api.http` with two annotated requests, a
 `features/smoke.feature`, `.gitignore` lines for the private env file,
 `.env` and `.apic/`, the [Agent Skill](agents.md#3-a-skill-claude-code-codex-cursor-any-agent-that-loads-skills)
 under `.claude/skills/apic` and `.agents/skills/apic`, so an AI agent
-working in the project knows how to use apic from the first session, and
+working in the project knows how to use apic from the first session
+(`apic skill install --all` adds the `api-design` and `api-security`
+skills, which are opinions about the API itself and so an opt-in), and
 a `.mcp.json` registering [`apic mcp`](#apic-mcp) for the agents that
 read it. Existing files are kept unless `--force` is given, the skill's
 and an `apic mcp` entry already in `.mcp.json` included (`apic skill
@@ -1052,33 +1054,57 @@ appended to and the rest of `.mcp.json` kept.
 ## apic skill
 
 ```
-apic skill
-apic skill install [dir] [--to <dir>]...
+apic skill [name]
+apic skill install [dir] [--all | --skill <name>...] [--to <dir>]...
+apic skill install --user [--all | --skill <name>...]
 ```
 
-`skill` prints `SKILL.md`, the briefing an AI agent reads before working
-with a project's `.http` files: the validate, list, describe, run
-workflow, the `--json` shape and exit codes, the error codes to branch
-on, how to write a request and where secrets belong. It is
-[`skills/apic`](https://github.com/hungovercoders/apic/tree/main/skills/apic)
-from the repository, compiled into the binary, so an agent that can run
-commands gets the whole briefing from `apic skill` with no repository or
-network. `--json` prints `{"name": "apic", "files": {"SKILL.md": …,
-"references/cheatsheet.md": …}}`.
+`skill` prints a skill's `SKILL.md`, the briefing an AI agent reads before
+working on a project. The binary carries a pack of three, each a directory
+under [`skills/`](https://github.com/hungovercoders/apic/tree/main/skills)
+in the repository, compiled in so an agent that can run commands gets the
+whole briefing with no repository or network:
 
-`skill install` writes the skill into `<dir>/.claude/skills/apic` (what
-Claude Code reads) and `<dir>/.agents/skills/apic` (what Codex, Cursor
-and the other agents that share that directory read), `dir` being the
-project (`-C`) unless given; it must exist, so a mistyped directory is
-E210 rather than a new tree. A file already holding the same text is
-reported as `unchanged`; any other is overwritten, since the text is
-apic's rather than the project's. Commit the result so every clone briefs
-its agents. `apic init` writes the same files, keeping existing ones
+| Skill | What it briefs the agent on |
+|---|---|
+| `apic` (the default) | Using apic: the validate, list, describe, run workflow, the `--json` shape and exit codes, the error codes to branch on, how to write a request and where secrets belong; `references/cheatsheet.md` is the [cheat sheet](cheatsheet.md) |
+| `api-design` | Designing the HTTP API those requests call: resources and URLs, methods and status codes, problem-details errors, pagination, versioning, idempotency, caching, long-running work and the OpenAPI document, each decision proved by a request `apic run` sends or a mock `apic mock` serves; `references/http-semantics.md` and `references/openapi.md` hold the tables, a contract skeleton and the review checklist |
+| `api-security` | Keeping that API safe and showing it: the OWASP API Security Top 10 as checks, authentication, authorisation, input and resource limits, headers and CORS, secrets and logging, each a request or Gherkin scenario that fails while the control is missing; `references/owasp-api-top-10.md` and `references/checks.md` hold the expansions, a bank of ready checks and the release checklist |
+
+`apic skill api-design` prints that one. `--json` prints `{"name", "files":
+{"SKILL.md": …, "references/…": …}, "skills": ["apic", "api-design",
+"api-security"]}` for the skill named (or `apic`). A name that is not in
+the pack is `E203`, listing the names that are.
+
+`skill install` writes the `apic` skill into `<dir>/.claude/skills/apic`
+(what Claude Code reads) and `<dir>/.agents/skills/apic` (what Codex,
+Cursor and the other agents that share that directory read), `dir` being
+the project (`-C`) unless given; it must exist, so a mistyped directory
+is E210 rather than a new tree. The `apic` skill is about using apic, so
+it is the default; `api-design` and `api-security` are opinions about
+the reader's own API, so a project opts into them with `--all` (the
+whole pack) or `--skill <name>` (exactly the skills named; a name given
+twice counts once). A file already holding the same text is reported as
+`unchanged`; any other is overwritten, since the text is apic's rather
+than the project's. Commit the result so every clone briefs its agents.
+`apic init` writes the `apic` skill the same way, keeping existing files
 unless `--force`.
+
+`skill install --user` writes the same directories under your home
+directory (`~/.claude/skills/<name>` and `~/.agents/skills/<name>`),
+where Claude Code and the other agents read skills for every project, so
+one install after installing apic briefs them everywhere. It takes no
+`dir`, `-C` or `--to` (E203), since those name a project; a `~/.claude`
+or `~/.agents` that a dotfile manager links elsewhere is followed.
+`--all` and `--skill` choose the skills as above, and a second run
+reports every file `unchanged`.
 
 | Flag | Meaning |
 |---|---|
+| `--all` | Install the whole pack, `apic`, `api-design` and `api-security`, instead of `apic` alone. |
+| `--skill <name>` | Install exactly this skill; repeatable. Not with `--all`. |
 | `--to <dir>` | Install into this directory under the project instead of the two defaults; repeatable. `--to .claude/skills` is Claude Code only. |
+| `--user` | Install under your home directory, for every project, instead of the project. |
 
 `--json` prints `{"written": [...], "unchanged": [...]}`.
 
@@ -1506,17 +1532,17 @@ No flags of its own.
 
 ### apic skill
 
-Print the Agent Skill that briefs an AI agent on apic.
+Print an Agent Skill from the pack that briefs an AI agent on apic and on APIs.
 
 ```
-apic skill
+apic skill [name]
 ```
 
 No flags of its own.
 
 ### apic skill install
 
-Write the skill into a project for the agents that load skills.
+Write the apic skill, or the whole pack, into a project or your home directory.
 
 ```
 apic skill install [dir] [flags]
@@ -1524,7 +1550,10 @@ apic skill install [dir] [flags]
 
 | Flag | Meaning |
 |---|---|
+| `--all` | install the whole pack: apic, api-design, api-security |
+| `--skill <string>` | a skill of the pack to install, instead of the apic skill alone: apic, api-design, api-security (repeatable) |
 | `--to <string>` | directory under the project to install into, instead of .claude/skills and .agents/skills (repeatable) |
+| `--user` | install into .claude/skills and .agents/skills of your home directory, for every project, instead of the project's |
 
 ### apic snippet
 

@@ -308,7 +308,16 @@ wrote apic-demo/.agents/skills/apic/references/cheatsheet.md
 ## Writing or changing requests
 ## Testing an API
 ## Over MCP instead of the shell
+## Designing or securing the API itself
 ```
+
+That last section points at two more skills the binary carries,
+`api-design` (how to design the API the requests call, each rule proved
+by a request or an `apic mock`) and `api-security` (how to keep it safe,
+with the OWASP API Security Top 10 as checks). They are opinions about
+your API rather than about apic, so they are an opt-in: `apic skill
+install --all` adds them to the project, or `apic skill install --user
+--all` to your home directory for every project.
 
 Two copies, one per convention, and the same five things this lesson
 walked through: the validate, list, describe, run order; the error codes

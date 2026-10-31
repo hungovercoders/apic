@@ -13,7 +13,7 @@ Hand off to `slopstopper-triage` mid-install whenever a check fails during Step 
 
 ### Maintaining this skill when slopstopper changes
 
-This skill names specific files, env vars, workflow IDs, the `GENERIC_WORKFLOWS` list in `install.sh`, and the local `task ss:*` commands that mirror each workflow. **Any change to slopstopper that touches one of those needs a corresponding update here**, or the skill silently drifts away from reality.
+This skill names specific files, env vars, workflow IDs, the `GENERIC_WORKFLOWS` list in `cli/slopstopper/suite.py`, and the local `task ss:*` commands that mirror each workflow. **Any change to slopstopper that touches one of those needs a corresponding update here**, or the skill silently drifts away from reality.
 
 Triggers that require revisiting this skill:
 
@@ -21,7 +21,7 @@ Triggers that require revisiting this skill:
 - A check workflow is added or renamed → its `name:` must also land in `ss-pr-summary.yml`'s `workflow_run.workflows` list, or the PR summary silently stops re-rendering when that check finishes. Check this whenever the workflow inventory in Step 3 changes.
 - A profile is added, or a profile's `disables` list changes in `cli/slopstopper/data/profiles.json` → update the shape table in Step 1's pre-flight framing, the per-profile workflow counts (Step 1.2, Step 2, Step 3), the Pass B callout in Step 7, and the `profile:` bullet in the Refresh-only knobs list.
 - A new key lands under `api:` in `.slopstopper.yml.example` → update Step 4's "Configure the API checks" block, which is the only place this skill spells that schema out.
-- The `GENERIC_WORKFLOWS` array in `slopstopper/install.sh` changes → confirm the "What just landed" inventory in Step 3 still matches.
+- The `GENERIC_WORKFLOWS` tuple in `cli/slopstopper/suite.py` changes → confirm the "What just landed" inventory in Step 3 still matches.
 - A check is added or renamed in `cli/slopstopper/checks/__init__.py`'s `REGISTRY` → update Step 7's `slopstopper run` list (and `slopstopper-triage`'s reproduce table).
 - A `task ss:*` shim is renamed in `slopstopper/Taskfile.ss.yml` → update the matching command in Step 7's Pass A or Pass B (and `slopstopper-triage`).
 - A new env var is introduced for a dynamic check → add to the URL-defaults list in Step 4 and to the Pass B example in Step 7.
@@ -34,4 +34,4 @@ Triggers that require revisiting this skill:
 
 The companion to this is `AGENTS.md` in the slopstopper repo: its "When making changes" table flags the skill as a follow-on target whenever a change of the above kind ships. If you're updating slopstopper itself and that table isn't pointing readers back here, fix that first.
 
-The skills are installed at project level by `install-skill.sh` (run standalone to refresh) or by `install.sh` against its own checkout. It iterates its `SKILLS` array (`slopstopper-install`, `slopstopper-triage`) and installs each `<repo>/.claude/skills/<skill>/` directory: `SKILL.md` (validated to start with frontmatter) plus every `references/*.md` it links. A reference file the map doesn't link is never installed. If you rename a skill, add a third, change the frontmatter contract, or otherwise change the shape of what gets fetched, update that array (and `OBSOLETE_SKILLS` for a removed name) AND `docs/runbooks/INSTALL_SKILLS.md` in the same change.
+The skills are installed at project level by `slopstopper install` (what `install.sh` hands over to), from the wheel, or by `install-skill.sh` standalone, from `main`. Both iterate the same list (`SKILLS` in `cli/slopstopper/suite.py` and in `install-skill.sh`: `slopstopper-install`, `slopstopper-triage`) and install each `<repo>/.claude/skills/<skill>/` directory: `SKILL.md` (validated to start with frontmatter) plus every `references/*.md` it links. A reference file the map doesn't link is never installed. If you rename a skill, add a third, change the frontmatter contract, or otherwise change the shape of what ships, update both lists (and `OBSOLETE_SKILLS` in both for a removed name) AND `docs/runbooks/INSTALL_SKILLS.md` in the same change.

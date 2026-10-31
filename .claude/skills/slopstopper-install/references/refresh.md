@@ -6,23 +6,23 @@
 
 **Skip this section on a first install.** It's relevant only when `.slopstopper.yml` and `.ss/.workflows-installed` both existed in Step 1 (mode-detection), meaning the installer just ran in-place over an existing slopstopper install.
 
-`install.sh` is idempotent but **not transactional**. Every workflow YAML in `GENERIC_WORKFLOWS`, `Taskfile.ss.yml`, `.github/actions/ss-*/` and the `# slopstopper begin/end` block in `.gitignore` is rewritten wholesale on every run, and the CLI is reinstalled at the **pinned** version in `mise.toml` (a refresh never bumps it, as "Move the CLI pin" below explains). A refresh of an older install also migrates a legacy `cli_version` from `.slopstopper.yml` into `mise.toml` and strips it, and strips a dead `node_version` key. A few classes of customization get wiped and need re-applying; a few classes of upstream change need manual catch-up because the installer doesn't drag everything across. Walk this section before the local-verify loop in Step 7.
+`install.sh` is idempotent but **not transactional**. Every shipped workflow YAML, `Taskfile.ss.yml`, `.github/actions/ss-*/` and the `# slopstopper begin/end` block in `.gitignore` is rewritten wholesale on every run, from the files the **pinned** `slopstopper-cli` in `mise.toml` ships (a refresh reinstalls that version and never bumps it, as "Move the CLI pin" below explains; so a refresh with an unmoved pin changes nothing but what you deleted or disabled). A refresh of an older install also migrates a legacy `cli_version` from `.slopstopper.yml` into `mise.toml` and strips it, and strips a dead `node_version` key. A few classes of customization get wiped and need re-applying; a few classes of upstream change need manual catch-up because the installer doesn't drag everything across. Walk this section before the local-verify loop in Step 7.
 
 ### Re-enable workflows GitHub switched off
 
 A repo quiet enough to need a refresh is often one GitHub has stopped running. It disables any workflow with a `schedule:` trigger after 60 days without repo activity, and a disabled workflow runs on no trigger, pull requests included, so those checks silently vanish from the PR's list. The post-install banner lists any `ss-*` workflow in that state with its `gh workflow enable <id>` command, and `slopstopper doctor` reports the same. Re-enable them (ask the user first; it changes repo settings) before the Step 7 loop, or the confirmation pass on CI will be missing checks.
 
-### Diff installed workflows against upstream
+### Confirm the installed set is the pin's
 
-`install.sh` uses a hardcoded `GENERIC_WORKFLOWS` array, not a wildcard over slopstopper's `.github/workflows/ss-*.yml`. The two can drift when slopstopper ships a workflow that the installer hasn't been updated to include. Catch the gap:
+The workflows come from the pinned `slopstopper-cli`'s wheel, so the installed set is that release's minus the profile's drops and the adopter's deletions. Compare what the pin knows with what is on disk:
 
 ```bash
 comm -23 \
-  <(curl -s https://api.github.com/repos/hungovercoders/slopstopper/contents/.github/workflows | jq -r '.[].name' | grep '^ss-' | grep -vE '^ss-release\.yml$' | sort) \
+  <(slopstopper checks list --json | jq -r '.[].workflow' | sort) \
   <(ls .github/workflows/ | grep '^ss-' | sort)
 ```
 
-Any line in the output is an `ss-*.yml` workflow that exists upstream but isn't in your target. If any look relevant, copy them across directly (and customize the Node version pin, URLs and page paths like the rest). Flag the gap upstream as an `install.sh` fix. The `grep -vE '^ss-release\.yml$'` filters out slopstopper's own PyPI release pipeline, an infra workflow that isn't part of the adopter set, so it's an expected miss, not a gap.
+Each line is a workflow the profile drops (`slopstopper profile expand <name>`) or one that was deleted and is still recorded in `.ss/.workflows-installed`, which is a choice to confirm, not undo. A check that only a newer release ships is not a gap to copy across by hand; it arrives with the pin, under "Move the CLI pin" below.
 
 ### Re-apply customizations the installer wiped
 
@@ -53,26 +53,26 @@ Either flag wraps `mise use` to rewrite the `"pipx:slopstopper-cli"` entry in `m
 
 ### Spot newly-shipped knobs in `.slopstopper.yml.example`
 
-The `.slopstopper.yml.example` file in the slopstopper repo is the schema reference. Don't diff it against the repo's `.slopstopper.yml`: a config seeded from the starter deliberately carries only the keys the repo sets, so that diff lists every default as "missing". Diff the schema between the slopstopper commit the previous install came from and the one this refresh came from. The installer records it in `.ss/.installed-from`, and the old value is still in `HEAD` until you commit the refresh:
+The `.slopstopper.yml.example` file in the slopstopper repo is the schema reference. Don't diff it against the repo's `.slopstopper.yml`: a config seeded from the starter deliberately carries only the keys the repo sets, so that diff lists every default as "missing". Diff the schema between the release the previous install came from and the one this refresh came from. The installer records the `slopstopper-cli` version that wrote it in `.ss/.installed-from`, each release is tagged `v<version>`, and the old value is still in `HEAD` until you commit the refresh:
 
 ```bash
 raw=https://raw.githubusercontent.com/hungovercoders/slopstopper
-old="$(git show HEAD:.ss/.installed-from 2>/dev/null)"   # the previous install's commit
-new="$(cat .ss/.installed-from 2>/dev/null)"              # this refresh's commit
+old="$(git show HEAD:.ss/.installed-from 2>/dev/null)"   # the previous install's version
+new="$(cat .ss/.installed-from 2>/dev/null)"              # this refresh's version
 if [ -z "$old" ] || [ -z "$new" ]; then
-  echo "no commit recorded for the previous install or this one; use the fallback below"
-elif ! a="$(curl -fsSL "$raw/$old/.slopstopper.yml.example")" || ! b="$(curl -fsSL "$raw/$new/.slopstopper.yml.example")"; then
-  echo "a recorded commit isn't on hungovercoders/slopstopper (a fork or local commit?); use the fallback below"
+  echo "no version recorded for the previous install or this one; use the fallback below"
+elif ! a="$(curl -fsSL "$raw/v$old/.slopstopper.yml.example")" || ! b="$(curl -fsSL "$raw/v$new/.slopstopper.yml.example")"; then
+  echo "a recorded version isn't a published release (a dev build?); use the fallback below"
 else
   diff <(printf '%s\n' "$a") <(printf '%s\n' "$b")
 fi
 ```
 
-Lines added on the right are knobs shipped since the last install. This commit is what the workflows, `Taskfile.ss.yml` and installer came from, so an empty diff (or `old` = `new`) really does mean no new knobs. The script above refuses to diff after a failed fetch, so never read one as "everything is new".
+Lines added on the right are knobs shipped since the last install. That release is what the workflows, `Taskfile.ss.yml` and the rest came from, so an empty diff (or `old` = `new`) really does mean no new knobs. The script above refuses to diff after a failed fetch, so never read one as "everything is new".
 
-**Fallback** (no marker on one side, or a commit only a fork or a local checkout has): read the schema's history at https://github.com/hungovercoders/slopstopper/commits/main/.slopstopper.yml.example back to `git log -1 --format=%cs -- Taskfile.ss.yml .github/workflows/`, the last commit in which a refresh changed slopstopper's files. A refresh that changed nothing leaves no commit, so that date can be earlier than the last refresh: some of what you read may already be in place, but nothing newer is missed.
+**Fallback** (no marker on one side, or a version that is not a published release): read the schema's history at https://github.com/hungovercoders/slopstopper/commits/main/.slopstopper.yml.example back to `git log -1 --format=%cs -- Taskfile.ss.yml .github/workflows/`, the last commit in which a refresh changed slopstopper's files. A refresh that changed nothing leaves no commit, so that date can be earlier than the last refresh: some of what you read may already be in place, but nothing newer is missed.
 
-A knob read by the CLI (rather than by a workflow or the installer) only takes effect once the `slopstopper-cli` pinned in `mise.toml` is a release that has it. A *check* that shipped after the pin is worse than inert: its shim and workflow are installed, and `slopstopper run <check>` exits 2 ("unknown check") until the pin moves, which takes `task ss:hygiene:test` (the pre-push hook) down with it when the check is a hygiene one. The installer ends with a ⚠️ naming every such check, asked of the pinned CLI through mise; treat that line as "run `--upgrade-cli` now", or hold the refresh until the release that carries them. If a new knob does nothing, check the changelog and move the pin with `install.sh --upgrade-cli`. Most knobs ship with sensible defaults, so no action is required. The link at the top of the repo's `.slopstopper.yml` is the schema to copy blocks from.
+Every knob, check, shim and workflow in the repo is the pinned release's, so there is nothing installed that the CLI does not know. The one way to get a mismatch is running `slopstopper install` from a CLI other than the pin (a global `pipx` one, say): its banner then warns that the pin and the writing version differ, and the fix is either to move the pin to that version or to re-run as `mise exec -- slopstopper install`. If a knob you want is not in the diff, it shipped in a later release: check the changelog and move the pin with `install.sh --upgrade-cli`. Most knobs ship with sensible defaults, so no action is required. The link at the top of the repo's `.slopstopper.yml` is the schema to copy blocks from.
 
 Surfaces worth checking explicitly:
 
@@ -115,7 +115,7 @@ Adopter repos should hold exactly the **expected set** of slopstopper artefacts 
 - `.ss/scripts/`, a pre-CLI artefact scrubbed wholesale on every install.
 - Byte-equal copies of `.ss/playwright.config.js`, `.ss/lighthouserc.json`, `.ss/lighthouserc.prod.json` and each `.ss/tests/*.spec.ts`, which moved into the slopstopper-cli wheel; byte-identical adopter copies are removed spec by spec (the wheel's version wins via the templates resolver). Customised copies survive. CLI 0.17 and earlier left such copies behind after any local smoke, e2e, accessibility or broken-links run; later releases stage them in the self-ignoring `.ss/.run/` instead, so a run never adds files to `.ss/`.
 - Workflows the adopter explicitly disabled via `.slopstopper.yml` `workflows.disabled`, removed on every install.
-- `.github/actions/<name>/` directories listed in `install.sh`'s `OBSOLETE_ACTIONS` (empty today). The shipped composite actions (`ss-setup`, `ss-resolve-url`, `ss-playwright`) are replaced wholesale on every run.
+- `.github/actions/<name>/` directories listed in `OBSOLETE_ACTIONS` in `cli/slopstopper/suite.py` (empty today). The shipped composite actions (`ss-setup`, `ss-resolve-url`, `ss-playwright`) are replaced wholesale on every run.
 
 **What you should sanity-check manually on refresh** (the installer can't auto-detect these without an explicit removal list):
 

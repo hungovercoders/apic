@@ -133,15 +133,16 @@ Commit a project install so every clone briefs its agents.`,
 			if len(only) > 0 {
 				// A name given twice is installed once, so no file is
 				// reported both written and unchanged.
-				names = names[:0]
+				var picked []string
 				for _, name := range only {
 					if !skills.Has(name) {
 						return runner.Usage(runner.CodeFlag, fmt.Sprintf("--skill %q: unknown skill; the pack has %s", name, strings.Join(skills.Names(), ", ")))
 					}
-					if !slices.Contains(names, name) {
-						names = append(names, name)
+					if !slices.Contains(picked, name) {
+						picked = append(picked, name)
 					}
 				}
+				names = picked
 			}
 			written, unchanged, _, err := writeSkill(dir, dirs, names, skillWrite{overwrite: true, user: user})
 			if err != nil {
@@ -190,16 +191,12 @@ type skillWrite struct {
 // ../x` nor a link under .claude/skills can put the files outside it;
 // --user rejects those flags, and its paths are the home directory's.
 func writeSkill(root string, dirs, names []string, how skillWrite) (written, unchanged, skipped []string, err error) {
-	var absRoot string
+	missing := "the skill pack is written into an existing project (apic init creates one)"
 	if how.user {
-		info, statErr := os.Stat(root)
-		if statErr != nil || !info.IsDir() {
-			return nil, nil, nil, runner.Usage(runner.CodeFile, fmt.Sprintf("%s is not a directory; --user writes the skill pack under your home directory", root))
-		}
-		if absRoot, err = filepath.Abs(root); err != nil {
-			return nil, nil, nil, runner.Usage(runner.CodeFile, err.Error())
-		}
-	} else if absRoot, err = writeRoot(root, how.create, "the skill pack"); err != nil {
+		missing = "--user writes the skill pack under your home directory"
+	}
+	absRoot, err := writeRoot(root, how.create, missing)
+	if err != nil {
 		return nil, nil, nil, err
 	}
 	for _, skill := range names {
@@ -242,17 +239,18 @@ func writeSkill(root string, dirs, names []string, how skillWrite) (written, unc
 // writeRoot returns the absolute path of root, the directory the user
 // named for the files a command writes: made when create is set (apic
 // init), otherwise required to exist (install, where a missing one is a
-// mistyped project). what names the files in the error. The path is
+// mistyped project, or --user, where it is the home directory). missing
+// finishes the error for a root that is not a directory. The path is
 // absolute because Confine compares real paths: `apic init my-api` names
 // the root relative to the working directory, and on macOS a temporary
 // directory is a symlink.
-func writeRoot(root string, create bool, what string) (string, error) {
+func writeRoot(root string, create bool, missing string) (string, error) {
 	if create {
 		if err := os.MkdirAll(root, 0o755); err != nil { //nolint:gosec // the project directory the user named, which they browse and commit
 			return "", runner.Usage(runner.CodeFile, err.Error())
 		}
 	} else if info, err := os.Stat(root); err != nil || !info.IsDir() {
-		return "", runner.Usage(runner.CodeFile, fmt.Sprintf("%s is not a directory; %s is written into an existing project (apic init creates one)", root, what))
+		return "", runner.Usage(runner.CodeFile, fmt.Sprintf("%s is not a directory; %s", root, missing))
 	}
 	abs, err := filepath.Abs(root)
 	if err != nil {

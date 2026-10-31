@@ -100,13 +100,15 @@ func TestLoadEvalsHasChecks(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		// The file's skill_name is what installs; it lives under the
+		// directory of that skill, so the two agree.
 		want := filepath.Base(filepath.Dir(filepath.Dir(path)))
 		for _, e := range evals {
 			if e.Name == "" || !strings.Contains(e.Prompt, "<dir>") || e.Checks.Verify == "" || len(e.Checks.VerifyContains) == 0 {
 				t.Errorf("eval %d needs a name, a <dir> in the prompt and a verify command with expected output: %+v", e.ID, e)
 			}
 			if e.Skill != want {
-				t.Errorf("eval %d: skill %q, want %q from %s", e.ID, e.Skill, want, path)
+				t.Errorf("eval %d: skill_name %q in %s, want %q", e.ID, e.Skill, path, want)
 			}
 			if other, dup := seen[e.ID]; dup {
 				t.Errorf("eval %d is in both %s and %s", e.ID, other, path)
@@ -116,6 +118,25 @@ func TestLoadEvalsHasChecks(t *testing.T) {
 	}
 	if err := run([]string{paths[0], paths[0]}, t.TempDir(), 1, "", "claude", 0, 1, false, 0); err == nil || !strings.Contains(err.Error(), "is in both") {
 		t.Errorf("duplicate ids: err = %v", err)
+	}
+	// A copy anywhere still names its skill; an unknown one, or no file
+	// at all (the default away from the repository root), says so.
+	copied := filepath.Join(t.TempDir(), "mine.json")
+	data, _ := os.ReadFile(paths[0])
+	if err := os.WriteFile(copied, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if evals, err := loadEvals(copied); err != nil || evals[0].Skill != filepath.Base(filepath.Dir(filepath.Dir(paths[0]))) {
+		t.Errorf("copied file: %v %+v", err, evals)
+	}
+	if err := os.WriteFile(copied, []byte(`{"skill_name": "nope", "evals": [{"id": 1}]}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := loadEvals(copied); err == nil || !strings.Contains(err.Error(), `"nope"`) {
+		t.Errorf("unknown skill: err = %v", err)
+	}
+	if _, err := loadEvals(""); err == nil || !strings.Contains(err.Error(), "-evals") {
+		t.Errorf("no default: err = %v", err)
 	}
 }
 

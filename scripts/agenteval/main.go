@@ -43,10 +43,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/hungovercoders/apic/skills"
 )
 
-// Eval is one task from an evals.json. Skill is the skill whose file it
-// came from, set by loadEvals from the path, not read from the file.
+// Eval is one task from an evals.json. Skill is the file's skill_name,
+// set by loadEvals: the skill the "with" variant installs.
 type Eval struct {
 	ID             int    `json:"id"`
 	Skill          string `json:"-"`
@@ -170,35 +172,41 @@ func run(evalsPaths []string, out string, runs int, model, claude string, timeou
 	return nil
 }
 
-// DefaultEvals is every skill's evals file, comma-separated, as -evals
-// takes them: skills/<skill>/evals/evals.json for each directory under
-// skills/ that has one.
+// DefaultEvals is every skill's evals file under the working directory,
+// comma-separated, as -evals takes them: skills/<skill>/evals/evals.json
+// for each directory under skills/ that has one. Empty away from the
+// repository root, which run reports rather than opening "".
 func DefaultEvals() string {
 	matches, _ := filepath.Glob(filepath.Join("skills", "*", "evals", "evals.json"))
 	sort.Strings(matches)
 	return strings.Join(matches, ",")
 }
 
-// loadEvals reads one evals file. The skill each eval belongs to is the
-// directory two above the file (skills/<skill>/evals/evals.json), which
-// decides what the "with" and "without" variants install.
+// loadEvals reads one evals file. Its skill_name is the skill the "with"
+// variant installs, so it must be one the binary carries.
 func loadEvals(path string) ([]Eval, error) {
+	if path == "" {
+		return nil, errors.New("no skills/*/evals/evals.json under the working directory; run from the repository root or pass -evals")
+	}
 	data, err := os.ReadFile(path) //nolint:gosec // the evals file named on the command line
 	if err != nil {
 		return nil, err
 	}
 	var file struct {
+		Skill string `json:"skill_name"`
 		Evals []Eval `json:"evals"`
 	}
 	if err := json.Unmarshal(data, &file); err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
+	if !skills.Has(file.Skill) {
+		return nil, fmt.Errorf("%s: skill_name %q is not a skill the binary carries (%s)", path, file.Skill, strings.Join(skills.Names(), ", "))
+	}
 	if len(file.Evals) == 0 {
 		return nil, fmt.Errorf("%s holds no evals", path)
 	}
-	skill := filepath.Base(filepath.Dir(filepath.Dir(path)))
 	for i := range file.Evals {
-		file.Evals[i].Skill = skill
+		file.Evals[i].Skill = file.Skill
 	}
 	return file.Evals, nil
 }

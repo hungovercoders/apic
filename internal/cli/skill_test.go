@@ -38,7 +38,7 @@ func TestSkillPrintsTheEmbeddedSkill(t *testing.T) {
 	if got.Name != "apic" || !strings.HasPrefix(got.Files["SKILL.md"], "---") || !strings.Contains(got.Files["references/cheatsheet.md"], "# apic cheat sheet") {
 		t.Fatalf("json: %+v", got)
 	}
-	if !slices.Equal(got.Skills, []string{"apic", "api-design", "api-security"}) {
+	if !slices.Equal(got.Skills, skills.Names()) {
 		t.Fatalf("skills: %v", got.Skills)
 	}
 }

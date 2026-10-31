@@ -143,11 +143,14 @@ jobs:
             ss-hygiene-openapi-check.yml
           )
           [ "$PRODUCTION" = "true" ] && checks+=(ss-security-dast-check.yml)
-          disabled="$(slopstopper profile disabled)"
+          # Matched in the shell: a pipe into `grep -q` under the runner's
+          # pipefail can report a listed workflow as absent.
+          nl=$'\n'
+          disabled="$nl$(slopstopper profile disabled)$nl"
           failed=0
           for wf in "${checks[@]}"; do
             [ -f ".github/workflows/$wf" ] || continue
-            if printf '%s\n' "$disabled" | grep -Fxq "$wf"; then
+            if [[ "$disabled" == *"$nl$wf$nl"* ]]; then
               echo "· $wf is disabled for this repo, so not dispatched"
               continue
             fi

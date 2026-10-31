@@ -76,10 +76,13 @@ jobs:
           if-no-files-found: warn
 
       - name: Emit PR comment
+        # The verdict reads the recorded exit code, as the issue steps do:
+        # 1 is a finding, 2 means the inventory did not run and the comment
+        # says so instead of reporting a licence failure (#567).
         if: always() && github.event_name == 'pull_request' && steps.licences.outcome != 'skipped'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: slopstopper emit security:licences --target pr-comment --status ${{ steps.licences.outcome == 'success' && 'pass' || 'fail' }} --on-pass=delete
+        run: slopstopper emit security:licences --target pr-comment --status ${{ steps.licences.outputs.rc == '0' && 'pass' || steps.licences.outputs.rc == '1' && 'fail' || 'error' }} --on-pass=delete
 
       - name: Emit issue on main (if a licence is denied)
         # Only rc 1 is a finding. Exit 2 means the inventory didn't run.

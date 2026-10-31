@@ -5,7 +5,7 @@
 [tools]
 "node" = "22.23.4"
 task = "3"
-"pipx:slopstopper-cli" = "0.27.0"
+"pipx:slopstopper-cli" = "0.28.0"
 
 # The browser checks build the site with `npm run build` (the root
 # package.json delegates to website/) and serve it with `slopstopper serve`,

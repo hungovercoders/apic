@@ -178,7 +178,7 @@ jobs:
         if: always() && github.event_name == 'pull_request' && steps.mode.outputs.mode != 'skip'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: slopstopper emit security:dast --target pr-comment --status ${{ steps.dast.outcome == 'success' && 'pass' || 'fail' }} --on-pass=delete
+        run: slopstopper emit security:dast --target pr-comment --status ${{ steps.dast.outputs.rc == '0' && 'pass' || steps.dast.outputs.rc == '1' && 'fail' || 'error' }} --on-pass=delete
 
       - name: Emit issue on main (non-PR runs with blocking alerts)
         # Only rc 1 is a finding. Exit 2 means the scan didn't run, and the

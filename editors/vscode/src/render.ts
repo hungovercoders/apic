@@ -113,6 +113,56 @@ export function firstProblem(r: RunResult): string {
   return r.errors?.[0] ?? "";
 }
 
+/** The status badge of a result's summary line. */
+function renderStatus(r: RunResult): string {
+  if (!r.response) {
+    return `<span class="status s4">not sent</span>`;
+  }
+  const res = r.response;
+  const attempts = r.attempts && r.attempts > 1 ? ` <span class="dim">· ${r.attempts} attempts</span>` : "";
+  return `<span class="status ${statusClass(res.status)}">${res.status} ${escapeHtml(res.status_text)}</span> <span class="dim">· ${res.duration_ms} ms · ${size(res.size)}</span>${attempts}`;
+}
+
+/** The response's headers and body blocks. */
+function renderResponse(r: RunResult, res: NonNullable<RunResult["response"]>, index: number): string[] {
+  const body: string[] = [];
+  const count = Object.keys(res.headers ?? {}).length;
+  body.push(`<details class="headers"><summary>Response headers (${count})</summary><pre>${headerLines(res.headers)}</pre></details>`);
+  const { text, json } = res.body_encoding === "base64" ? { text: "", json: false } : bodyText(res.body);
+  if (res.body_encoding === "base64") {
+    body.push(`<p class="dim">binary body · ${size(res.size)}${r.saved_to ? "" : " · save it with a <code>&gt;&gt; file</code> line"}</p>`);
+  }
+  if (text) {
+    const truncated = text.length > BODY_LIMIT;
+    const shown = truncated ? text.slice(0, BODY_PREVIEW) : text;
+    const pretty = json ? highlightJson(shown) : escapeHtml(shown);
+    const controls =
+      index >= 0
+        ? `<div class="toolbar">${json ? `<button data-action="toggle-raw" data-index="${index}">Raw</button>` : ""}<button data-action="save" data-index="${index}">Save body…</button>${truncated ? `<button data-action="open-raw" data-index="${index}">Open the whole body (${size(text.length)})</button>` : ""}</div>`
+        : "";
+    const raw = json && index >= 0 ? `<pre class="body raw hidden" data-index="${index}">${escapeHtml(rawBody(res.body))}</pre>` : "";
+    body.push(`<div class="body-wrap">${controls}<pre class="body pretty" data-index="${index}">${pretty}${truncated ? "\n…" : ""}</pre>${raw}</div>`);
+  }
+  return body;
+}
+
+/** The list of assertion outcomes. */
+function renderAsserts(asserts: NonNullable<RunResult["asserts"]>): string {
+  const items = asserts
+    .map((a) => {
+      const cls = a.pass ? "pass" : "fail";
+      let detail = "";
+      if (a.error) {
+        detail = ` <span class="dim">${escapeHtml(a.error)}</span>`;
+      } else if (!a.pass) {
+        detail = ` <span class="dim">actual</span> <code>${escapeHtml(a.actual ?? "")}</code> <span class="dim">expected</span> <code>${escapeHtml(a.expected ?? "")}</code>`;
+      }
+      return `<li class="${cls}"><span class="mark ${cls}">${a.pass ? "✓" : "✗"}</span> <code>${escapeHtml(a.expr)}</code>${detail}</li>`;
+    })
+    .join("");
+  return `<ul class="checks">${items}</ul>`;
+}
+
 /** One result, as a block. `index` identifies it to the panel's save and open-raw buttons. */
 export function renderResult(r: RunResult, index: number, collapsible: boolean): string {
   const parts: string[] = [];
@@ -122,15 +172,7 @@ export function renderResult(r: RunResult, index: number, collapsible: boolean):
   }
   const method = escapeHtml(r.request.method);
   const url = escapeHtml(r.request.url);
-  let status: string;
-  if (r.response) {
-    const res = r.response;
-    const attempts = r.attempts && r.attempts > 1 ? ` <span class="dim">· ${r.attempts} attempts</span>` : "";
-    status = `<span class="status ${statusClass(res.status)}">${res.status} ${escapeHtml(res.status_text)}</span> <span class="dim">· ${res.duration_ms} ms · ${size(res.size)}</span>${attempts}`;
-  } else {
-    status = `<span class="status s4">not sent</span>`;
-  }
-  const summary = `<span class="mark ${r.ok ? "pass" : "fail"}">${r.ok ? "✓" : "✗"}</span> <span class="method ${method}">${method}</span> <span class="url">${url}</span> ${status}`;
+  const summary = `<span class="mark ${r.ok ? "pass" : "fail"}">${r.ok ? "✓" : "✗"}</span> <span class="method ${method}">${method}</span> <span class="url">${url}</span> ${renderStatus(r)}`;
 
   const body: string[] = [];
   const requestDetail = [headerLines(r.request.headers), r.request.body ? `\n${r.request.body}` : ""].filter(Boolean).join("\n");
@@ -138,38 +180,10 @@ export function renderResult(r: RunResult, index: number, collapsible: boolean):
     body.push(`<details class="headers"><summary>Request</summary><pre>${escapeHtml(requestDetail)}</pre></details>`);
   }
   if (r.response) {
-    const count = Object.keys(r.response.headers ?? {}).length;
-    body.push(`<details class="headers"><summary>Response headers (${count})</summary><pre>${headerLines(r.response.headers)}</pre></details>`);
-    const { text, json } = r.response.body_encoding === "base64" ? { text: "", json: false } : bodyText(r.response.body);
-    if (r.response.body_encoding === "base64") {
-      body.push(`<p class="dim">binary body · ${size(r.response.size)}${r.saved_to ? "" : " · save it with a <code>&gt;&gt; file</code> line"}</p>`);
-    }
-    if (text) {
-      const truncated = text.length > BODY_LIMIT;
-      const shown = truncated ? text.slice(0, BODY_PREVIEW) : text;
-      const pretty = json ? highlightJson(shown) : escapeHtml(shown);
-      const controls =
-        index >= 0
-          ? `<div class="toolbar">${json ? `<button data-action="toggle-raw" data-index="${index}">Raw</button>` : ""}<button data-action="save" data-index="${index}">Save body…</button>${truncated ? `<button data-action="open-raw" data-index="${index}">Open the whole body (${size(text.length)})</button>` : ""}</div>`
-          : "";
-      const raw = json && index >= 0 ? `<pre class="body raw hidden" data-index="${index}">${escapeHtml(rawBody(r.response.body))}</pre>` : "";
-      body.push(`<div class="body-wrap">${controls}<pre class="body pretty" data-index="${index}">${pretty}${truncated ? "\n…" : ""}</pre>${raw}</div>`);
-    }
+    body.push(...renderResponse(r, r.response, index));
   }
   if (r.asserts && r.asserts.length > 0) {
-    const items = r.asserts
-      .map((a) => {
-        const cls = a.pass ? "pass" : "fail";
-        let detail = "";
-        if (a.error) {
-          detail = ` <span class="dim">${escapeHtml(a.error)}</span>`;
-        } else if (!a.pass) {
-          detail = ` <span class="dim">actual</span> <code>${escapeHtml(a.actual ?? "")}</code> <span class="dim">expected</span> <code>${escapeHtml(a.expected ?? "")}</code>`;
-        }
-        return `<li class="${cls}"><span class="mark ${cls}">${a.pass ? "✓" : "✗"}</span> <code>${escapeHtml(a.expr)}</code>${detail}</li>`;
-      })
-      .join("");
-    body.push(`<ul class="checks">${items}</ul>`);
+    body.push(renderAsserts(r.asserts));
   }
   if (r.saved_to) {
     body.push(`<p><span class="capture">↳ saved to</span> <code>${escapeHtml(r.saved_to)}</code></p>`);

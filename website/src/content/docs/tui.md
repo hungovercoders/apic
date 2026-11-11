@@ -71,11 +71,13 @@ headers, the body, auth, every variable with the source it resolved from,
 and the declared captures and asserts. Missing variables are called out with
 the request that would provide them.
 
-**Response** is the status line, timing and size, a line saying where the
-time went (DNS, connect, TLS, first byte, total, and whether the
-connection was reused), the body pretty-printed
-and syntax-highlighted, and the assertions and captures underneath. <kbd>H</kbd>
-adds the request and response headers; <kbd>c</kbd> swaps in the equivalent
+**Response** is one scroll in three labelled parts. Under `request` is
+the line that was sent, with every variable resolved. Under `response` is
+the status line, timing and size, a line saying where the time went (DNS,
+connect, TLS, first byte, total, and whether the connection was reused)
+and the body pretty-printed and syntax-highlighted. Under `checks` are
+the assertions and captures. <kbd>H</kbd> adds the headers and the body
+sent to the first part and the response headers to the second; <kbd>c</kbd> swaps in the equivalent
 curl command, and each further press the same request as HTTPie,
 PowerShell, Python, JavaScript and Go (see
 [`apic snippet`](cli.md#apic-snippet)) before the response comes back. When a tab holds more than fits, the right of the tab strip
@@ -83,7 +85,8 @@ says where you are in it: `top ↓`, `↑ 40% ↓`, `↑ end`.
 
 **Checks** shows each assertion with its actual *and* expected value, which
 is the fastest way to see why a check failed, plus everything the request
-captured.
+captured, under the same `request`, `response` and `checks` rules as the
+response tab.
 
 **Session** lists the values captured for the current environment, the same
 ones `apic session` prints and the same ones later runs will use, and the

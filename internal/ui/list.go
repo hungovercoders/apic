@@ -331,7 +331,7 @@ func (m *Model) rowLayout(r *httpfile.Request, headW, width int) (badge string, 
 	for _, try := range []struct {
 		badge string
 		desc  int
-	}{{full, desc}, {short, desc}, {full, 0}, {short, 0}, {"", 0}} {
+	}{{full, desc}, {full, 0}, {short, 0}, {"", 0}} {
 		room := width - headW - ansi.StringWidth(try.badge) - rowGap
 		if room >= try.desc {
 			return try.badge, room
@@ -375,7 +375,22 @@ func (m *Model) rowBadge(r *httpfile.Request, short bool) string {
 	if short {
 		return code
 	}
-	return code + " " + t.Dim.Render(fmt.Sprintf("%dms", res.Response.DurationMs))
+	return code + " " + t.Dim.Render(fmt.Sprintf("%*s", m.timingWidth(), fmt.Sprintf("%dms", res.Response.DurationMs)))
+}
+
+// timingWidth is the timing column: as wide as the slowest round trip in
+// the list, so the status codes to its left stay in one column whatever
+// each request took.
+func (m *Model) timingWidth() int {
+	w := 0
+	for _, res := range m.results {
+		if res != nil && res.Response != nil {
+			if n := len(fmt.Sprintf("%dms", res.Response.DurationMs)); n > w {
+				w = n
+			}
+		}
+	}
+	return w
 }
 
 // rollup counts how the requests of one file have fared so far.

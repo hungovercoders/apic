@@ -25,10 +25,19 @@ func (m *Model) renderTabs(width int) string {
 		}
 	}
 	line := strings.Join(parts, "")
-	if m.selected != nil {
-		line += "  " + t.Dim.Render(ansi.Truncate(m.selected.ID(), 30, "…"))
-	}
 	pos := m.scrollPosition()
+	// The request's name is a reminder, not a control: it shows whole or
+	// not at all, never as a stub beside the scroll position.
+	if m.selected != nil {
+		name := "  " + t.Dim.Render(ansi.Truncate(m.selected.ID(), 30, "…"))
+		room := width - ansi.StringWidth(line) - ansi.StringWidth(name)
+		if pos != "" {
+			room -= ansi.StringWidth(pos) + 1
+		}
+		if room >= 0 {
+			line += name
+		}
+	}
 	if pos == "" {
 		return ansi.Truncate(line, width, "…")
 	}
@@ -97,6 +106,19 @@ func (m *Model) renderPreview() string {
 	return output.Describe(m.theme, d, m.selected.Headers)
 }
 
+// rule draws a labelled divider across the pane: "── request ─────". The
+// response tab shows what was sent and what came back in one scroll, and
+// the rules are what tell the two apart.
+func (m *Model) rule(label string, width int) string {
+	t := m.theme
+	head := t.Dim.Render("── ") + t.Bold.Render(label) + " "
+	fill := width - ansi.StringWidth(head)
+	if fill < 0 {
+		fill = 0
+	}
+	return head + t.Dim.Render(strings.Repeat("─", fill)) + "\n"
+}
+
 func (m *Model) renderResponse(width int) string {
 	t := m.theme
 	req := m.selected
@@ -104,7 +126,9 @@ func (m *Model) renderResponse(width int) string {
 		res := m.results[req]
 		var b strings.Builder
 		if res != nil {
+			b.WriteString(m.rule("request", width))
 			b.WriteString(output.RequestLine(t, res) + "\n\n")
+			b.WriteString(m.rule("response", width))
 		}
 		b.WriteString(t.Fail.Render("✗ ") + err.Error() + "\n")
 		return b.String()
@@ -122,25 +146,34 @@ func (m *Model) renderResponse(width int) string {
 		return t.Bold.Render(lang) + t.Dim.Render(fmt.Sprintf(" · %d/%d", m.codeLang, len(snippet.Languages))) + "\n\n" + m.codeFor(lang) + "\n\n" + t.Dim.Render(next)
 	}
 	var b strings.Builder
+	b.WriteString(m.rule("request", width))
 	b.WriteString(output.RequestLine(t, res) + "\n")
 	if m.showHeaders {
 		b.WriteString(output.RequestDetail(t, res))
 	}
+	b.WriteString("\n" + m.rule("response", width))
 	b.WriteString(output.StatusLine(t, res))
 	if res.Response == nil {
 		return b.String()
 	}
-	b.WriteString(output.Timings(t, res))
+	// The timings are one long line: break it between words, where the
+	// viewport's own wrap would cut one in half.
+	// Each line is styled on its own, so the continuation stays dim.
+	if tm := strings.TrimSpace(ansi.Strip(output.Timings(t, res))); tm != "" {
+		for _, line := range strings.Split(ansi.Wordwrap(tm, width, ""), "\n") {
+			b.WriteString(t.Dim.Render(line) + "\n")
+		}
+	}
 	if m.showHeaders {
 		b.WriteString(output.ResponseHeaders(t, res))
 	} else {
-		b.WriteString(t.Dim.Render("H shows headers") + "\n")
+		b.WriteString(t.Dim.Render("H shows the headers and the body sent") + "\n")
 	}
 	if body := res.DisplayRawBody(); len(body) > 0 {
 		b.WriteString("\n" + output.BodyOrSummary(t, res, body) + "\n")
 	}
 	if summary := output.Checks(t, res, width-4, false); summary != "" {
-		b.WriteString("\n" + summary)
+		b.WriteString("\n" + m.rule("checks", width) + summary)
 	}
 	return b.String()
 }
@@ -186,13 +219,15 @@ func (m *Model) renderChecks(width int) string {
 		return b.String()
 	}
 	var b strings.Builder
-	b.WriteString(output.RequestLine(t, res) + "\n")
+	b.WriteString(m.rule("request", width))
+	b.WriteString(output.RequestLine(t, res) + "\n\n")
+	b.WriteString(m.rule("response", width))
 	b.WriteString(output.StatusLine(t, res) + "\n")
 	checks := output.Checks(t, res, width-4, true)
 	if checks == "" {
 		checks = t.Dim.Render("no assertions or captures on this request") + "\n"
 	}
-	b.WriteString(checks)
+	b.WriteString(m.rule("checks", width) + checks)
 	return b.String()
 }
 

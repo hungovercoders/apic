@@ -9,6 +9,11 @@ What changed for people using apic, release by release. The format follows [Keep
 - The Agent Skill is now a pack of three. `apic` briefs an agent on using apic as before; `api-design` on designing the HTTP API the requests call (resources and URLs, methods and status codes, problem-details errors, pagination, versioning, idempotency, caching, long-running work and the OpenAPI document, each decision proved by a request or an `apic mock`); and `api-security` on keeping it safe and showing it (the OWASP API Security Top 10 as checks, authentication, authorisation, input and resource limits, headers and CORS, secrets and logging, each a request or Gherkin scenario that fails while the control is missing). `apic skill <name>` prints one. The `apic` skill is about using apic, so `apic skill install` and `apic init` write it as before; the other two are opinions about your API, so `apic skill install --all` adds them (or `--skill <name>` picks exactly the skills wanted), `--user` writes the chosen skills under your home directory once for every project, and `apic skill --json` gained a `skills` array naming the pack. Each skill has evals under `skills/<name>/evals/` that `task agent:eval` runs with and without it.
 - This changelog, on [apic.sh/changelog](https://apic.sh/changelog/) and attached to each release on GitHub as its notes, in place of a list of commits.
 
+### Changed
+
+- `apic ui`'s response tab now sets what was sent apart from what came back: a `request` rule above the request line (and, with `H`, its headers and body), a `response` rule above the status, timings, headers and body, and a `checks` rule above the assertions and captures; the checks tab is divided the same way. The timings line breaks between words on a narrow pane instead of mid-word.
+- `apic ui` puts a blank column either side of the divider between the request list and the detail pane, so neither runs into the line. The list keeps its status codes and timings in two aligned columns, drops a description before it drops a timing, and takes two fifths of the terminal (up to 52 columns) instead of a third. The tab strip shows the selected request's name whole or not at all.
+
 ## [0.2.0] - 2026-10-27
 
 ### Added

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/muesli/termenv"
 
 	"github.com/hungovercoders/apic/internal/demoapi"
@@ -394,6 +395,62 @@ func TestHeadersAndCurlToggles(t *testing.T) {
 	f.press("c", "esc")
 	if v := f.view(); strings.Contains(v, "curl -sS") {
 		t.Fatal("esc should hide the code")
+	}
+}
+
+// The response tab shows what was sent above what came back, each under
+// its own rule, so the two cannot be mistaken for one block.
+func TestResponseTabDividesRequestFromResponse(t *testing.T) {
+	f := newFixture(t, runner.Options{})
+	if v := f.view(); strings.Contains(v, "── request") {
+		t.Fatalf("the preview tab has no rules:\n%s", v)
+	}
+	f.drain(f.press("enter"))
+	v := f.view()
+	req, resp, checks := strings.Index(v, "── request"), strings.Index(v, "── response"), strings.Index(v, "── checks")
+	if req < 0 || resp < req || checks < resp {
+		t.Fatalf("want request, response and checks rules in that order:\n%s", v)
+	}
+	if line, status := strings.Index(v, "/auth/login"), strings.Index(v, "200 OK"); line < req || line > resp || status < resp || status > checks {
+		t.Fatalf("the request line belongs under request and the status under response:\n%s", v)
+	}
+	// The checks tab is divided the same way.
+	f.press("3")
+	v = f.view()
+	req, resp, checks = strings.Index(v, "── request"), strings.Index(v, "── response"), strings.Index(v, "── checks")
+	if req < 0 || resp < req || checks < resp {
+		t.Fatalf("the checks tab wants the same three rules:\n%s", v)
+	}
+}
+
+// The panes are parted by a divider with a blank column either side, and
+// the list keeps its status codes in one column however long each
+// request took.
+func TestPanesHaveAGutterAndAlignedStatuses(t *testing.T) {
+	f := newFixture(t, runner.Options{})
+	f.drain(f.press("a"))
+	col := -1
+	for _, line := range strings.Split(ansi.Strip(f.view()), "\n") {
+		at := strings.Index(line, "│")
+		if at < 0 {
+			continue // the status bar
+		}
+		cells := []rune(line[:at])
+		if n := len(cells); n < 1 || cells[n-1] != ' ' || !strings.HasPrefix(line[at:], "│ ") {
+			t.Fatalf("want a blank column either side of the divider: %q", line)
+		}
+		code := strings.Index(line[:at], " 200 ")
+		if code < 0 {
+			continue
+		}
+		code = ansi.StringWidth(line[:code]) // a column, not a byte offset
+		if col >= 0 && code != col {
+			t.Fatalf("status codes out of line: column %d, then %d in %q", col, code, line)
+		}
+		col = code
+	}
+	if col < 0 {
+		t.Fatalf("no row showed a status:\n%s", f.view())
 	}
 }
 

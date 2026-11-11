@@ -218,20 +218,27 @@ func (m *Model) View() string {
 	contentH := m.height - 1
 	left := m.renderList(leftW, contentH)
 	right := m.renderTabs(rightW) + "\n" + m.vp.view()
-	sep := strings.TrimRight(strings.Repeat(m.theme.Dim.Render("│")+"\n", contentH), "\n")
+	sep := strings.TrimRight(strings.Repeat(" "+m.theme.Dim.Render("│")+" \n", contentH), "\n")
 	body := lipgloss.JoinHorizontal(lipgloss.Top, left, sep, right)
 	return body + "\n" + m.renderStatus()
 }
 
+// gutter is the divider between the panes with a blank column either
+// side, so neither pane's text runs into the line.
+const gutter = 3
+
+// paneWidths shares the screen out: the list takes two fifths, within
+// bounds that keep an id and its status readable on a narrow terminal and
+// leave a wide one's extra columns to the response.
 func (m *Model) paneWidths() (int, int) {
-	left := m.width / 3
+	left := m.width * 2 / 5
 	if left < 28 {
 		left = 28
 	}
-	if left > 44 {
-		left = 44
+	if left > 52 {
+		left = 52
 	}
-	return left, m.width - left - 1
+	return left, m.width - left - gutter
 }
 
 func (m *Model) resize() {

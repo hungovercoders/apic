@@ -149,7 +149,12 @@ func (m *Model) renderResponse(width int) string {
 	}
 	// The timings are one long line: break it between words, where the
 	// viewport's own wrap would cut one in half.
-	b.WriteString(ansi.Wordwrap(output.Timings(t, res), width, ""))
+	// Each line is styled on its own, so the continuation stays dim.
+	if tm := strings.TrimSpace(ansi.Strip(output.Timings(t, res))); tm != "" {
+		for _, line := range strings.Split(ansi.Wordwrap(tm, width, ""), "\n") {
+			b.WriteString(t.Dim.Render(line) + "\n")
+		}
+	}
 	if m.showHeaders {
 		b.WriteString(output.ResponseHeaders(t, res))
 	} else {

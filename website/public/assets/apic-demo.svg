@@ -186,11 +186,11 @@
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5" y="168.0" fill="#d6dae4" xml:space="preserve"> api-key </text>
 <text x="174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">An API key fro…</text>
 <text x="307.2" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · new         </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · new</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0" y="186.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">explore.http</text>
 <text x="299.4" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">4</text>
 <text x="307.2" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="186.0" fill="#d6dae4" xml:space="preserve">connection                                                                </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">connection</text>
 <text x="33.6" y="204.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">●</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="204.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GET    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7" y="204.0" fill="#d6dae4" xml:space="preserve"> health </text>
@@ -543,11 +543,11 @@
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5" y="168.0" fill="#d6dae4" xml:space="preserve"> api-key </text>
 <text x="174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">An API key fro…</text>
 <text x="307.2" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused      </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0" y="186.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">explore.http</text>
 <text x="299.4" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">4</text>
 <text x="307.2" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="186.0" fill="#d6dae4" xml:space="preserve">connection                                                                </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">connection</text>
 <text x="33.6" y="204.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">●</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="204.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GET    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7" y="204.0" fill="#d6dae4" xml:space="preserve"> health </text>
@@ -687,13 +687,13 @@
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4 96.2 104.0" y="168.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">explore.http</text>
 <text x="299.4" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">4</text>
 <text x="307.2" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused      </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused</text>
 <text x="33.6" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">●</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="186.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GET    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7" y="186.0" fill="#d6dae4" xml:space="preserve"> health </text>
 <text x="166.5 174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">Is the API up? …</text>
 <text x="307.2" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="186.0" fill="#d6dae4" xml:space="preserve">connection                                                                </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">connection</text>
 <text x="33.6" y="204.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">●</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="204.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GET    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1" y="204.0" fill="#d6dae4" xml:space="preserve"> slow </text>
@@ -828,13 +828,13 @@
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7" y="168.0" fill="#d6dae4" xml:space="preserve"> health </text>
 <text x="166.5 174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">Is the API up? …</text>
 <text x="307.2" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused      </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused</text>
 <text x="33.6" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">●</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="186.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GET    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1" y="186.0" fill="#d6dae4" xml:space="preserve"> slow </text>
 <text x="150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">A slow endpoint, …</text>
 <text x="307.2" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="186.0" fill="#d6dae4" xml:space="preserve">connection                                                                </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">connection</text>
 <text x="33.6" y="204.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">●</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="204.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GET    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6" y="204.0" fill="#d6dae4" xml:space="preserve"> daily-report </text>
@@ -916,7 +916,7 @@
 <text x="291.6 299.4 307.2" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="315.0" y="384.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">⠋</text>
 <text x="322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5" y="384.0" fill="#d6dae4" xml:space="preserve"> running get-todo (4/12) </text>
-<text x="518.3 526.1 533.9" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">3ms</text>
+<text x="518.3 526.1 533.9" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">4ms</text>
 <text x="541.7 549.5 557.4" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
@@ -973,13 +973,13 @@
 <text x="104.0 111.8 119.6 127.4 135.3 143.1" y="168.0" fill="#d6dae4" xml:space="preserve"> slow </text>
 <text x="150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">A slow endpoint, …</text>
 <text x="307.2" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused      </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused</text>
 <text x="33.6" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">●</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="186.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GET    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6" y="186.0" fill="#d6dae4" xml:space="preserve"> daily-report </text>
 <text x="213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">A CSV dow…</text>
 <text x="307.2" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="186.0" fill="#d6dae4" xml:space="preserve">connection                                                                </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">connection</text>
 <text x="33.6" y="204.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">●</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="204.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GRAPHQL</text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5" y="204.0" fill="#d6dae4" xml:space="preserve"> graphql </text>
@@ -1062,7 +1062,7 @@
 <text x="291.6 299.4 307.2" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="315.0" y="384.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">⠋</text>
 <text x="322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9" y="384.0" fill="#d6dae4" xml:space="preserve"> running update-todo (5/12) </text>
-<text x="541.7 549.5 557.4" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">4ms</text>
+<text x="541.7 549.5 557.4" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">6ms</text>
 <text x="565.2 573.0 580.8" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
@@ -1111,7 +1111,7 @@
 <text x="307.2" y="150.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="315.0 322.9 330.7 338.5 346.3 354.1" y="150.0" fill="#00d787" font-weight="bold" xml:space="preserve">200 OK</text>
 <text x="369.8" y="150.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">·</text>
-<text x="385.4 393.2 401.0 408.8" y="150.0" fill="#00d787" font-weight="bold" xml:space="preserve">0 ms</text>
+<text x="385.4 393.2 401.0 408.8" y="150.0" fill="#00d787" font-weight="bold" xml:space="preserve">1 ms</text>
 <text x="424.5" y="150.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">·</text>
 <text x="440.1 447.9 455.7 463.6" y="150.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">44 B</text>
 <text x="33.6" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">●</text>
@@ -1119,13 +1119,13 @@
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6" y="168.0" fill="#d6dae4" xml:space="preserve"> daily-report </text>
 <text x="213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">A CSV dow…</text>
 <text x="307.2" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused      </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 1 ms · total 1 ms · reused</text>
 <text x="33.6" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">●</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="186.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GRAPHQL</text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5" y="186.0" fill="#d6dae4" xml:space="preserve"> graphql </text>
 <text x="174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">GraphQL, writt…</text>
 <text x="307.2" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="186.0" fill="#d6dae4" xml:space="preserve">connection                                                                </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">connection</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5" y="204.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">jobs.http</text>
 <text x="299.4" y="204.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">3</text>
 <text x="307.2" y="204.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
@@ -1194,7 +1194,7 @@
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="366.0" fill="#d787d7" font-weight="bold" xml:space="preserve">PUT    </text>
 <text x="111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0" y="366.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">update-todo</text>
 <text x="252.5 260.3 268.1" y="366.0" fill="#00d787" font-weight="bold" xml:space="preserve">200</text>
-<text x="283.8 291.6 299.4" y="366.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
+<text x="283.8 291.6 299.4" y="366.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">1ms</text>
 <text x="307.2" y="366.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="315.0" y="366.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
 <text x="322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="366.0" fill="#d6dae4" xml:space="preserve"> status == 200                                                           </text>
@@ -1209,7 +1209,7 @@
 <text x="291.6 299.4 307.2" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="315.0" y="384.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">⠋</text>
 <text x="322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9" y="384.0" fill="#d6dae4" xml:space="preserve"> running get-updated (6/12) </text>
-<text x="541.7 549.5 557.4" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">6ms</text>
+<text x="541.7 549.5 557.4" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">8ms</text>
 <text x="565.2 573.0 580.8" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
@@ -1266,11 +1266,11 @@
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5" y="168.0" fill="#d6dae4" xml:space="preserve"> graphql </text>
 <text x="174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">GraphQL, writt…</text>
 <text x="307.2" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused      </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5" y="186.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">jobs.http</text>
 <text x="299.4" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">3</text>
 <text x="307.2" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="186.0" fill="#d6dae4" xml:space="preserve">connection                                                                </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">connection</text>
 <text x="33.6" y="204.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">●</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="204.0" fill="#d787d7" font-weight="bold" xml:space="preserve">POST   </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0" y="204.0" fill="#d6dae4" xml:space="preserve"> create-job </text>
@@ -1332,7 +1332,7 @@
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="348.0" fill="#d787d7" font-weight="bold" xml:space="preserve">PUT    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7" y="348.0" fill="#d6dae4" xml:space="preserve"> update-todo       </text>
 <text x="252.5 260.3 268.1" y="348.0" fill="#00d787" font-weight="bold" xml:space="preserve">200</text>
-<text x="283.8 291.6 299.4" y="348.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
+<text x="283.8 291.6 299.4" y="348.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">1ms</text>
 <text x="307.2" y="348.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="315.0 322.9 330.7" y="348.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">── </text>
 <text x="338.5 346.3 354.1 361.9 369.8 377.6" y="348.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">checks</text>
@@ -1357,7 +1357,7 @@
 <text x="291.6 299.4 307.2" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="315.0" y="384.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">⠋</text>
 <text x="322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9" y="384.0" fill="#d6dae4" xml:space="preserve"> running delete-todo (7/12) </text>
-<text x="541.7 549.5 557.4" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">7ms</text>
+<text x="541.7 549.5 557.4" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">9ms</text>
 <text x="565.2 573.0 580.8" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
@@ -1411,13 +1411,13 @@
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5" y="168.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">jobs.http</text>
 <text x="299.4" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">3</text>
 <text x="307.2" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused      </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused</text>
 <text x="33.6" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">●</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="186.0" fill="#d787d7" font-weight="bold" xml:space="preserve">POST   </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0" y="186.0" fill="#d6dae4" xml:space="preserve"> create-job </text>
 <text x="197.8 205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">Submit a ba…</text>
 <text x="307.2" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="186.0" fill="#d6dae4" xml:space="preserve">connection                                                                </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">connection</text>
 <text x="33.6" y="204.0" fill="#ffaf00" font-weight="bold" xml:space="preserve">○</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="204.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GET    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5" y="204.0" fill="#d6dae4" xml:space="preserve"> get-job </text>
@@ -1466,7 +1466,7 @@
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="330.0" fill="#d787d7" font-weight="bold" xml:space="preserve">PUT    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7" y="330.0" fill="#d6dae4" xml:space="preserve"> update-todo       </text>
 <text x="252.5 260.3 268.1" y="330.0" fill="#00d787" font-weight="bold" xml:space="preserve">200</text>
-<text x="283.8 291.6 299.4" y="330.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
+<text x="283.8 291.6 299.4" y="330.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">1ms</text>
 <text x="307.2" y="330.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="33.6" y="348.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="348.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GET    </text>
@@ -1492,9 +1492,9 @@
 <text x="291.6 299.4 307.2" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="315.0" y="384.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">⠋</text>
 <text x="322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9" y="384.0" fill="#d6dae4" xml:space="preserve"> running get-deleted (8/12) </text>
-<text x="541.7 549.5 557.4" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">8ms</text>
-<text x="565.2 573.0 580.8" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
-<text x="588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
+<text x="541.7 549.5 557.4 565.2" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">11ms</text>
+<text x="573.0 580.8 588.6" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
+<text x="596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
 <g class="frame" opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.4521;0.4722;1" dur="22.45s" repeatCount="indefinite"/>
 <text x="893" y="23.5" fill="#8b93a7" text-anchor="end" font-size="12">f · run the whole file, live</text>
@@ -1548,13 +1548,13 @@
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0" y="168.0" fill="#d6dae4" xml:space="preserve"> create-job </text>
 <text x="197.8 205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">Submit a ba…</text>
 <text x="307.2" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused      </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused</text>
 <text x="33.6" y="186.0" fill="#ffaf00" font-weight="bold" xml:space="preserve">○</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="186.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GET    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5" y="186.0" fill="#d6dae4" xml:space="preserve"> get-job </text>
 <text x="174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">Poll it once: …</text>
 <text x="307.2" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="186.0" fill="#d6dae4" xml:space="preserve">connection                                                                </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">connection</text>
 <text x="33.6" y="204.0" fill="#ffaf00" font-weight="bold" xml:space="preserve">○</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="204.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GET    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6" y="204.0" fill="#d6dae4" xml:space="preserve"> wait-for-job </text>
@@ -1598,7 +1598,7 @@
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="312.0" fill="#d787d7" font-weight="bold" xml:space="preserve">PUT    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7" y="312.0" fill="#d6dae4" xml:space="preserve"> update-todo       </text>
 <text x="252.5 260.3 268.1" y="312.0" fill="#00d787" font-weight="bold" xml:space="preserve">200</text>
-<text x="283.8 291.6 299.4" y="312.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
+<text x="283.8 291.6 299.4" y="312.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">1ms</text>
 <text x="307.2" y="312.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="315.0 322.9 330.7" y="312.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">── </text>
 <text x="338.5 346.3 354.1 361.9 369.8 377.6" y="312.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">checks</text>
@@ -1635,7 +1635,7 @@
 <text x="291.6 299.4 307.2" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="315.0" y="384.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">⠋</text>
 <text x="322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4" y="384.0" fill="#d6dae4" xml:space="preserve"> running create-todo-invalid (9/12) </text>
-<text x="604.3 612.1 619.9 627.7" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">10ms</text>
+<text x="604.3 612.1 619.9 627.7" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">12ms</text>
 <text x="635.5 643.3 651.2" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
@@ -1692,13 +1692,13 @@
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5" y="168.0" fill="#d6dae4" xml:space="preserve"> get-job </text>
 <text x="174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">Poll it once: …</text>
 <text x="307.2" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused      </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused</text>
 <text x="33.6" y="186.0" fill="#ffaf00" font-weight="bold" xml:space="preserve">○</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="186.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GET    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6" y="186.0" fill="#d6dae4" xml:space="preserve"> wait-for-job </text>
 <text x="213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">Poll unti…</text>
 <text x="307.2" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="186.0" fill="#d6dae4" xml:space="preserve">connection                                                                </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">connection</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4" y="204.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">todos.http</text>
 <text x="268.1 276.0" y="204.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓9</text>
 <text x="291.6 299.4" y="204.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">·3</text>
@@ -1739,7 +1739,7 @@
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="294.0" fill="#d787d7" font-weight="bold" xml:space="preserve">PUT    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7" y="294.0" fill="#d6dae4" xml:space="preserve"> update-todo       </text>
 <text x="252.5 260.3 268.1" y="294.0" fill="#00d787" font-weight="bold" xml:space="preserve">200</text>
-<text x="283.8 291.6 299.4" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
+<text x="283.8 291.6 299.4" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">1ms</text>
 <text x="307.2" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="346.3 354.1 361.9 369.8 377.6 385.4 393.2" y="294.0" fill="#5fd7ff" xml:space="preserve">&quot;title&quot;</text>
 <text x="401.0 408.8" y="294.0" fill="#d6dae4" xml:space="preserve">: </text>
@@ -1784,7 +1784,7 @@
 <text x="291.6 299.4 307.2" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="315.0" y="384.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">⠋</text>
 <text x="322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1" y="384.0" fill="#d6dae4" xml:space="preserve"> running not-found (10/12) </text>
-<text x="533.9 541.7 549.5 557.4" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">12ms</text>
+<text x="533.9 541.7 549.5 557.4" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">13ms</text>
 <text x="565.2 573.0 580.8" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
@@ -1840,13 +1840,13 @@
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6" y="168.0" fill="#d6dae4" xml:space="preserve"> wait-for-job </text>
 <text x="213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">Poll unti…</text>
 <text x="307.2" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused      </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4" y="186.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">todos.http</text>
 <text x="244.7 252.5" y="186.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓9</text>
 <text x="268.1 276.0" y="186.0" fill="#ff5f5f" font-weight="bold" xml:space="preserve">✗1</text>
 <text x="291.6 299.4" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">·2</text>
 <text x="307.2" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="186.0" fill="#d6dae4" xml:space="preserve">connection                                                                </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">connection</text>
 <text x="33.6" y="204.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="204.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GET    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0" y="204.0" fill="#d6dae4" xml:space="preserve"> list-todos </text>
@@ -1880,7 +1880,7 @@
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="276.0" fill="#d787d7" font-weight="bold" xml:space="preserve">PUT    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7" y="276.0" fill="#d6dae4" xml:space="preserve"> update-todo       </text>
 <text x="252.5 260.3 268.1" y="276.0" fill="#00d787" font-weight="bold" xml:space="preserve">200</text>
-<text x="283.8 291.6 299.4" y="276.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
+<text x="283.8 291.6 299.4" y="276.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">1ms</text>
 <text x="307.2" y="276.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="276.0" fill="#d6dae4" xml:space="preserve">}                                                                         </text>
 <text x="33.6" y="294.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
@@ -1930,7 +1930,7 @@
 <text x="291.6 299.4 307.2" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="315.0" y="384.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">⠋</text>
 <text x="322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6" y="384.0" fill="#d6dae4" xml:space="preserve"> running redirect-followed (11/12) </text>
-<text x="596.4 604.3 612.1 619.9" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">13ms</text>
+<text x="596.4 604.3 612.1 619.9" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">15ms</text>
 <text x="627.7 635.5 643.3" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
@@ -1986,14 +1986,14 @@
 <text x="268.1 276.0" y="168.0" fill="#ff5f5f" font-weight="bold" xml:space="preserve">✗1</text>
 <text x="291.6 299.4" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">·1</text>
 <text x="307.2" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused      </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused</text>
 <text x="33.6" y="186.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="186.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GET    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0" y="186.0" fill="#d6dae4" xml:space="preserve"> list-todos </text>
 <text x="197.8 205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">List tod…</text>
 <text x="283.8 291.6 299.4" y="186.0" fill="#00d787" font-weight="bold" xml:space="preserve">200</text>
 <text x="307.2" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="186.0" fill="#d6dae4" xml:space="preserve">connection                                                                </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">connection</text>
 <text x="33.6" y="204.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="204.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GET    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7" y="204.0" fill="#d6dae4" xml:space="preserve"> list-open-todos   </text>
@@ -2018,7 +2018,7 @@
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="258.0" fill="#d787d7" font-weight="bold" xml:space="preserve">PUT    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7" y="258.0" fill="#d6dae4" xml:space="preserve"> update-todo       </text>
 <text x="252.5 260.3 268.1" y="258.0" fill="#00d787" font-weight="bold" xml:space="preserve">200</text>
-<text x="283.8 291.6 299.4" y="258.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
+<text x="283.8 291.6 299.4" y="258.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">1ms</text>
 <text x="307.2" y="258.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4" y="258.0" fill="#5fd7ff" xml:space="preserve">&quot;status&quot;</text>
 <text x="393.2 401.0" y="258.0" fill="#d6dae4" xml:space="preserve">: </text>
@@ -2075,7 +2075,7 @@
 <text x="291.6 299.4 307.2" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="315.0" y="384.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">⠋</text>
 <text x="322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5" y="384.0" fill="#d6dae4" xml:space="preserve"> running redirect-raw (12/12) </text>
-<text x="557.4 565.2 573.0 580.8" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">14ms</text>
+<text x="557.4 565.2 573.0 580.8" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">16ms</text>
 <text x="588.6 596.4 604.3" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
@@ -2131,14 +2131,14 @@
 <text x="197.8 205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">List tod…</text>
 <text x="283.8 291.6 299.4" y="168.0" fill="#00d787" font-weight="bold" xml:space="preserve">200</text>
 <text x="307.2" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused      </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms · reused</text>
 <text x="33.6" y="186.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="186.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GET    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7" y="186.0" fill="#d6dae4" xml:space="preserve"> list-open-todos   </text>
 <text x="252.5 260.3 268.1" y="186.0" fill="#00d787" font-weight="bold" xml:space="preserve">200</text>
 <text x="283.8 291.6 299.4" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
 <text x="307.2" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="186.0" fill="#d6dae4" xml:space="preserve">connection                                                                </text>
+<text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">connection</text>
 <text x="33.6" y="204.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="204.0" fill="#d787d7" font-weight="bold" xml:space="preserve">POST   </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7" y="204.0" fill="#d6dae4" xml:space="preserve"> create-todo       </text>
@@ -2156,7 +2156,7 @@
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="240.0" fill="#d787d7" font-weight="bold" xml:space="preserve">PUT    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7" y="240.0" fill="#d6dae4" xml:space="preserve"> update-todo       </text>
 <text x="252.5 260.3 268.1" y="240.0" fill="#00d787" font-weight="bold" xml:space="preserve">200</text>
-<text x="283.8 291.6 299.4" y="240.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
+<text x="283.8 291.6 299.4" y="240.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">1ms</text>
 <text x="307.2" y="240.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="240.0" fill="#d6dae4" xml:space="preserve">&lt;a href=&quot;/status/200&quot;&gt;Found&lt;/a&gt;.                                          </text>
 <text x="33.6" y="258.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
@@ -2294,7 +2294,7 @@
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="240.0" fill="#d787d7" font-weight="bold" xml:space="preserve">PUT    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7" y="240.0" fill="#d6dae4" xml:space="preserve"> update-todo       </text>
 <text x="252.5 260.3 268.1" y="240.0" fill="#00d787" font-weight="bold" xml:space="preserve">200</text>
-<text x="283.8 291.6 299.4" y="240.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
+<text x="283.8 291.6 299.4" y="240.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">1ms</text>
 <text x="307.2" y="240.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="33.6" y="258.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="258.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GET    </text>
@@ -2421,7 +2421,7 @@
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="240.0" fill="#d787d7" font-weight="bold" xml:space="preserve">PUT    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7" y="240.0" fill="#d6dae4" xml:space="preserve"> update-todo       </text>
 <text x="252.5 260.3 268.1" y="240.0" fill="#00d787" font-weight="bold" xml:space="preserve">200</text>
-<text x="283.8 291.6 299.4" y="240.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
+<text x="283.8 291.6 299.4" y="240.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">1ms</text>
 <text x="307.2" y="240.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="33.6" y="258.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="258.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GET    </text>
@@ -2555,7 +2555,7 @@
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="240.0" fill="#d787d7" font-weight="bold" xml:space="preserve">PUT    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7" y="240.0" fill="#d6dae4" xml:space="preserve"> update-todo       </text>
 <text x="252.5 260.3 268.1" y="240.0" fill="#00d787" font-weight="bold" xml:space="preserve">200</text>
-<text x="283.8 291.6 299.4" y="240.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
+<text x="283.8 291.6 299.4" y="240.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">1ms</text>
 <text x="307.2" y="240.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="330.7" y="240.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">f</text>
 <text x="338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="240.0" fill="#d6dae4" xml:space="preserve">     run the file as a flow                                            </text>
@@ -2699,7 +2699,7 @@
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="240.0" fill="#d787d7" font-weight="bold" xml:space="preserve">PUT    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6 213.4 221.2 229.1 236.9 244.7" y="240.0" fill="#d6dae4" xml:space="preserve"> update-todo       </text>
 <text x="252.5 260.3 268.1" y="240.0" fill="#00d787" font-weight="bold" xml:space="preserve">200</text>
-<text x="283.8 291.6 299.4" y="240.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
+<text x="283.8 291.6 299.4" y="240.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">1ms</text>
 <text x="307.2" y="240.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="315.0 322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6" y="240.0" fill="#d6dae4" xml:space="preserve">  header.location contains status/200                                </text>
 <text x="33.6" y="258.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>

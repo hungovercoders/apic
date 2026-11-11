@@ -12,6 +12,7 @@ What changed for people using apic, release by release. The format follows [Keep
 ### Changed
 
 - `apic ui`'s response tab now sets what was sent apart from what came back: a `request` rule above the request line (and, with `H`, its headers and body), a `response` rule above the status, timings, headers and body, and a `checks` rule above the assertions and captures. The timings line breaks between words on a narrow pane instead of mid-word.
+- `apic ui` puts a blank column either side of the divider between the request list and the detail pane, so neither runs into the line. The list keeps its status codes and timings in two aligned columns, drops a description before it drops a timing, and takes two fifths of the terminal (up to 52 columns) instead of a third. The tab strip shows the selected request's name whole or not at all.
 
 ## [0.2.0] - 2026-10-27
 

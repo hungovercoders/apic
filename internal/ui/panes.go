@@ -25,10 +25,19 @@ func (m *Model) renderTabs(width int) string {
 		}
 	}
 	line := strings.Join(parts, "")
-	if m.selected != nil {
-		line += "  " + t.Dim.Render(ansi.Truncate(m.selected.ID(), 30, "…"))
-	}
 	pos := m.scrollPosition()
+	// The request's name is a reminder, not a control: it shows whole or
+	// not at all, never as a stub beside the scroll position.
+	if m.selected != nil {
+		name := "  " + t.Dim.Render(ansi.Truncate(m.selected.ID(), 30, "…"))
+		room := width - ansi.StringWidth(line) - ansi.StringWidth(name)
+		if pos != "" {
+			room -= ansi.StringWidth(pos) + 1
+		}
+		if room >= 0 {
+			line += name
+		}
+	}
 	if pos == "" {
 		return ansi.Truncate(line, width, "…")
 	}

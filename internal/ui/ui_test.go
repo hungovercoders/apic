@@ -414,6 +414,13 @@ func TestResponseTabDividesRequestFromResponse(t *testing.T) {
 	if line, status := strings.Index(v, "/auth/login"), strings.Index(v, "200 OK"); line < req || line > resp || status < resp || status > checks {
 		t.Fatalf("the request line belongs under request and the status under response:\n%s", v)
 	}
+	// The checks tab is divided the same way.
+	f.press("3")
+	v = f.view()
+	req, resp, checks = strings.Index(v, "── request"), strings.Index(v, "── response"), strings.Index(v, "── checks")
+	if req < 0 || resp < req || checks < resp {
+		t.Fatalf("the checks tab wants the same three rules:\n%s", v)
+	}
 }
 
 // The panes are parted by a divider with a blank column either side, and

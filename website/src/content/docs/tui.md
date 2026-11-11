@@ -85,7 +85,8 @@ says where you are in it: `top ↓`, `↑ 40% ↓`, `↑ end`.
 
 **Checks** shows each assertion with its actual *and* expected value, which
 is the fastest way to see why a check failed, plus everything the request
-captured.
+captured, under the same `request`, `response` and `checks` rules as the
+response tab.
 
 **Session** lists the values captured for the current environment, the same
 ones `apic session` prints and the same ones later runs will use, and the

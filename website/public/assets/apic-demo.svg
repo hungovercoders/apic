@@ -1365,7 +1365,7 @@
 <text x="291.6 299.4 307.2" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="315.0" y="384.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">⠋</text>
 <text x="322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9" y="384.0" fill="#d6dae4" xml:space="preserve"> running delete-todo (7/12) </text>
-<text x="541.7 549.5 557.4" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">6ms</text>
+<text x="541.7 549.5 557.4" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">9ms</text>
 <text x="565.2 573.0 580.8" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
@@ -1505,9 +1505,9 @@
 <text x="291.6 299.4 307.2" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="315.0" y="384.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">⠋</text>
 <text x="322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9" y="384.0" fill="#d6dae4" xml:space="preserve"> running get-deleted (8/12) </text>
-<text x="541.7 549.5 557.4" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">8ms</text>
-<text x="565.2 573.0 580.8" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
-<text x="588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
+<text x="541.7 549.5 557.4 565.2" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">11ms</text>
+<text x="573.0 580.8 588.6" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
+<text x="596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
 <g class="frame" opacity="0"><animate attributeName="opacity" calcMode="discrete" values="0;1;0;0" keyTimes="0;0.4521;0.4722;1" dur="22.45s" repeatCount="indefinite"/>
 <text x="893" y="23.5" fill="#8b93a7" text-anchor="end" font-size="12">f · run the whole file, live</text>
@@ -1552,7 +1552,7 @@
 <text x="369.8" y="150.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2" y="150.0" fill="#ff5f5f" font-weight="bold" xml:space="preserve">404 Not Found</text>
 <text x="494.8" y="150.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">·</text>
-<text x="510.5 518.3 526.1 533.9" y="150.0" fill="#00d787" font-weight="bold" xml:space="preserve">0 ms</text>
+<text x="510.5 518.3 526.1 533.9" y="150.0" fill="#00d787" font-weight="bold" xml:space="preserve">1 ms</text>
 <text x="549.5" y="150.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">·</text>
 <text x="565.2 573.0 580.8 588.6" y="150.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">22 B</text>
 <text x="33.6" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">●</text>
@@ -1560,7 +1560,7 @@
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0" y="168.0" fill="#d6dae4" xml:space="preserve"> create-job </text>
 <text x="197.8 205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8 291.6 299.4 307.2 315.0 322.9 330.7 338.5" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">Submit a backgroun…</text>
 <text x="369.8" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 0 ms · total 0 ms ·</text>
+<text x="385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4" y="168.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">dns 0 ms · connect 0 ms · tls 0 ms · ttfb 1 ms · total 1 ms ·</text>
 <text x="33.6" y="186.0" fill="#ffaf00" font-weight="bold" xml:space="preserve">○</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="186.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GET    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5" y="186.0" fill="#d6dae4" xml:space="preserve"> get-job </text>
@@ -1641,7 +1641,7 @@
 <text x="111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0" y="366.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">get-deleted</text>
 <text x="205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="366.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">Confirm th…</text>
 <text x="307.2 315.0 322.9" y="366.0" fill="#ff5f5f" font-weight="bold" xml:space="preserve">404</text>
-<text x="338.5 346.3 354.1" y="366.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
+<text x="338.5 346.3 354.1" y="366.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">1ms</text>
 <text x="369.8" y="366.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="18.0 25.8 33.6 41.5" y="384.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">apic</text>
 <text x="49.3 57.1 64.9" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
@@ -1654,7 +1654,7 @@
 <text x="291.6 299.4 307.2" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="315.0" y="384.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">⠋</text>
 <text x="322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4" y="384.0" fill="#d6dae4" xml:space="preserve"> running create-todo-invalid (9/12) </text>
-<text x="604.3 612.1 619.9 627.7" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">10ms</text>
+<text x="604.3 612.1 619.9 627.7" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">15ms</text>
 <text x="635.5 643.3 651.2" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
@@ -1787,7 +1787,7 @@
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8" y="348.0" fill="#d6dae4" xml:space="preserve"> get-deleted </text>
 <text x="205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="348.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">Confirm th…</text>
 <text x="307.2 315.0 322.9" y="348.0" fill="#ff5f5f" font-weight="bold" xml:space="preserve">404</text>
-<text x="338.5 346.3 354.1" y="348.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
+<text x="338.5 346.3 354.1" y="348.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">1ms</text>
 <text x="369.8" y="348.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="18.0 25.8" y="366.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">▸ </text>
 <text x="33.6" y="366.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
@@ -1810,7 +1810,7 @@
 <text x="291.6 299.4 307.2" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="315.0" y="384.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">⠋</text>
 <text x="322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1" y="384.0" fill="#d6dae4" xml:space="preserve"> running not-found (10/12) </text>
-<text x="533.9 541.7 549.5 557.4" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">11ms</text>
+<text x="533.9 541.7 549.5 557.4" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">16ms</text>
 <text x="565.2 573.0 580.8" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
@@ -1934,7 +1934,7 @@
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8" y="330.0" fill="#d6dae4" xml:space="preserve"> get-deleted </text>
 <text x="205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="330.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">Confirm th…</text>
 <text x="307.2 315.0 322.9" y="330.0" fill="#ff5f5f" font-weight="bold" xml:space="preserve">404</text>
-<text x="338.5 346.3 354.1" y="330.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
+<text x="338.5 346.3 354.1" y="330.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">1ms</text>
 <text x="369.8" y="330.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="385.4" y="330.0" fill="#ff5f5f" font-weight="bold" xml:space="preserve">✗</text>
 <text x="393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6" y="330.0" fill="#d6dae4" xml:space="preserve"> status == 200 </text>
@@ -1964,7 +1964,7 @@
 <text x="291.6 299.4 307.2" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="315.0" y="384.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">⠋</text>
 <text x="322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6" y="384.0" fill="#d6dae4" xml:space="preserve"> running redirect-followed (11/12) </text>
-<text x="596.4 604.3 612.1 619.9" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">12ms</text>
+<text x="596.4 604.3 612.1 619.9" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">17ms</text>
 <text x="627.7 635.5 643.3" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
@@ -2080,7 +2080,7 @@
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8" y="312.0" fill="#d6dae4" xml:space="preserve"> get-deleted </text>
 <text x="205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="312.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">Confirm th…</text>
 <text x="307.2 315.0 322.9" y="312.0" fill="#ff5f5f" font-weight="bold" xml:space="preserve">404</text>
-<text x="338.5 346.3 354.1" y="312.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
+<text x="338.5 346.3 354.1" y="312.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">1ms</text>
 <text x="369.8" y="312.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="385.4 393.2 401.0" y="312.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">── </text>
 <text x="408.8 416.7 424.5 432.3 440.1 447.9" y="312.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">checks</text>
@@ -2118,7 +2118,7 @@
 <text x="291.6 299.4 307.2" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="315.0" y="384.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">⠋</text>
 <text x="322.9 330.7 338.5 346.3 354.1 361.9 369.8 377.6 385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5" y="384.0" fill="#d6dae4" xml:space="preserve"> running redirect-raw (12/12) </text>
-<text x="557.4 565.2 573.0 580.8" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">13ms</text>
+<text x="557.4 565.2 573.0 580.8" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">19ms</text>
 <text x="588.6 596.4 604.3" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve"> · </text>
 <text x="612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5" y="384.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">? help · q quit</text>
 </g>
@@ -2227,7 +2227,7 @@
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8" y="294.0" fill="#d6dae4" xml:space="preserve"> get-deleted </text>
 <text x="205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">Confirm th…</text>
 <text x="307.2 315.0 322.9" y="294.0" fill="#ff5f5f" font-weight="bold" xml:space="preserve">404</text>
-<text x="338.5 346.3 354.1" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
+<text x="338.5 346.3 354.1" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">1ms</text>
 <text x="369.8" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="385.4" y="294.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
 <text x="393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="294.0" fill="#d6dae4" xml:space="preserve"> status == 302                                                  </text>
@@ -2288,18 +2288,16 @@
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5" y="78.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">jobs.http</text>
 <text x="354.1" y="78.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">3</text>
 <text x="369.8" y="78.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="385.4 393.2 401.0" y="78.0" fill="#00afff" font-weight="bold" xml:space="preserve">GET</text>
-<text x="416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3" y="78.0" fill="#00afff" xml:space="preserve">http://localhost:8089/redirect</text>
+<text x="385.4 393.2 401.0" y="78.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">── </text>
+<text x="408.8 416.7 424.5 432.3 440.1 447.9 455.7" y="78.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">request</text>
+<text x="471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="78.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">──────────────────────────────────────────────────────</text>
 <text x="33.6" y="96.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">●</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="96.0" fill="#d787d7" font-weight="bold" xml:space="preserve">POST   </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0" y="96.0" fill="#d6dae4" xml:space="preserve"> create-job </text>
 <text x="197.8 205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8 291.6 299.4 307.2 315.0 322.9 330.7 338.5" y="96.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">Submit a backgroun…</text>
 <text x="369.8" y="96.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9" y="96.0" fill="#ffaf00" font-weight="bold" xml:space="preserve">302 Found</text>
-<text x="463.6" y="96.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">·</text>
-<text x="479.2 487.0 494.8 502.6" y="96.0" fill="#00d787" font-weight="bold" xml:space="preserve">0 ms</text>
-<text x="518.3" y="96.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">·</text>
-<text x="533.9 541.7 549.5 557.4" y="96.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">34 B</text>
+<text x="385.4 393.2 401.0" y="96.0" fill="#00afff" font-weight="bold" xml:space="preserve">GET</text>
+<text x="416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3" y="96.0" fill="#00afff" xml:space="preserve">http://localhost:8089/redirect</text>
 <text x="33.6" y="114.0" fill="#ffaf00" font-weight="bold" xml:space="preserve">○</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="114.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GET    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5" y="114.0" fill="#d6dae4" xml:space="preserve"> get-job </text>
@@ -2310,14 +2308,18 @@
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8 205.6" y="132.0" fill="#d6dae4" xml:space="preserve"> wait-for-job </text>
 <text x="213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8 291.6 299.4 307.2 315.0 322.9 330.7 338.5" y="132.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">Poll until it is…</text>
 <text x="369.8" y="132.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="385.4" y="132.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
-<text x="393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5" y="132.0" fill="#d6dae4" xml:space="preserve"> status == 302                                        </text>
+<text x="385.4 393.2 401.0" y="132.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">── </text>
+<text x="408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6" y="132.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">response</text>
+<text x="479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="132.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">─────────────────────────────────────────────────────</text>
 <text x="18.0 25.8 33.6 41.5 49.3 57.1 64.9 72.7 80.5 88.4" y="150.0" fill="#ff87d7" font-weight="bold" xml:space="preserve">todos.http</text>
 <text x="315.0 322.9 330.7" y="150.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓11</text>
 <text x="346.3 354.1" y="150.0" fill="#ff5f5f" font-weight="bold" xml:space="preserve">✗1</text>
 <text x="369.8" y="150.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
-<text x="385.4" y="150.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
-<text x="393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5" y="150.0" fill="#d6dae4" xml:space="preserve"> header.location contains status/200                  </text>
+<text x="385.4 393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9" y="150.0" fill="#ffaf00" font-weight="bold" xml:space="preserve">302 Found</text>
+<text x="463.6" y="150.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">·</text>
+<text x="479.2 487.0 494.8 502.6" y="150.0" fill="#00d787" font-weight="bold" xml:space="preserve">0 ms</text>
+<text x="518.3" y="150.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">·</text>
+<text x="533.9 541.7 549.5 557.4" y="150.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">34 B</text>
 <text x="33.6" y="168.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="168.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GET    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0" y="168.0" fill="#d6dae4" xml:space="preserve"> list-todos </text>
@@ -2331,6 +2333,9 @@
 <text x="307.2 315.0 322.9" y="186.0" fill="#00d787" font-weight="bold" xml:space="preserve">200</text>
 <text x="338.5 346.3 354.1" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
 <text x="369.8" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
+<text x="385.4 393.2 401.0" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">── </text>
+<text x="408.8 416.7 424.5 432.3 440.1 447.9" y="186.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">checks</text>
+<text x="463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="186.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">───────────────────────────────────────────────────────</text>
 <text x="33.6" y="204.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="204.0" fill="#d787d7" font-weight="bold" xml:space="preserve">POST   </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8" y="204.0" fill="#d6dae4" xml:space="preserve"> create-todo </text>
@@ -2338,6 +2343,8 @@
 <text x="307.2 315.0 322.9" y="204.0" fill="#00d787" font-weight="bold" xml:space="preserve">201</text>
 <text x="338.5 346.3 354.1" y="204.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
 <text x="369.8" y="204.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
+<text x="385.4" y="204.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
+<text x="393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="204.0" fill="#d6dae4" xml:space="preserve"> status == 302                                                  </text>
 <text x="33.6" y="222.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="222.0" fill="#d787d7" font-weight="bold" xml:space="preserve">GET    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3" y="222.0" fill="#d6dae4" xml:space="preserve"> get-todo </text>
@@ -2345,6 +2352,8 @@
 <text x="307.2 315.0 322.9" y="222.0" fill="#00d787" font-weight="bold" xml:space="preserve">200</text>
 <text x="338.5 346.3 354.1" y="222.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
 <text x="369.8" y="222.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
+<text x="385.4" y="222.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
+<text x="393.2 401.0 408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="222.0" fill="#d6dae4" xml:space="preserve"> header.location contains status/200                            </text>
 <text x="33.6" y="240.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="240.0" fill="#d787d7" font-weight="bold" xml:space="preserve">PUT    </text>
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8" y="240.0" fill="#d6dae4" xml:space="preserve"> update-todo </text>
@@ -2371,7 +2380,7 @@
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8" y="294.0" fill="#d6dae4" xml:space="preserve"> get-deleted </text>
 <text x="205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">Confirm th…</text>
 <text x="307.2 315.0 322.9" y="294.0" fill="#ff5f5f" font-weight="bold" xml:space="preserve">404</text>
-<text x="338.5 346.3 354.1" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
+<text x="338.5 346.3 354.1" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">1ms</text>
 <text x="369.8" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="33.6" y="312.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="312.0" fill="#d787d7" font-weight="bold" xml:space="preserve">POST   </text>
@@ -2508,7 +2517,7 @@
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8" y="294.0" fill="#d6dae4" xml:space="preserve"> get-deleted </text>
 <text x="205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">Confirm th…</text>
 <text x="307.2 315.0 322.9" y="294.0" fill="#ff5f5f" font-weight="bold" xml:space="preserve">404</text>
-<text x="338.5 346.3 354.1" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
+<text x="338.5 346.3 354.1" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">1ms</text>
 <text x="369.8" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="33.6" y="312.0" fill="#00d787" font-weight="bold" xml:space="preserve">✓</text>
 <text x="49.3 57.1 64.9 72.7 80.5 88.4 96.2" y="312.0" fill="#d787d7" font-weight="bold" xml:space="preserve">POST   </text>
@@ -2658,7 +2667,7 @@
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8" y="294.0" fill="#d6dae4" xml:space="preserve"> get-deleted </text>
 <text x="205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">Confirm th…</text>
 <text x="307.2 315.0 322.9" y="294.0" fill="#ff5f5f" font-weight="bold" xml:space="preserve">404</text>
-<text x="338.5 346.3 354.1" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
+<text x="338.5 346.3 354.1" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">1ms</text>
 <text x="369.8" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="401.0" y="294.0" fill="#d6dae4" font-weight="bold" xml:space="preserve">e</text>
 <text x="408.8 416.7 424.5 432.3 440.1 447.9 455.7 463.6 471.4 479.2 487.0 494.8 502.6 510.5 518.3 526.1 533.9 541.7 549.5 557.4 565.2 573.0 580.8 588.6 596.4 604.3 612.1 619.9 627.7 635.5 643.3 651.2 659.0 666.8 674.6 682.4 690.2 698.1 705.9 713.7 721.5 729.3 737.1 745.0 752.8 760.6 768.4 776.2 784.0 791.9 799.7 807.5 815.3 823.1 830.9 838.8 846.6 854.4 862.2 870.0 877.8 885.7" y="294.0" fill="#d6dae4" xml:space="preserve">     next environment                                         </text>
@@ -2808,7 +2817,7 @@
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8" y="294.0" fill="#d6dae4" xml:space="preserve"> get-deleted </text>
 <text x="205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">Confirm th…</text>
 <text x="307.2 315.0 322.9" y="294.0" fill="#ff5f5f" font-weight="bold" xml:space="preserve">404</text>
-<text x="338.5 346.3 354.1" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
+<text x="338.5 346.3 354.1" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">1ms</text>
 <text x="369.8" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="385.4" y="294.0" fill="#00d787" xml:space="preserve">│</text>
 <text x="401.0 408.8 416.7 424.5 432.3" y="294.0" fill="#00d787" font-weight="bold" xml:space="preserve">ready</text>

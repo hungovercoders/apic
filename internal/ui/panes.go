@@ -219,13 +219,15 @@ func (m *Model) renderChecks(width int) string {
 		return b.String()
 	}
 	var b strings.Builder
-	b.WriteString(output.RequestLine(t, res) + "\n")
+	b.WriteString(m.rule("request", width))
+	b.WriteString(output.RequestLine(t, res) + "\n\n")
+	b.WriteString(m.rule("response", width))
 	b.WriteString(output.StatusLine(t, res) + "\n")
 	checks := output.Checks(t, res, width-4, true)
 	if checks == "" {
 		checks = t.Dim.Render("no assertions or captures on this request") + "\n"
 	}
-	b.WriteString(checks)
+	b.WriteString(m.rule("checks", width) + checks)
 	return b.String()
 }
 

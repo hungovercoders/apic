@@ -103,7 +103,7 @@
 <text x="104.0 111.8 119.6 127.4 135.3 143.1 150.9 158.7 166.5 174.3 182.2 190.0 197.8" y="294.0" fill="#d6dae4" xml:space="preserve"> get-deleted </text>
 <text x="205.6 213.4 221.2 229.1 236.9 244.7 252.5 260.3 268.1 276.0 283.8" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">Confirm th…</text>
 <text x="307.2 315.0 322.9" y="294.0" fill="#ff5f5f" font-weight="bold" xml:space="preserve">404</text>
-<text x="338.5 346.3 354.1" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">0ms</text>
+<text x="338.5 346.3 354.1" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">1ms</text>
 <text x="369.8" y="294.0" fill="#d6dae4" opacity="0.55" xml:space="preserve">│</text>
 <text x="385.4" y="294.0" fill="#00d787" xml:space="preserve">│</text>
 <text x="401.0 408.8 416.7 424.5 432.3" y="294.0" fill="#00d787" font-weight="bold" xml:space="preserve">ready</text>

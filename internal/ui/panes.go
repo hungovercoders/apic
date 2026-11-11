@@ -97,6 +97,19 @@ func (m *Model) renderPreview() string {
 	return output.Describe(m.theme, d, m.selected.Headers)
 }
 
+// rule draws a labelled divider across the pane: "── request ─────". The
+// response tab shows what was sent and what came back in one scroll, and
+// the rules are what tell the two apart.
+func (m *Model) rule(label string, width int) string {
+	t := m.theme
+	head := t.Dim.Render("── ") + t.Bold.Render(label) + " "
+	fill := width - ansi.StringWidth(head)
+	if fill < 0 {
+		fill = 0
+	}
+	return head + t.Dim.Render(strings.Repeat("─", fill)) + "\n"
+}
+
 func (m *Model) renderResponse(width int) string {
 	t := m.theme
 	req := m.selected
@@ -104,7 +117,9 @@ func (m *Model) renderResponse(width int) string {
 		res := m.results[req]
 		var b strings.Builder
 		if res != nil {
+			b.WriteString(m.rule("request", width))
 			b.WriteString(output.RequestLine(t, res) + "\n\n")
+			b.WriteString(m.rule("response", width))
 		}
 		b.WriteString(t.Fail.Render("✗ ") + err.Error() + "\n")
 		return b.String()
@@ -122,25 +137,29 @@ func (m *Model) renderResponse(width int) string {
 		return t.Bold.Render(lang) + t.Dim.Render(fmt.Sprintf(" · %d/%d", m.codeLang, len(snippet.Languages))) + "\n\n" + m.codeFor(lang) + "\n\n" + t.Dim.Render(next)
 	}
 	var b strings.Builder
+	b.WriteString(m.rule("request", width))
 	b.WriteString(output.RequestLine(t, res) + "\n")
 	if m.showHeaders {
 		b.WriteString(output.RequestDetail(t, res))
 	}
+	b.WriteString("\n" + m.rule("response", width))
 	b.WriteString(output.StatusLine(t, res))
 	if res.Response == nil {
 		return b.String()
 	}
-	b.WriteString(output.Timings(t, res))
+	// The timings are one long line: break it between words, where the
+	// viewport's own wrap would cut one in half.
+	b.WriteString(ansi.Wordwrap(output.Timings(t, res), width, ""))
 	if m.showHeaders {
 		b.WriteString(output.ResponseHeaders(t, res))
 	} else {
-		b.WriteString(t.Dim.Render("H shows headers") + "\n")
+		b.WriteString(t.Dim.Render("H shows the headers and the body sent") + "\n")
 	}
 	if body := res.DisplayRawBody(); len(body) > 0 {
 		b.WriteString("\n" + output.BodyOrSummary(t, res, body) + "\n")
 	}
 	if summary := output.Checks(t, res, width-4, false); summary != "" {
-		b.WriteString("\n" + summary)
+		b.WriteString("\n" + m.rule("checks", width) + summary)
 	}
 	return b.String()
 }

@@ -2,7 +2,7 @@ name: SlopStopper · Reliability Smoke Tests
 
 # Runs Playwright smoke tests against the deployed site (or local
 # `slopstopper serve` for PR builds). Page list comes from pages.smoke in
-# .slopstopper.yml. Triggers: PR, push to main, hourly schedule,
+# .slopstopper.yml. Triggers: PR, push to main, six-hourly schedule,
 # `deployment_status` events, and a dispatch from ss-cloudflare-deployed.yml
 # after a Workers Builds deploy. Failure raises a main-branch tracking issue
 # with the run URL; recovery auto-closes it. There is no PR comment because
@@ -16,7 +16,7 @@ on:
     branches: [main]
   deployment_status:
   schedule:
-    - cron: '0 * * * *'
+    - cron: '17 */6 * * *'
   workflow_dispatch:
     inputs:
       url:
@@ -24,6 +24,12 @@ on:
         required: false
         default: ''
         type: string
+
+concurrency:
+  # A new push to a PR cancels the run on the commit it replaced. Every
+  # other event gets a group of its own, so nothing on main is cancelled.
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   smoke-test:

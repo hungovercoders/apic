@@ -18,7 +18,9 @@ name: SlopStopper · Cloudflare Deployed Checks
 # fork is skipped, because `gh workflow run` can't target a fork's branch.
 # DAST runs against production only: Cloudflare previews answer a missing
 # path with a bare "Not found" carrying none of the site's headers, which
-# ZAP's 404 probes always flag.
+# ZAP's 404 probes always flag. The HTTPS redirect check is production
+# only too: a `workers.dev` preview answers plain HTTP with the page, and
+# no setting on the repo's side changes that.
 #
 # install.sh ships this only when the repo has wrangler config (at the
 # root or one directory down) or a worker/ directory. Docs: docs/deployment/README.md.
@@ -142,7 +144,7 @@ jobs:
             ss-security-api-headers-check.yml
             ss-hygiene-openapi-check.yml
           )
-          [ "$PRODUCTION" = "true" ] && checks+=(ss-security-dast-check.yml)
+          [ "$PRODUCTION" = "true" ] && checks+=(ss-security-dast-check.yml ss-security-https-check.yml)
           # Matched in the shell: a pipe into `grep -q` under the runner's
           # pipefail can report a listed workflow as absent.
           nl=$'\n'
